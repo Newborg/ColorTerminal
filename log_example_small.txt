@@ -1,0 +1,35 @@
+﻿01 Main::No thread=>target volume changed: 2.000000 --> 50.000000 ml
+02 Main::No thread=>calibration volume changed: 2.000000 --> 50.000000 ml
+03 Main::MeasSequence=>distillerDistillationSequenceSafe
+04 AAAAAAAAAAAAA
+05 B
+06 CCCCCCCCCCCC
+07 Main::SteamGenerator=>=== Setting steam capacity to 100 % ===
+08 Main::DMMasterStateMachine=>Progress: 34, textindex: 6, text: Doing distillation
+09 GUI::GUIMasterStateMachine=>Beginning transition onFOSS::Bifrost::T123::MeasureProgress from MeasureMode
+10 GUI::GUIMasterStateMachine=>Measure progress  34
+11 GUI::GUIMasterStateMachine=>Completed transition onFOSS::Bifrost::T123::MeasureProgress to nil
+12 Main::NaOH Pump=>AddNaOH: Volume 50.000000 ml
+13 Main::NaOH Pump=>=== Pumping 50.000000 ml, flowSamples=0 ===
+14 Main::NaOH Pump=>Adjusting remaing volume by 2.865701 ml
+15 TM::TitrationSequence=>Detecting boric color:-0.146 > limit:-0.130
+16 TM::TitrationSequence=>Receiver solution color test successful, detectorValue: -0.146
+17 Main::DMMasterStateMachine=>Progress: 35, textindex: 6, text: Doing distillation
+18 Main::MsgDisp=>Registering MsgDisp with watchdog manager. Prio: 3
+19 Main::FRAM Manager=>Registering FRAM Manager with watchdog manager. Prio: 3
+20 Main::ModuleMgr=>Platform source: ESWF:trunk rev12995
+21 Main::FileServer=>Active file devices (3):
+22 Main::FileServer=>  C: Volume name: InternalFlash
+23 Main::FileServer=>  D: Volume name: Error reading
+24 Main::FileServer=>  P: Volume name: PC
+25 Main::FileServer=>Registering FileServer with watchdog manager. Prio: 3
+26 Main::UpdaterIM=>Registering UpdaterIM with watchdog manager. Prio: 3
+27 Main::Updater=>Reading RacmDumpConfig from flash
+28 Main::Updater=>Writing new RacmDumpConfig to flash
+29 Main::LogAppCoordinator=>Registering LogAppCoordinator with watchdog manager. Prio: 3
+30 Main::SyncFile=>Registering SyncFile with watchdog manager. Prio: 3
+31 Main::SyncFile=>Registering SyncFile with watchdog manager. Prio: 3
+32 Main::SettingsCoordinator=>Registering SettingsCoordinator with watchdog manager. Prio: 3
+33 Main::FileCoordinator=>Registering FileCoordinator with watchdog manager. Prio: 3
+34 Main::NS Server=>Registering NS Server with watchdog manager. Prio: 3
+35 Main::ModuleMgr=>Board type: Power control
