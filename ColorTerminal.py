@@ -25,6 +25,10 @@ backgroundColor = "#101010"
 selectBackgroundColor = "#303030"
 textColor = "#FFFFFF"
 
+# fontFamily = "DejaVu Sans Mono"
+fontFamily = "Consolas"
+fontSize = 10
+
 # Good colors
 # Green: #00E000 (limit use)
 # Red: #FF8080
@@ -46,10 +50,17 @@ maxLineBuffer = 4000
 
 defaultWindowSize = "1100x600" # px
 
-logFilePath = r"C:\tools\Terminals\HomeMade\Logs"
+logFilePath = r"Logs"
 logFileBaseName = "SerialLog_"
 logFileTimestamp = r"%Y.%m.%d_%H.%M.%S"
-# logFileTimestamp = r"%Y.%m.%d_%H.00"
+
+statusConnectBackgroundColor = "#008800"
+statusWorkingBackgroundColor = "gray"
+statusDisconnectBackgroundColor = "#CC0000"
+statusTextColor = "white"
+
+textConnectBackgroundColor = "#008800"
+textDisconnectBackgroundColor = "#880000"
 
 ################################
 # Custom types
@@ -68,8 +79,13 @@ class printLine:
         self.line = line
         self.highlights = highlights
 
+NO_SERIAL_PORT = "None"
+
+CONNECT_COLOR_TAG = "CONNECT_COLOR_TAG"
+DISCONNECT_COLOR_TAG = "DISCONNECT_COLOR_TAG"
+
 ################################
-# Flags and queues
+# Flags, counters and queues
 
 readFlag = 1
 processFlag = 1
@@ -89,20 +105,36 @@ logQueue = queue.Queue()
 #  TODO better var name
 firstConnectLineWritten = False
 
+linesInLogFile = 0
+lastLogFileInfo = ""
+
+################################
+# Trace
+
+class logLevel(Enum):
+    ERROR = 0
+    WARNING = 1
+    INFO = 2
+    DEBUG = 3
+
+def TraceLog(level,msg):
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    print(timestamp + " [" + level.name + "] " + msg)
+
+
 ################################
 # Root frame
 
 root = tk.Tk()
 
 def on_closing():
-    if messagebox.askokcancel("Quit", "Do you want to quit?"):
-        print("Closing")
+    if messagebox.askokcancel("Quit", "Do you want to quit?"):        
         global closeProgram
         closeProgram = True
         disconnectSerial()
 
-def destroyWindow():
-    print("Closing main window")
+def destroyWindow():    
+    TraceLog(logLevel.INFO,"Closing main window")
     root.destroy()
 
 root.protocol("WM_DELETE_WINDOW", on_closing)
@@ -114,8 +146,10 @@ root.geometry(defaultWindowSize)
 ################################
 # Status frame
 
-def connectSerial():
-    print("Connect to serial")
+def connectSerial():    
+
+    TraceLog(logLevel.INFO,"Connect to serial")
+
     global readFlag        
     readFlag = 1
     global processFlag
@@ -139,15 +173,15 @@ def connectSerial():
     global firstConnectLineWritten
     firstConnectLineWritten = False
 
-    root.after(200,waitForInput)
+    root.after(50,waitForInput)
 
 def disconnectSerial():
     # Disconnect will block, so must be done in different thread
     disconnectThread = threading.Thread(target=disconnectSerialProcess)
     disconnectThread.start()
 
-def disconnectSerialProcess():
-    print("Disconnect from serial")
+def disconnectSerialProcess():    
+    TraceLog(logLevel.INFO,"Disconnect from serial")
     
     # Stop serial reader
     global readFlag        
@@ -174,16 +208,21 @@ def disconnectSerialProcess():
     if logThread.isAlive():
         logThread.join()
 
-    print("All threads stopped")
+  
 
-    statusLabel.config(text="DISCONNECTED", fg="red")
+    TraceLog(logLevel.INFO,"All worker threads stopped")
+    
+    setStatusLabel("DISCONNECTED",statusDisconnectBackgroundColor)
     global appState
     appState = connectState.DISCONNECTED
 
-    # Close tkinter window (close program)
-    # TODO not a very nice way to do this :/    
     if closeProgram:
+        # Close tkinter window (close program)
+        # TODO not a very nice way to do this :/  
         root.after(100,destroyWindow)
+    else:
+        # Add disconnect info line to main text
+        root.after(10,addDisconnectLine)   
 
 
 def scanSerialPorts():
@@ -194,31 +233,69 @@ def scanSerialPorts():
 
     for comPort in comPorts:
         try:
-            with serial.Serial(comPort.device, 115200, timeout=2) as ser:
-                # print("Port " + str(comPort.device) + " OK. Name: " + ser.name)
+            with serial.Serial(comPort.device, 115200, timeout=2) as ser:                
                 serialPortDict[comPort.device] = comPort.description
-        except serial.SerialException as e:
-            print("ERROR: " + str(e))
+        except serial.SerialException:            
+            TraceLog(logLevel.DEBUG,"scanSerialPorts: " + comPort.device + " already open")            
 
     return serialPortDict
 
+def reloadSerialPorts():
+
+    global serialPorts
+    serialPorts = scanSerialPorts()
+
+    if serialPorts:
+        serialPortList.clear()
+        serialPortList.extend(sorted(list(serialPorts.keys())))
+        serialPortVar.set(serialPortList[0])
+        serialPortVar.trace("w",updateSerialPortSelect)
+
+        # Delete options
+        serialPortOption["menu"].delete(0,"end")        
+
+        # Add new options
+        for port in serialPortList:
+            serialPortOption["menu"].add_command(label=port, command=tk._setit(serialPortVar,port))
+
+        serialPortOption.config(state=tk.NORMAL)
+        serialPortLabel.config(text=serialPorts[serialPortVar.get()])
+
+        connectButton.config(state=tk.NORMAL)
+
+        
+    else:
+        serialPortVar.set(NO_SERIAL_PORT)
+        serialPortLabel.config(text="No serial port found")
+        serialPortOption.config(state=tk.DISABLED)
+        connectButton.config(state=tk.DISABLED)
+
+
+
+def setAppState(state):
+
+    if state == connectState.CONNECTED:        
+        connectButton.config(text="Disconnect")
+        connectSerial()        
+        setStatusLabel("CONNECTING...",statusWorkingBackgroundColor)
+
+    elif state == connectState.DISCONNECTED:        
+        connectButton.config(text="Connect")
+        disconnectSerial()        
+        setStatusLabel("DISCONNECTING...",statusWorkingBackgroundColor)
 
 # Button Commands
 
 def connectButtonCommand():
-    global appState
+    
     if appState == connectState.DISCONNECTED:
         # Connect to serial
-        connectButton.config(text="Disconnect")
-        connectSerial()
-        # statusLabel.config(text="CONNECTED", fg="green")
-        # appState = connectState.CONNECTED
+        setAppState(connectState.CONNECTED)
+
     elif appState == connectState.CONNECTED:
         # Close down reader
-        connectButton.config(text="Connect")
-        disconnectSerial()
-        statusLabel.config(text="DISCONNECTING...", fg="gray")
-        # appState = connectState.DISCONNECTED
+        setAppState(connectState.DISCONNECTED)
+
 
 def goToEndButtonCommand():
     T.see(tk.END)
@@ -229,16 +306,21 @@ def clearButtonCommand():
     T.config(state=tk.DISABLED)
 
 def updateSerialPortSelect(*args):
-    serialPortLabel.config(text=serialPorts[serialPortVar.get()])
+    if serialPortVar.get() == NO_SERIAL_PORT:        
+        serialPortLabel.config(text=NO_SERIAL_PORT)
+    else:
+        serialPortLabel.config(text=serialPorts[serialPortVar.get()])
+
+def setStatusLabel(labelText, bgColor):
+    statusLabel.config(text=labelText, bg=bgColor)
+    statusLabelHeader.config(bg=bgColor)
 
 topFrame = tk.Frame(root)
 
-# TODO show line count
+statusLabel = tk.Label(topFrame,text="DISCONNECTED", width=20, anchor=tk.W, fg=statusTextColor, bg=statusDisconnectBackgroundColor)
+statusLabel.pack(side=tk.RIGHT,padx=(0,18))
 
-statusLabel = tk.Label(topFrame,text="DISCONNECTED", width=20, anchor=tk.W, fg="red")
-statusLabel.pack(side=tk.RIGHT)
-
-statusLabelHeader = tk.Label(topFrame,text="Status:", anchor=tk.W)
+statusLabelHeader = tk.Label(topFrame,text="   Status:", anchor=tk.W, fg=statusTextColor, bg=statusDisconnectBackgroundColor)
 statusLabelHeader.pack(side=tk.RIGHT)
 
 connectButton = tk.Button(topFrame,text="Connect", command=connectButtonCommand, width=10)
@@ -250,42 +332,32 @@ goToEndButton.pack(side=tk.LEFT)
 clearButton = tk.Button(topFrame,text="Clear", command=clearButtonCommand, width=10)
 clearButton.pack(side=tk.LEFT,padx=(0,40))
 
+serialPortReloadButton = tk.Button(topFrame,text="Reload ports", command=reloadSerialPorts, width=10)
+serialPortReloadButton.pack(side=tk.LEFT)
 
 serialPortVar = tk.StringVar(topFrame)
+serialPortList = [""]
+serialPortOption = tk.OptionMenu(topFrame,serialPortVar,*serialPortList)
+serialPortOption.pack(side=tk.LEFT)
 
-def reloadSerialPorts():
-    serialPorts = scanSerialPorts()
-
-    global serialPortVar
-
-    if serialPorts:
-        serialPortList = sorted(list(serialPorts.keys()))
-        serialPortVar.set(serialPortList[0])
-        serialPortVar.trace("w",updateSerialPortSelect)
-        serialPortOption = tk.OptionMenu(topFrame,serialPortVar,*serialPortList)
-        serialPortOption.pack(side=tk.LEFT)
-        serialPortLabel = tk.Label(topFrame,text=serialPorts[serialPortVar.get()], anchor=tk.W)
-        serialPortLabel.pack(side=tk.LEFT)
-    else:
-        # Unload serial port var
-        serialPortLabel = tk.Label(topFrame,text="No serial port found", anchor=tk.W)
-        serialPortLabel.pack(side=tk.LEFT)
-        connectButton.config(state=tk.DISABLED)
-
-reloadSerialPorts()
+serialPortLabel = tk.Label(topFrame,text="", anchor=tk.W)
+serialPortLabel.pack(side=tk.LEFT)
 
 topFrame.pack(side=tk.TOP, fill=tk.X)
 
+serialPorts = dict()
+reloadSerialPorts()
 
 ################################
 # Text frame (main window)
 
 middleFrame = tk.Frame(root)
 
-tFont = Font(family="DejaVu Sans Mono", size=10)
-# tFont = Font(family="monaco", size=10)
-# tFont = Font(family="courier", size=10)
+fontList = tk.font.families()
+if not fontFamily in fontList:
+    TraceLog(logLevel.WARNING,"Font \"" + fontFamily + "\" not found in system")
 
+tFont = Font(family=fontFamily, size=fontSize)
 
 T = tk.Text(middleFrame, height=1, width=1, background=backgroundColor, selectbackground=selectBackgroundColor,\
             foreground=textColor, font=tFont)
@@ -301,9 +373,26 @@ T.pack(side=tk.LEFT, fill=tk.BOTH, expand = tk.YES)
 for key,val in highlightMap.items():
     T.tag_configure(key, foreground=val)
 
-T.tag_configure("Reconnect", background="green")
+T.tag_configure(CONNECT_COLOR_TAG, background=textConnectBackgroundColor)
+T.tag_configure(DISCONNECT_COLOR_TAG, background=textDisconnectBackgroundColor)
 
 middleFrame.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
+
+def addDisconnectLine():
+
+    timestamp = datetime.datetime.now()
+    timeString = "(" + timestamp.strftime("%H:%M:%S") + ")"
+    
+    T.config(state=tk.NORMAL)
+    insertLine(timeString + " Disconnected from port. Log file " + lastLogFileInfo + "\n")
+    T.config(state=tk.DISABLED)
+
+    lastline = T.index("end-2c").split(".")[0]
+    T.tag_add(DISCONNECT_COLOR_TAG,lastline + ".0","end-1c")
+
+    updateWindowBufferLineCount()
+
+    
 
 ################################
 # Bottom frame
@@ -317,9 +406,12 @@ statLabel2 = tk.Label(bottomFrame,text="", width=30, anchor=tk.W)
 statLabel2.pack(side=tk.LEFT)
 
 statLabel3 = tk.Label(bottomFrame,text="", width=60, anchor=tk.E)
-statLabel3.pack(side=tk.RIGHT)
+statLabel3.pack(side=tk.RIGHT,padx=(0,18))
 
 bottomFrame.pack(side=tk.BOTTOM, fill=tk.X)
+
+def updateWindowBufferLineCount():
+    statLabel1.config(text="Window line buffer " + str(endLine-1) + "/" + str(maxLineBuffer))
 
 ################################
 # Workers
@@ -328,8 +420,8 @@ def reader():
 
     try:
         with serial.Serial(serialPortVar.get(), 115200, timeout=2) as ser:
-
-            statusLabel.config(text="CONNECTED to " + str(ser.name), fg="green")
+             
+            setStatusLabel("CONNECTED to " + str(ser.name),statusConnectBackgroundColor)         
             global appState
             appState = connectState.CONNECTED
 
@@ -343,10 +435,16 @@ def reader():
                         readQueue.put(inLine)
 
             except serial.SerialException as e:
-                print("ERROR: Serial read error: " + str(e))
+                TraceLog(logLevel.ERROR,"Serial read error: " + str(e))
+                # Change program state to disconnected                
+                root.after(10,setAppState,connectState.DISCONNECTED)
 
-    except serial.SerialException as e:
-        print("ERROR: " + str(e))
+    except serial.SerialException as e:        
+        TraceLog(logLevel.ERROR,str(e))
+        # In case other threads are still starting up,
+        # wait for 2 sec        
+        # Then change program state to disconnected                
+        root.after(2000,setAppState,connectState.DISCONNECTED)
 
 
 
@@ -424,18 +522,25 @@ def logWriter():
 
     statLabel3.config(text="Saving to log file: " + filename, fg="black")
 
+    global linesInLogFile
+    linesInLogFile = 0
+
     with open(fullFilename,"a") as file:
         while processFlag:
             try:
                 logLine = logQueue.get(True,0.2)  
                 logQueue.task_done()              
-                file.write(logLine)                
+                file.write(logLine)
+                linesInLogFile += 1                       
             except queue.Empty:
                 pass
 
     filesize = os.path.getsize(fullFilename)
 
-    statLabel3.config(text="Log file saved: " + filename + " (Size " + str(filesize/1000) + "KB)", fg="green")
+    global lastLogFileInfo    
+    lastLogFileInfo = filename + " (Size " + "{:.3f}".format(filesize/1024) + "KB)"
+
+    statLabel3.config(text="Log file saved: " + lastLogFileInfo, fg="green")
         
 
 def insertLine(newLine):
@@ -468,7 +573,7 @@ def updateGUI():
         T.config(state=tk.DISABLED)
 
         lastline = T.index("end-2c").split(".")[0]
-        T.tag_add("Reconnect",lastline + ".0","end-1c")
+        T.tag_add(CONNECT_COLOR_TAG,lastline + ".0","end-1c")
 
         firstConnectLineWritten = True
 
@@ -498,8 +603,9 @@ def updateGUI():
     finally:
         # Disable text widget edit
         T.config(state=tk.DISABLED)
-
-    statLabel1.config(text="Window line buffer " + str(endLine-1) + "/" + str(maxLineBuffer))
+    
+    updateWindowBufferLineCount()
+    statLabel2.config(text="Lines in log file " + str(linesInLogFile))
 
 def waitForInput():
     if updateGuiFlag:
@@ -515,10 +621,10 @@ readerThread = threading.Thread()
 processThread = threading.Thread()
 logThread = threading.Thread()
 
-print("Main loop started")
-
+TraceLog(logLevel.INFO,"Main loop started")
 
 root.mainloop()
 
-print("Main loop done")
+TraceLog(logLevel.INFO,"Main loop done")
+
 
