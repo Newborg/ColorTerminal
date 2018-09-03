@@ -26,3 +26,4 @@ Add highlight in GUI
 
 Hide lines (Requires new buffer)
 
+Poll serial connection (detect disconnect)
