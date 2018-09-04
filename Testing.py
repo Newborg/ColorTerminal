@@ -38,3 +38,12 @@ second = 2
 mod = 5 % 2
 
 print(mod)
+
+#####################################
+
+listTest = 999
+
+listlist = [listTest]
+
+for test in listlist:
+    print(test)

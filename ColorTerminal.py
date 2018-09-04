@@ -89,6 +89,7 @@ DISCONNECT_COLOR_TAG = "DISCONNECT_COLOR_TAG"
 
 readFlag = 1
 processFlag = 1
+highlightFlag = 1
 logFlag = 1
 updateGuiFlag = 1
 
@@ -98,9 +99,17 @@ closeProgram = False
 
 endLine = 0
 
-readQueue = queue.Queue()
 processQueue = queue.Queue()
+highlightQueue = queue.Queue()
 logQueue = queue.Queue()
+guiQueue = queue.Queue()
+
+# Buffer from raw line input (input for process worker)
+lineBuffer = list()
+reloadLineBuffer = False
+
+guiBuffer = list()
+reloadGuiBuffer = False
 
 #  TODO better var name
 firstConnectLineWritten = False
@@ -154,21 +163,26 @@ def connectSerial():
     readFlag = 1
     global processFlag
     processFlag = 1
+    global highlightFlag
+    highlightFlag = 1
     global logFlag
     logFlag = 1
     global updateGuiFlag
     updateGuiFlag = 1
 
     global readerThread
-    readerThread = threading.Thread(target=reader,daemon=True)
+    readerThread = threading.Thread(target=readerWorker,daemon=True)
     global processThread
-    processThread = threading.Thread(target=process,daemon=True)
+    processThread = threading.Thread(target=processWorker,daemon=True)
+    global highlightThread
+    highlightThread = threading.Thread(target=highlightWorker,daemon=True)
     global logThread
-    logThread = threading.Thread(target=logWriter,daemon=True)
+    logThread = threading.Thread(target=logWriterWorker,daemon=True)
 
     readerThread.start()
     processThread.start()
-    logThread.start()
+    highlightThread.start()
+    logThread.start()    
 
     global firstConnectLineWritten
     firstConnectLineWritten = False
@@ -189,15 +203,22 @@ def disconnectSerialProcess():
     if readerThread.isAlive():
         readerThread.join()
 
-    # Empty reader queue and stop process thread       
-    readQueue.join()
+    # Empty process queue and stop process thread       
+    processQueue.join()
     global processFlag
     processFlag = 0    
     if processThread.isAlive(): 
         processThread.join()
 
-    # Empty process queue and stop GUI update loop
-    processQueue.join()
+    # Empty highlight queue and stop highlight thread   
+    highlightQueue.join()
+    global highlightFlag
+    highlightFlag = 0 
+    if highlightThread.isAlive():
+        highlightThread.join()
+
+    # Empty gui queue and stop GUI update loop
+    guiQueue.join()
     global updateGuiFlag
     updateGuiFlag = 0
 
@@ -207,6 +228,8 @@ def disconnectSerialProcess():
     logFlag = 0 
     if logThread.isAlive():
         logThread.join()
+
+
 
   
 
@@ -311,6 +334,10 @@ def updateSerialPortSelect(*args):
     else:
         serialPortLabel.config(text=serialPorts[serialPortVar.get()])
 
+def reloadBufferCommand():
+    global reloadLineBuffer
+    reloadLineBuffer = True
+
 def setStatusLabel(labelText, bgColor):
     statusLabel.config(text=labelText, bg=bgColor)
     statusLabelHeader.config(bg=bgColor)
@@ -328,6 +355,9 @@ connectButton.pack(side=tk.LEFT)
 
 goToEndButton = tk.Button(topFrame,text="Go to end", command=goToEndButtonCommand, width=10)
 goToEndButton.pack(side=tk.LEFT)
+
+reloadBufferButton = tk.Button(topFrame,text="Reload buffer", command=reloadBufferCommand, width=10)
+reloadBufferButton.pack(side=tk.LEFT)
 
 clearButton = tk.Button(topFrame,text="Clear", command=clearButtonCommand, width=10)
 clearButton.pack(side=tk.LEFT,padx=(0,40))
@@ -413,10 +443,15 @@ bottomFrame.pack(side=tk.BOTTOM, fill=tk.X)
 def updateWindowBufferLineCount():
     statLabel1.config(text="Window line buffer " + str(endLine-1) + "/" + str(maxLineBuffer))
 
-################################
-# Workers
 
-def reader():
+
+
+
+
+################################
+# Reader worker
+
+def readerWorker():
 
     try:
         with serial.Serial(serialPortVar.get(), 115200, timeout=2) as ser:
@@ -432,7 +467,7 @@ def reader():
 
                     if line:     
                         inLine = serialLine(line.decode("utf-8"),timestamp)
-                        readQueue.put(inLine)
+                        processQueue.put(inLine)
 
             except serial.SerialException as e:
                 TraceLog(logLevel.ERROR,"Serial read error: " + str(e))
@@ -447,15 +482,17 @@ def reader():
         root.after(2000,setAppState,connectState.DISCONNECTED)
 
 
+################################
+# Process worker
 
-def process():
+def processWorker():
     
     lastTimestamp = 0
 
     while processFlag:
         try:
-            line = readQueue.get(True,0.2)
-            readQueue.task_done()
+            line = processQueue.get(True,0.2)
+            processQueue.task_done()
 
             # Timestamp
             micros = int(line.timestamp.microsecond/1000)
@@ -494,24 +531,77 @@ def process():
             # Construct newLine string
             newLine = timeString + " " + timeDeltaString + " " + newData
 
-            # Locate highlights
-            highlights = list()
-            for keys in highlightMap:
-                match = re.search(keys,newLine)                
-                if match:
-                    highlights.append((keys,match.start(),match.end()))                    
-            
-            
-            pLine = printLine(newLine,highlights)
-            
-            processQueue.put(pLine)
+            highlightQueue.put(newLine)
             logQueue.put(newLine)
 
             
         except queue.Empty:
             pass
-        
-def logWriter():
+
+
+
+################################
+# Highlight worker
+
+def locateHighlights(line):
+    # Locate highlights
+    highlights = list()
+    for keys in highlightMap:
+        match = re.search(keys,line)                
+        if match:
+            highlights.append((keys,match.start(),match.end())) 
+
+    return highlights
+
+def addToLineBuffer(rawline):
+
+    global lineBuffer
+
+    lineBufferSize = len(lineBuffer)
+
+    lineBuffer.append(rawline)
+
+    if lineBufferSize > maxLineBuffer:
+        lineBuffer[0].remove()
+
+def highlightWorker():
+    
+    global reloadLineBuffer
+    global guiBuffer
+    global reloadGuiBuffer
+
+    while highlightFlag:
+        try:
+            
+            newLine = highlightQueue.get(True,0.2)
+            highlightQueue.task_done()
+
+            addToLineBuffer(newLine)
+
+            if reloadLineBuffer:
+                reloadLineBuffer = False
+
+                for line in lineBuffer:
+                    match = re.search(".*Main::.*",line)                
+                    if match:                        
+                        highlights = locateHighlights(line)
+                        pLine = printLine(line,highlights)
+                        guiBuffer.append(pLine)
+
+                reloadGuiBuffer = True 
+
+            else:
+                highlights = locateHighlights(newLine)
+                pLine = printLine(newLine,highlights)                
+                guiQueue.put(pLine)
+
+        except queue.Empty:
+            pass
+
+################################
+# Log writer worker
+
+def logWriterWorker():
 
     timestamp = datetime.datetime.now().strftime(logFileTimestamp)
 
@@ -541,7 +631,9 @@ def logWriter():
     lastLogFileInfo = filename + " (Size " + "{:.3f}".format(filesize/1024) + "KB)"
 
     statLabel3.config(text="Log file saved: " + lastLogFileInfo, fg="green")
-        
+
+################################
+# GUI worker
 
 def insertLine(newLine):
 
@@ -563,6 +655,8 @@ def updateGUI():
     global endLine
     global firstConnectLineWritten
 
+    global reloadGuiBuffer
+
     if not firstConnectLineWritten:
 
         timestamp = datetime.datetime.now()
@@ -582,11 +676,27 @@ def updateGUI():
         # Open text widget for editing
         T.config(state=tk.NORMAL)
 
+        if reloadGuiBuffer:
+            reloadGuiBuffer = False            
+
+            TraceLog(logLevel.INFO,"Reload GUI buffer")
+            # Clear window
+            T.delete(1.0,tk.END)
+
+            for pLine in guiBuffer:
+                insertLine(pLine.line)
+
+                # Highlight/color text
+                lastline = T.index("end-2c").split(".")[0]
+            
+                for high in pLine.highlights:
+                    T.tag_add(high[0],lastline + "." + str(high[1]),lastline + "." + str(high[2]))
+
         # If many lines are available, add them X at a time, to avoid locking the UI for too long
         for i in range(100):
 
-            msg = processQueue.get_nowait()
-            processQueue.task_done()
+            msg = guiQueue.get_nowait()
+            guiQueue.task_done()
             
             insertLine(msg.line)
 
@@ -595,6 +705,9 @@ def updateGUI():
         
             for high in msg.highlights:
                 T.tag_add(high[0],lastline + "." + str(high[1]),lastline + "." + str(high[2]))
+
+
+
             
             
     except queue.Empty:
@@ -619,7 +732,9 @@ def waitForInput():
 
 readerThread = threading.Thread()
 processThread = threading.Thread()
+highlightThread = threading.Thread()
 logThread = threading.Thread()
+
 
 TraceLog(logLevel.INFO,"Main loop started")
 

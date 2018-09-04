@@ -27,3 +27,5 @@ Add highlight in GUI
 Hide lines (Requires new buffer)
 
 Poll serial connection (detect disconnect)
+
+Move connect/disconnect lines to buffer (to be able to reload)

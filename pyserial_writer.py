@@ -20,7 +20,7 @@ with serial.Serial('COM2', 115200, timeout=2) as ser:
             i = i + 1
             if i == len(lines):
                 i = 0
-            time.sleep(0.05)     
+            time.sleep(0.1)     
     except KeyboardInterrupt:
         pass
 
