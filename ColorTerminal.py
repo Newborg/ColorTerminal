@@ -37,8 +37,8 @@ fontSize = 10
 # Orange: #EFC090
 # Purple: #79ABFF
 
-# Highlight setup
-highlightMap = {
+# Text color setup
+textColorMap = {
         "Main::.*":"#EFC090",
         ".*TM::.*":"#00D0D0",
         "TM::LevelSensorsI2C=>":"#FF8080",
@@ -59,8 +59,18 @@ statusWorkingBackgroundColor = "gray"
 statusDisconnectBackgroundColor = "#CC0000"
 statusTextColor = "white"
 
-textConnectBackgroundColor = "#008800"
-textDisconnectBackgroundColor = "#880000"
+timeStampBracket = ["[","]"]
+timeDeltaBracket = ["(",")"]
+
+connectLineText = " Connected to port\n"
+connectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + connectLineText
+connectLineBackgroundColor = "#008800"
+connectLineSelectBackgroundColor = "#084C08"
+
+disconnectLineText = " Disconnected from port. Log file "
+disconnectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + disconnectLineText
+disconnectLineBackgroundColor = "#880000"
+disconnectLineSelectBackgroundColor = "#4C0808"
 
 ################################
 # Custom types
@@ -75,9 +85,9 @@ class serialLine:
         self.timestamp = timestamp
         
 class printLine:        
-    def __init__(self, line, highlights):
+    def __init__(self, line, lineTags):
         self.line = line
-        self.highlights = highlights
+        self.lineTags = lineTags        
 
 NO_SERIAL_PORT = "None"
 
@@ -89,8 +99,9 @@ DISCONNECT_COLOR_TAG = "DISCONNECT_COLOR_TAG"
 
 readFlag = 1
 processFlag = 1
-highlightFlag = 1
 logFlag = 1
+
+highlightFlag = 1
 updateGuiFlag = 1
 
 appState = connectState.DISCONNECTED
@@ -110,9 +121,6 @@ reloadLineBuffer = False
 
 guiBuffer = list()
 reloadGuiBuffer = False
-
-#  TODO better var name
-firstConnectLineWritten = False
 
 linesInLogFile = 0
 lastLogFileInfo = ""
@@ -163,89 +171,83 @@ def connectSerial():
     readFlag = 1
     global processFlag
     processFlag = 1
-    global highlightFlag
-    highlightFlag = 1
     global logFlag
     logFlag = 1
-    global updateGuiFlag
-    updateGuiFlag = 1
-
+    
     global readerThread
-    readerThread = threading.Thread(target=readerWorker,daemon=True)
+    readerThread = threading.Thread(target=readerWorker,daemon=True,name="Reader")
     global processThread
-    processThread = threading.Thread(target=processWorker,daemon=True)
-    global highlightThread
-    highlightThread = threading.Thread(target=highlightWorker,daemon=True)
-    global logThread
-    logThread = threading.Thread(target=logWriterWorker,daemon=True)
+    processThread = threading.Thread(target=processWorker,daemon=True,name="Process")
+    global logThread    
+    logThread = threading.Thread(target=logWriterWorker,daemon=True,name="Log")
 
     readerThread.start()
     processThread.start()
-    highlightThread.start()
-    logThread.start()    
+    logThread.start()  
 
-    global firstConnectLineWritten
-    firstConnectLineWritten = False
-
-    root.after(50,waitForInput)
 
 def disconnectSerial():
     # Disconnect will block, so must be done in different thread
-    disconnectThread = threading.Thread(target=disconnectSerialProcess)
+    disconnectThread = threading.Thread(target=disconnectSerialProcess,name="Disconnect")
     disconnectThread.start()
 
 def disconnectSerialProcess():    
     TraceLog(logLevel.INFO,"Disconnect from serial")
     
+    global appState
+
     # Stop serial reader
     global readFlag        
-    readFlag = 0    
+    readFlag = 0        
     if readerThread.isAlive():
         readerThread.join()
 
     # Empty process queue and stop process thread       
     processQueue.join()
     global processFlag
-    processFlag = 0    
+    processFlag = 0      
     if processThread.isAlive(): 
         processThread.join()
-
-    # Empty highlight queue and stop highlight thread   
-    highlightQueue.join()
-    global highlightFlag
-    highlightFlag = 0 
-    if highlightThread.isAlive():
-        highlightThread.join()
-
-    # Empty gui queue and stop GUI update loop
-    guiQueue.join()
-    global updateGuiFlag
-    updateGuiFlag = 0
 
     # Empty log queue and stop log writer thread   
     logQueue.join()
     global logFlag
-    logFlag = 0 
+    logFlag = 0     
     if logThread.isAlive():
         logThread.join()
 
+    # Add disconnect line if connected     
+    if appState == connectState.CONNECTED:
+        timestamp = datetime.datetime.now()
+        timeString = timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + timeStampBracket[1]
+        
+        disconnectLine = timeString + disconnectLineText + lastLogFileInfo + "\n"    
 
+        highlightQueue.put(disconnectLine)
 
-  
-
-    TraceLog(logLevel.INFO,"All worker threads stopped")
+    TraceLog(logLevel.INFO,"Main worker threads stopped")
     
     setStatusLabel("DISCONNECTED",statusDisconnectBackgroundColor)
-    global appState
+    
     appState = connectState.DISCONNECTED
 
     if closeProgram:
+
+        # Empty highlight queue and stop highlight thread   
+        highlightQueue.join()
+        global highlightFlag
+        highlightFlag = 0 
+        if highlightThread.isAlive():
+            highlightThread.join()
+
+        # Empty gui queue and stop GUI update loop
+        guiQueue.join()
+        global updateGuiFlag
+        updateGuiFlag = 0
+
         # Close tkinter window (close program)
         # TODO not a very nice way to do this :/  
-        root.after(100,destroyWindow)
-    else:
-        # Add disconnect info line to main text
-        root.after(10,addDisconnectLine)   
+        root.after(100,destroyWindow)    
 
 
 def scanSerialPorts():
@@ -285,7 +287,6 @@ def reloadSerialPorts():
         serialPortLabel.config(text=serialPorts[serialPortVar.get()])
 
         connectButton.config(state=tk.NORMAL)
-
         
     else:
         serialPortVar.set(NO_SERIAL_PORT)
@@ -400,27 +401,28 @@ yscrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 T["yscrollcommand"]=yscrollbar.set
 T.pack(side=tk.LEFT, fill=tk.BOTH, expand = tk.YES)
 
-for key,val in highlightMap.items():
+for key,val in textColorMap.items():
     T.tag_configure(key, foreground=val)
 
-T.tag_configure(CONNECT_COLOR_TAG, background=textConnectBackgroundColor)
-T.tag_configure(DISCONNECT_COLOR_TAG, background=textDisconnectBackgroundColor)
+T.tag_configure(CONNECT_COLOR_TAG, background=connectLineBackgroundColor, selectbackground=connectLineSelectBackgroundColor)
+T.tag_configure(DISCONNECT_COLOR_TAG, background=disconnectLineBackgroundColor, selectbackground=disconnectLineSelectBackgroundColor)
 
 middleFrame.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
 
-def addDisconnectLine():
+# def addDisconnectLine():
 
-    timestamp = datetime.datetime.now()
-    timeString = "(" + timestamp.strftime("%H:%M:%S") + ")"
+#     timestamp = datetime.datetime.now()
+#     timeString = timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + timeStampBracket[1]
     
-    T.config(state=tk.NORMAL)
-    insertLine(timeString + " Disconnected from port. Log file " + lastLogFileInfo + "\n")
-    T.config(state=tk.DISABLED)
+#     T.config(state=tk.NORMAL)
+#     insertLine(timeString + disconnectLineText + lastLogFileInfo + "\n")
+#     T.config(state=tk.DISABLED)
 
-    lastline = T.index("end-2c").split(".")[0]
-    T.tag_add(DISCONNECT_COLOR_TAG,lastline + ".0","end-1c")
+#     lastline = T.index("end-2c").split(".")[0]
+#     T.tag_add(DISCONNECT_COLOR_TAG,lastline + ".0","end-1c")
+#     # T.tag_add(DISCONNECT_COLOR_TAG,lastline + ".0",lastline + ".0+1l")
 
-    updateWindowBufferLineCount()
+#     updateWindowBufferLineCount()
 
     
 
@@ -455,19 +457,20 @@ def readerWorker():
 
     try:
         with serial.Serial(serialPortVar.get(), 115200, timeout=2) as ser:
-             
+            
             setStatusLabel("CONNECTED to " + str(ser.name),statusConnectBackgroundColor)         
             global appState
             appState = connectState.CONNECTED
 
             try:
-                while readFlag:          
+                while readFlag:                
+                    
                     line = ser.readline()
                     timestamp = datetime.datetime.now()
 
                     if line:     
                         inLine = serialLine(line.decode("utf-8"),timestamp)
-                        processQueue.put(inLine)
+                        processQueue.put(inLine)                         
 
             except serial.SerialException as e:
                 TraceLog(logLevel.ERROR,"Serial read error: " + str(e))
@@ -482,11 +485,18 @@ def readerWorker():
         root.after(2000,setAppState,connectState.DISCONNECTED)
 
 
+
 ################################
 # Process worker
 
 def processWorker():
-    
+
+    # Create connect line
+    timestamp = datetime.datetime.now()
+    timeString = timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + timeStampBracket[1]
+    connectLine = timeString + connectLineText
+    highlightQueue.put(connectLine)
+
     lastTimestamp = 0
 
     while processFlag:
@@ -496,8 +506,7 @@ def processWorker():
 
             # Timestamp
             micros = int(line.timestamp.microsecond/1000)
-            timeString = "(" + line.timestamp.strftime("%H:%M:%S") + "." + '{:03d}'.format(micros) + ")"
-
+            timeString = timeStampBracket[0] + line.timestamp.strftime("%H:%M:%S") + "." + '{:03d}'.format(micros) + timeStampBracket[1]
 
             # Timedelta
             if not lastTimestamp:
@@ -521,7 +530,7 @@ def processWorker():
             else:
                 secondstring = "{:2d}.{:03d}".format(seconds, int(timedelta.microseconds/1000))
             
-            timeDeltaString = "(" + hourstring + minutstring + secondstring + ")"
+            timeDeltaString = timeDeltaBracket[0] + hourstring + minutstring + secondstring + timeDeltaBracket[1]
 
             lastTimestamp = line.timestamp
 
@@ -533,25 +542,35 @@ def processWorker():
 
             highlightQueue.put(newLine)
             logQueue.put(newLine)
-
             
         except queue.Empty:
             pass
 
 
 
+
 ################################
 # Highlight worker
 
-def locateHighlights(line):
+def locateLineTags(line):
     # Locate highlights
     highlights = list()
-    for keys in highlightMap:
+    for keys in textColorMap:
         match = re.search(keys,line)                
         if match:
             highlights.append((keys,match.start(),match.end())) 
 
+
+    match = re.search(connectLineRegex,line)
+    if match:  
+        highlights.append((CONNECT_COLOR_TAG,"0","0+1l"))
+
+    match = re.search(disconnectLineRegex,line)
+    if match:  
+        highlights.append((DISCONNECT_COLOR_TAG,"0","0+1l"))
+
     return highlights
+
 
 def addToLineBuffer(rawline):
 
@@ -571,29 +590,32 @@ def highlightWorker():
     global reloadGuiBuffer
 
     while highlightFlag:
+
+        if reloadLineBuffer:
+            reloadLineBuffer = False
+
+            TraceLog(logLevel.INFO, "Reload line buffer")
+
+            guiBuffer.clear()
+
+            for line in lineBuffer:
+                match = re.search(".*Main::.*",line)                
+                if not match:                        
+                    lineTags = locateLineTags(line)                        
+                    pLine = printLine(line,lineTags)
+                    guiBuffer.append(pLine)
+
+            reloadGuiBuffer = True 
+
         try:
-            
             newLine = highlightQueue.get(True,0.2)
             highlightQueue.task_done()
 
             addToLineBuffer(newLine)
 
-            if reloadLineBuffer:
-                reloadLineBuffer = False
-
-                for line in lineBuffer:
-                    match = re.search(".*Main::.*",line)                
-                    if match:                        
-                        highlights = locateHighlights(line)
-                        pLine = printLine(line,highlights)
-                        guiBuffer.append(pLine)
-
-                reloadGuiBuffer = True 
-
-            else:
-                highlights = locateHighlights(newLine)
-                pLine = printLine(newLine,highlights)                
-                guiQueue.put(pLine)
+            lineTags = locateLineTags(newLine)                
+            pLine = printLine(newLine,lineTags)                
+            guiQueue.put(pLine)
 
         except queue.Empty:
             pass
@@ -616,7 +638,7 @@ def logWriterWorker():
     linesInLogFile = 0
 
     with open(fullFilename,"a") as file:
-        while processFlag:
+        while logFlag:            
             try:
                 logLine = logQueue.get(True,0.2)  
                 logQueue.task_done()              
@@ -624,6 +646,7 @@ def logWriterWorker():
                 linesInLogFile += 1                       
             except queue.Empty:
                 pass
+            
 
     filesize = os.path.getsize(fullFilename)
 
@@ -652,25 +675,8 @@ def insertLine(newLine):
 
 def updateGUI():
 
-    global endLine
-    global firstConnectLineWritten
-
+    global endLine    
     global reloadGuiBuffer
-
-    if not firstConnectLineWritten:
-
-        timestamp = datetime.datetime.now()
-        timeString = "(" + timestamp.strftime("%H:%M:%S") + ")"
-        
-        T.config(state=tk.NORMAL)
-        insertLine(timeString + " Connected to port\n")
-        T.config(state=tk.DISABLED)
-
-        lastline = T.index("end-2c").split(".")[0]
-        T.tag_add(CONNECT_COLOR_TAG,lastline + ".0","end-1c")
-
-        firstConnectLineWritten = True
-
 
     try:     
         # Open text widget for editing
@@ -689,8 +695,8 @@ def updateGUI():
                 # Highlight/color text
                 lastline = T.index("end-2c").split(".")[0]
             
-                for high in pLine.highlights:
-                    T.tag_add(high[0],lastline + "." + str(high[1]),lastline + "." + str(high[2]))
+                for lineTag in pLine.lineTags:
+                    T.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
 
         # If many lines are available, add them X at a time, to avoid locking the UI for too long
         for i in range(100):
@@ -703,12 +709,9 @@ def updateGUI():
             # Highlight/color text
             lastline = T.index("end-2c").split(".")[0]
         
-            for high in msg.highlights:
-                T.tag_add(high[0],lastline + "." + str(high[1]),lastline + "." + str(high[2]))
+            for lineTag in msg.lineTags:
+                T.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
 
-
-
-            
             
     except queue.Empty:
         pass
@@ -732,8 +735,14 @@ def waitForInput():
 
 readerThread = threading.Thread()
 processThread = threading.Thread()
-highlightThread = threading.Thread()
 logThread = threading.Thread()
+
+highlightThread = threading.Thread(target=highlightWorker,daemon=True,name="Highlight")
+highlightThread.start()
+
+
+
+root.after(50,waitForInput)
 
 
 TraceLog(logLevel.INFO,"Main loop started")
