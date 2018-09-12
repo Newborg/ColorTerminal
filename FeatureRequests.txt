@@ -27,3 +27,5 @@ Add highlight in GUI
 Hide lines (Requires new buffer)
 
 Poll serial connection (detect disconnect)
+
+Clear button does not 0 window line buffer
