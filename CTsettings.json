@@ -1,0 +1,24 @@
+{
+    "MainWindow": {
+        "defaultWindowSize": "1100x600"
+    },
+    "TextArea": {
+        "backgroundColor": "#101010",
+        "selectBackgroundColor": "#303030",
+        "textColor": "#FFFFFF",
+        "fontFamily": "Consolas",
+        "fontSize": 10,
+        "maxLineBuffer": 4000
+    },
+    "LogFile": {
+        "logFilePath": "Logs",
+        "logFileBaseName": "SerialLog_",
+        "logFileTimestamp": "%Y.%m.%d_%H.%M.%S"
+    },
+    "TextColoring": {
+        "Main::.*": "#EFC090",
+        ".*TM::.*": "#00D0D0",
+        "TM::LevelSensorsI2C=>": "#FF8080",
+        "GUI::.*": "#79ABFF"
+    }
+}

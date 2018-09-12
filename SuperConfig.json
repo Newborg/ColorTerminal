@@ -1,0 +1,12 @@
+{
+    "Default": {
+        "testing1": "BAM",
+        "testing2": 1234
+    },
+    "Empty": {},
+    "HEY": {
+        "AHHHHH": "%Y.%m.%d_%H.%M.%S",
+        "T123": "\\Logs\\logsdf",
+        "T456": "\\Logs\\logsdf"
+    }
+}

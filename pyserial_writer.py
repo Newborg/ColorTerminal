@@ -1,31 +1,56 @@
 
 import serial
 import time
+import msvcrt
+import threading
 
+keepWriting = 1
 
-with open("log_example_small.txt","r") as file:
-    lines = file.readlines()
+def writer():
 
-i = 0
+    with open("log_example_small.txt","r") as file:
+        lines = file.readlines()
 
+    i = 0
 
-with serial.Serial('COM2', 115200, timeout=2) as ser:
-    
-    print(ser)
-
-    try:
-        while True:
-            ser.write(str.encode(lines[i],encoding="utf-8"))
-            # print(lines[i])
-            i = i + 1
-            if i == len(lines):
-                i = 0
-            time.sleep(0.1)     
-    except KeyboardInterrupt:
-        pass
-
-    
-    
+    with serial.Serial('COM2', 115200, timeout=2, write_timeout=2) as ser:
         
+        print(ser)
+
+        try:
+            while keepWriting:
+                try:                
+                    ser.write(str.encode(lines[i],encoding="utf-8"))                
+                    i = i + 1
+                    if i == len(lines):
+                        i = 0
+                    time.sleep(0.1)
+                except serial.SerialTimeoutException:
+                    pass
+
+
+        except KeyboardInterrupt:
+            pass
+
+        print("Writer Thread Done")
+
+
+writerThread = threading.Thread(target=writer,daemon=True,name="Writer")
+writerThread.start()
+
+print("Press q to quit")
+
+while True:
+    pressedKey = msvcrt.getwch()
+    if pressedKey == 'q':
+        keepWriting = 0
+        break
+    time.sleep(0.5)    
+
+print("Quitting...")
+
+if writerThread.isAlive(): 
+    writerThread.join()
+   
 print("Done writing")
         

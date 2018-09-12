@@ -22,10 +22,24 @@ Gradient on timedelta
 Show settings (max line count)
 	Done
 
+Move connect/disconnect lines to buffer (to be able to reload)
+	Done
+	
+#######################
+	
 Add highlight in GUI
 
 Hide lines (Requires new buffer)
+Hide lines button
+
+Search for string
 
 Poll serial connection (detect disconnect)
+	
+Settings file
+	Settings in a JSON file to avoid problems with weird characters
 
-Move connect/disconnect lines to buffer (to be able to reload)
+Position of settings/options window
+Program should keep working even if options window is open?
+
+Change to classes?

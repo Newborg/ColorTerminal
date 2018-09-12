@@ -1,6 +1,8 @@
 
 import os
 
+import json
+
 import tkinter as tk
 from tkinter import messagebox
 from tkinter.font import Font
@@ -19,15 +21,81 @@ import queue
 import re
 
 ################################
+# Constants
+
+SETTINGS_FILE_NAME = "CTsettings.json"
+
+################################
+# Trace
+
+class logLevel(Enum):
+    ERROR = 0
+    WARNING = 1
+    INFO = 2
+    DEBUG = 3
+
+def TraceLog(level,msg):
+    # timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    timestamp = datetime.datetime.now()
+    micros = int(timestamp.microsecond/1000)
+    timeString = timestamp.strftime("%H:%M:%S") + "." + '{:03d}'.format(micros)
+
+    print(timeString + " [" + level.name + "] " + msg)
+
+################################
 # Settings
 
-backgroundColor = "#101010"
-selectBackgroundColor = "#303030"
-textColor = "#FFFFFF"
+settings = dict()
+try:
+    with open(SETTINGS_FILE_NAME,"r") as jsonFile:
+        settings = json.load(jsonFile)
+except FileNotFoundError:
+    TraceLog(logLevel.WARNING,"Settings file not found. Using default values")
+    pass
 
-# fontFamily = "DejaVu Sans Mono"
-fontFamily = "Consolas"
-fontSize = 10
+# Main Window
+defaultWindowSize       = settings.get("MainWindow",{}).get("defaultWindowSize","1100x600") # px
+
+# # Text Area
+backgroundColor         = settings.get("TextArea",{}).get("backgroundColor","#F3F3F3") # Testing color
+selectBackgroundColor   = settings.get("TextArea",{}).get("selectBackgroundColor","#303030")
+textColor               = settings.get("TextArea",{}).get("textColor","#FFFFFF")
+fontFamily              = settings.get("TextArea",{}).get("fontFamily","Consolas")
+fontSize                = settings.get("TextArea",{}).get("fontSize",10)
+maxLineBuffer           = settings.get("TextArea",{}).get("maxLineBuffer",4000)
+
+# Log File
+logFilePath             = settings.get("LogFile",{}).get("logFilePath","Logs")
+logFileBaseName         = settings.get("LogFile",{}).get("logFileBaseName","SerialLog_")
+logFileTimestamp        = settings.get("LogFile",{}).get("logFileTimestamp","%Y.%m.%d_%H.%M.%S")
+
+# Time Stamp
+timeStampBracket = ["[","]"]
+timeDeltaBracket = ["(",")"]
+timeStampRegex = "\\" + timeStampBracket[0] + ".{12}\\" + timeStampBracket[1] + " \\" + timeDeltaBracket[0] + ".{6,12}\\" + timeDeltaBracket[1]
+
+# Other Colors
+statusConnectBackgroundColor = "#008800"
+statusWorkingBackgroundColor = "gray"
+statusDisconnectBackgroundColor = "#CC0000"
+statusTextColor = "white"
+
+# Connect Status Lines
+connectLineText = " Connected to port\n"
+connectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + connectLineText
+connectLineBackgroundColor = "#008800"
+connectLineSelectBackgroundColor = "#084C08"
+
+disconnectLineText = " Disconnected from port. Log file "
+disconnectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + disconnectLineText
+disconnectLineBackgroundColor = "#880000"
+disconnectLineSelectBackgroundColor = "#4C0808"
+
+# Hide line
+hideLineFontColor = "#808080"
+
+# Line/text coloring
+textColorMap = settings.get("TextColoring",{})
 
 # Good colors
 # Green: #00E000 (limit use)
@@ -38,39 +106,13 @@ fontSize = 10
 # Purple: #79ABFF
 
 # Text color setup
-textColorMap = {
-        "Main::.*":"#EFC090",
-        ".*TM::.*":"#00D0D0",
-        "TM::LevelSensorsI2C=>":"#FF8080",
-        "GUI::.*":"#79ABFF",
-        }
+# textColorMap = {
+#         "Main::.*":"#EFC090",
+#         ".*TM::.*":"#00D0D0",
+#         "TM::LevelSensorsI2C=>":"#FF8080",
+#         "GUI::.*":"#79ABFF",
+#         }
 
-# Max number of lines in windows
-maxLineBuffer = 4000
-
-defaultWindowSize = "1100x600" # px
-
-logFilePath = r"Logs"
-logFileBaseName = "SerialLog_"
-logFileTimestamp = r"%Y.%m.%d_%H.%M.%S"
-
-statusConnectBackgroundColor = "#008800"
-statusWorkingBackgroundColor = "gray"
-statusDisconnectBackgroundColor = "#CC0000"
-statusTextColor = "white"
-
-timeStampBracket = ["[","]"]
-timeDeltaBracket = ["(",")"]
-
-connectLineText = " Connected to port\n"
-connectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + connectLineText
-connectLineBackgroundColor = "#008800"
-connectLineSelectBackgroundColor = "#084C08"
-
-disconnectLineText = " Disconnected from port. Log file "
-disconnectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + disconnectLineText
-disconnectLineBackgroundColor = "#880000"
-disconnectLineSelectBackgroundColor = "#4C0808"
 
 ################################
 # Custom types
@@ -85,30 +127,32 @@ class serialLine:
         self.timestamp = timestamp
         
 class printLine:        
-    def __init__(self, line, lineTags):
+    def __init__(self, line, lineTags, updatePreviousLine = False):
         self.line = line
-        self.lineTags = lineTags        
+        self.lineTags = lineTags
+        self.updatePreviousLine = updatePreviousLine     
 
 NO_SERIAL_PORT = "None"
 
 CONNECT_COLOR_TAG = "CONNECT_COLOR_TAG"
 DISCONNECT_COLOR_TAG = "DISCONNECT_COLOR_TAG"
+HIDELINE_COLOR_TAG = "HIDELINE_COLOR_TAG"
 
 ################################
 # Flags, counters and queues
 
-readFlag = 1
-processFlag = 1
-logFlag = 1
+readFlag_ = 1
+processFlag_ = 1
+logFlag_ = 1
 
-highlightFlag = 1
-updateGuiFlag = 1
+highlightFlag_ = 1
+updateGuiFlag_ = 1
 
-appState = connectState.DISCONNECTED
+appState_ = connectState.DISCONNECTED
 
-closeProgram = False
+closeProgram_ = False
 
-endLine = 0
+endLine_ = 0
 
 processQueue = queue.Queue()
 highlightQueue = queue.Queue()
@@ -122,22 +166,22 @@ reloadLineBuffer = False
 guiBuffer = list()
 reloadGuiBuffer = False
 
+hideLines_ = False
+
 linesInLogFile = 0
 lastLogFileInfo = ""
 
-################################
-# Trace
-
-class logLevel(Enum):
-    ERROR = 0
-    WARNING = 1
-    INFO = 2
-    DEBUG = 3
-
-def TraceLog(level,msg):
-    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-    print(timestamp + " [" + level.name + "] " + msg)
-
+################################################################
+################################################################
+# 
+# 
+# 
+# TKINTER GUI ELEMENTS
+# 
+# 
+# 
+################################################################
+################################################################
 
 ################################
 # Root frame
@@ -146,8 +190,8 @@ root = tk.Tk()
 
 def on_closing():
     if messagebox.askokcancel("Quit", "Do you want to quit?"):        
-        global closeProgram
-        closeProgram = True
+        global closeProgram_
+        closeProgram_ = True
         disconnectSerial()
 
 def destroyWindow():    
@@ -167,12 +211,12 @@ def connectSerial():
 
     TraceLog(logLevel.INFO,"Connect to serial")
 
-    global readFlag        
-    readFlag = 1
-    global processFlag
-    processFlag = 1
-    global logFlag
-    logFlag = 1
+    global readFlag_        
+    readFlag_ = 1
+    global processFlag_
+    processFlag_ = 1
+    global logFlag_
+    logFlag_ = 1
     
     global readerThread
     readerThread = threading.Thread(target=readerWorker,daemon=True,name="Reader")
@@ -194,30 +238,30 @@ def disconnectSerial():
 def disconnectSerialProcess():    
     TraceLog(logLevel.INFO,"Disconnect from serial")
     
-    global appState
+    global appState_
 
     # Stop serial reader
-    global readFlag        
-    readFlag = 0        
+    global readFlag_        
+    readFlag_ = 0        
     if readerThread.isAlive():
         readerThread.join()
 
     # Empty process queue and stop process thread       
     processQueue.join()
-    global processFlag
-    processFlag = 0      
+    global processFlag_
+    processFlag_ = 0      
     if processThread.isAlive(): 
         processThread.join()
 
     # Empty log queue and stop log writer thread   
     logQueue.join()
-    global logFlag
-    logFlag = 0     
+    global logFlag_
+    logFlag_ = 0     
     if logThread.isAlive():
         logThread.join()
 
     # Add disconnect line if connected     
-    if appState == connectState.CONNECTED:
+    if appState_ == connectState.CONNECTED:
         timestamp = datetime.datetime.now()
         timeString = timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + timeStampBracket[1]
         
@@ -229,21 +273,21 @@ def disconnectSerialProcess():
     
     setStatusLabel("DISCONNECTED",statusDisconnectBackgroundColor)
     
-    appState = connectState.DISCONNECTED
+    appState_ = connectState.DISCONNECTED
 
-    if closeProgram:
+    if closeProgram_:
 
         # Empty highlight queue and stop highlight thread   
         highlightQueue.join()
-        global highlightFlag
-        highlightFlag = 0 
+        global highlightFlag_
+        highlightFlag_ = 0 
         if highlightThread.isAlive():
             highlightThread.join()
 
         # Empty gui queue and stop GUI update loop
         guiQueue.join()
-        global updateGuiFlag
-        updateGuiFlag = 0
+        global updateGuiFlag_
+        updateGuiFlag_ = 0
 
         # Close tkinter window (close program)
         # TODO not a very nice way to do this :/  
@@ -312,11 +356,11 @@ def setAppState(state):
 
 def connectButtonCommand():
     
-    if appState == connectState.DISCONNECTED:
+    if appState_ == connectState.DISCONNECTED:
         # Connect to serial
         setAppState(connectState.CONNECTED)
 
-    elif appState == connectState.CONNECTED:
+    elif appState_ == connectState.CONNECTED:
         # Close down reader
         setAppState(connectState.DISCONNECTED)
 
@@ -325,6 +369,9 @@ def goToEndButtonCommand():
     T.see(tk.END)
 
 def clearButtonCommand():
+    global lineBuffer
+    lineBuffer.clear()
+
     T.config(state=tk.NORMAL)
     T.delete(1.0,tk.END)
     T.config(state=tk.DISABLED)
@@ -338,6 +385,16 @@ def updateSerialPortSelect(*args):
 def reloadBufferCommand():
     global reloadLineBuffer
     reloadLineBuffer = True
+
+def hideLinesCommand():
+    global hideLines_
+    if hideLines_:
+        hideLines_ = False
+    else:
+        hideLines_ = True
+
+    reloadBufferCommand()
+
 
 def setStatusLabel(labelText, bgColor):
     statusLabel.config(text=labelText, bg=bgColor)
@@ -359,6 +416,9 @@ goToEndButton.pack(side=tk.LEFT)
 
 reloadBufferButton = tk.Button(topFrame,text="Reload buffer", command=reloadBufferCommand, width=10)
 reloadBufferButton.pack(side=tk.LEFT)
+
+hideLinesButton = tk.Button(topFrame,text="Hide Lines", command=hideLinesCommand, width=10)
+hideLinesButton.pack(side=tk.LEFT)
 
 clearButton = tk.Button(topFrame,text="Clear", command=clearButtonCommand, width=10)
 clearButton.pack(side=tk.LEFT,padx=(0,40))
@@ -406,25 +466,10 @@ for key,val in textColorMap.items():
 
 T.tag_configure(CONNECT_COLOR_TAG, background=connectLineBackgroundColor, selectbackground=connectLineSelectBackgroundColor)
 T.tag_configure(DISCONNECT_COLOR_TAG, background=disconnectLineBackgroundColor, selectbackground=disconnectLineSelectBackgroundColor)
+T.tag_configure(HIDELINE_COLOR_TAG, foreground=hideLineFontColor)
 
 middleFrame.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
-
-# def addDisconnectLine():
-
-#     timestamp = datetime.datetime.now()
-#     timeString = timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + timeStampBracket[1]
-    
-#     T.config(state=tk.NORMAL)
-#     insertLine(timeString + disconnectLineText + lastLogFileInfo + "\n")
-#     T.config(state=tk.DISABLED)
-
-#     lastline = T.index("end-2c").split(".")[0]
-#     T.tag_add(DISCONNECT_COLOR_TAG,lastline + ".0","end-1c")
-#     # T.tag_add(DISCONNECT_COLOR_TAG,lastline + ".0",lastline + ".0+1l")
-
-#     updateWindowBufferLineCount()
-
-    
+   
 
 ################################
 # Bottom frame
@@ -443,12 +488,22 @@ statLabel3.pack(side=tk.RIGHT,padx=(0,18))
 bottomFrame.pack(side=tk.BOTTOM, fill=tk.X)
 
 def updateWindowBufferLineCount():
-    statLabel1.config(text="Window line buffer " + str(endLine-1) + "/" + str(maxLineBuffer))
+    statLabel1.config(text="Window line buffer " + str(endLine_-1) + "/" + str(maxLineBuffer))
 
 
 
 
-
+################################################################
+################################################################
+# 
+# 
+# 
+# WORKERS
+# 
+# 
+# 
+################################################################
+################################################################
 
 ################################
 # Reader worker
@@ -459,11 +514,11 @@ def readerWorker():
         with serial.Serial(serialPortVar.get(), 115200, timeout=2) as ser:
             
             setStatusLabel("CONNECTED to " + str(ser.name),statusConnectBackgroundColor)         
-            global appState
-            appState = connectState.CONNECTED
+            global appState_
+            appState_ = connectState.CONNECTED
 
             try:
-                while readFlag:                
+                while readFlag_:                
                     
                     line = ser.readline()
                     timestamp = datetime.datetime.now()
@@ -499,7 +554,7 @@ def processWorker():
 
     lastTimestamp = 0
 
-    while processFlag:
+    while processFlag_:
         try:
             line = processQueue.get(True,0.2)
             processQueue.task_done()
@@ -571,6 +626,10 @@ def locateLineTags(line):
 
     return highlights
 
+def hideLineColorTags(line):
+    highlights = list()
+    highlights.append((HIDELINE_COLOR_TAG,"0","0+1l"))
+    return highlights
 
 def addToLineBuffer(rawline):
 
@@ -581,44 +640,106 @@ def addToLineBuffer(rawline):
     lineBuffer.append(rawline)
 
     if lineBufferSize > maxLineBuffer:
-        lineBuffer[0].remove()
+        del lineBuffer[0]
 
+
+consecutiveLinesHidden_ = 0
+hideLineMap = list()
+hideLineMap.append("GUI::.*")
+hideLineMap.append("Main::.*")
+
+def hideLines(line):
+
+    global consecutiveLinesHidden_
+
+    if hideLines_:
+        tempConsecutiveLinesHidden = 0
+
+        for keys in hideLineMap:
+            match = re.search(keys,line)                
+            if match:
+                tempConsecutiveLinesHidden = 1
+                break
+        
+        if tempConsecutiveLinesHidden == 1:
+            consecutiveLinesHidden_ += 1
+        else:
+            consecutiveLinesHidden_ = 0
+    else:
+        consecutiveLinesHidden_ = 0
+
+    return consecutiveLinesHidden_
+
+def getTimeStamp(line):
+
+    # This is based on the settings of ColorTerminal
+    # If you load a log file from another program, this might not work
+
+    match = re.search(timeStampRegex,line)
+    if match:
+        return match.group(0)
+    else:
+        return ""
+    
 def highlightWorker():
     
     global reloadLineBuffer
     global guiBuffer
     global reloadGuiBuffer
 
-    while highlightFlag:
+    while highlightFlag_:
 
-        if reloadLineBuffer:
-            reloadLineBuffer = False
-
-            TraceLog(logLevel.INFO, "Reload line buffer")
-
-            guiBuffer.clear()
-
-            for line in lineBuffer:
-                match = re.search(".*Main::.*",line)                
-                if not match:                        
-                    lineTags = locateLineTags(line)                        
-                    pLine = printLine(line,lineTags)
-                    guiBuffer.append(pLine)
-
-            reloadGuiBuffer = True 
+        newLine = ""
 
         try:
             newLine = highlightQueue.get(True,0.2)
             highlightQueue.task_done()
 
-            addToLineBuffer(newLine)
-
-            lineTags = locateLineTags(newLine)                
-            pLine = printLine(newLine,lineTags)                
-            guiQueue.put(pLine)
-
         except queue.Empty:
             pass
+
+        if newLine or reloadLineBuffer:
+            
+            if newLine:
+                addToLineBuffer(newLine)
+            
+            linesToProcess = list()
+
+            if reloadLineBuffer:
+                # Wait for gui queue to be empty, 
+                # otherwise some lines can be lost, when GUI is cleared
+                guiQueue.join()                
+                linesToProcess = lineBuffer
+                TraceLog(logLevel.DEBUG, "Reload Line Buffer")
+
+            else:
+                linesToProcess.append(newLine)
+            
+            for line in linesToProcess:
+
+                consecutiveLinesHidden = hideLines(line)
+                if consecutiveLinesHidden == 0:
+                    lineTags = locateLineTags(line)                
+                    pLine = printLine(line,lineTags)  
+                else:
+                    hideInfoLine = getTimeStamp(line) + " Lines hidden: " + str(consecutiveLinesHidden) + "\n"
+                    lineTags = hideLineColorTags(hideInfoLine)
+                    if consecutiveLinesHidden > 1: 
+                        pLine = printLine(hideInfoLine,lineTags,True)  
+                    else:
+                        pLine = printLine(hideInfoLine,lineTags,False)  
+
+                guiQueue.put(pLine)   
+            
+            
+
+            if reloadLineBuffer:  
+                reloadLineBuffer = False
+                reloadGuiBuffer = True
+                # Wait for gui to have processed new buffer
+                guiQueue.join()   
+                
+
 
 ################################
 # Log writer worker
@@ -632,13 +753,14 @@ def logWriterWorker():
 
     os.makedirs(os.path.dirname(fullFilename), exist_ok=True)
 
+    # TODO: Do not update UI from this thread
     statLabel3.config(text="Saving to log file: " + filename, fg="black")
 
     global linesInLogFile
     linesInLogFile = 0
 
     with open(fullFilename,"a") as file:
-        while logFlag:            
+        while logFlag_:            
             try:
                 logLine = logQueue.get(True,0.2)  
                 logQueue.task_done()              
@@ -660,78 +782,88 @@ def logWriterWorker():
 
 def insertLine(newLine):
 
-    global endLine
+    global endLine_
 
     # Control window scolling
     bottomVisibleLine = int(T.index("@0,%d" % T.winfo_height()).split(".")[0])
-    endLine = int(T.index(tk.END).split(".")[0])
+    endLine_ = int(T.index(tk.END).split(".")[0])
     T.insert(tk.END, newLine)
-    if (bottomVisibleLine >= (endLine-1)):
+    if (bottomVisibleLine >= (endLine_-1)):
         T.see(tk.END)
 
     # Limit number of lines in window
-    if endLine > maxLineBuffer:
+    if endLine_ > maxLineBuffer:
         T.delete(1.0,2.0)
+
+def updateLastLine(newLine):
+    lastline = T.index("end-2c").split(".")[0]    
+    T.delete(lastline + ".0",lastline +".0+1l")     
+    T.insert(lastline + ".0", newLine)
+    # I don't think there is a need for scrolling?
+    
 
 def updateGUI():
 
-    global endLine    
+    global endLine_    
     global reloadGuiBuffer
+    
+    receivedLines = list()
 
     try:     
+        # We have to make sure that the queue is empty before continuing
+        while True:            
+            receivedLines.append(guiQueue.get_nowait())
+            guiQueue.task_done()            
+            
+    except queue.Empty:
+
         # Open text widget for editing
         T.config(state=tk.NORMAL)
-
-        if reloadGuiBuffer:
-            reloadGuiBuffer = False            
-
-            TraceLog(logLevel.INFO,"Reload GUI buffer")
+        
+        if reloadGuiBuffer:            
+            TraceLog(logLevel.DEBUG,"Reload GUI buffer")              
+            reloadGuiBuffer = False  
+            
             # Clear window
             T.delete(1.0,tk.END)
 
-            for pLine in guiBuffer:
-                insertLine(pLine.line)
-
-                # Highlight/color text
-                lastline = T.index("end-2c").split(".")[0]
-            
-                for lineTag in pLine.lineTags:
-                    T.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
-
-        # If many lines are available, add them X at a time, to avoid locking the UI for too long
-        for i in range(100):
-
-            msg = guiQueue.get_nowait()
-            guiQueue.task_done()
-            
-            insertLine(msg.line)
+        for msg in receivedLines:
+            if msg.updatePreviousLine:
+                updateLastLine(msg.line)
+            else:              
+                insertLine(msg.line)
 
             # Highlight/color text
             lastline = T.index("end-2c").split(".")[0]
-        
             for lineTag in msg.lineTags:
                 T.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
 
-            
-    except queue.Empty:
-        pass
-
-    finally:
         # Disable text widget edit
         T.config(state=tk.DISABLED)
-    
+
     updateWindowBufferLineCount()
     statLabel2.config(text="Lines in log file " + str(linesInLogFile))
 
 def waitForInput():
-    if updateGuiFlag:
+    if updateGuiFlag_:
         updateGUI()
         root.after(100,waitForInput)
 
 
-################################
-# 
 
+
+
+################################################################
+################################################################
+# 
+# 
+# 
+# MAIN LOOP
+# 
+# 
+# 
+################################################################
+################################################################
 
 readerThread = threading.Thread()
 processThread = threading.Thread()
@@ -740,9 +872,25 @@ logThread = threading.Thread()
 highlightThread = threading.Thread(target=highlightWorker,daemon=True,name="Highlight")
 highlightThread.start()
 
-
-
 root.after(50,waitForInput)
+
+# def down(e):
+#     print("DOWN: " + e.char)
+#     if e.char == 'n':
+#         optionsView = tk.Toplevel(root)
+#         optionsView.title("Options View")
+#         l = tk.Label(optionsView,text="HELLOOO")
+#         l.pack()
+
+# def up(e):
+#     print("UP: " + e.char)
+
+# root.bind('<KeyPress>', down)
+# root.bind('<KeyRelease>', up)
+
+
+
+
 
 
 TraceLog(logLevel.INFO,"Main loop started")

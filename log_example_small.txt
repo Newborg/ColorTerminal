@@ -1,4 +1,4 @@
-﻿01 Main::No thread=>target volume changed: 2.000000 --> 50.000000 ml
+01 Main::No thread=>target volume changed: 2.000000 --> 50.000000 ml
 02 Main::No thread=>calibration volume changed: 2.000000 --> 50.000000 ml
 03 Main::MeasSequence=>distillerDistillationSequenceSafe
 04 AAAAAAAAAAAAA
@@ -33,3 +33,8 @@
 33 Main::FileCoordinator=>Registering FileCoordinator with watchdog manager. Prio: 3
 34 Main::NS Server=>Registering NS Server with watchdog manager. Prio: 3
 35 Main::ModuleMgr=>Board type: Power control
+36 Main::SelfTestSeq=>Asserted on REQUIRE(dst = CNameServiceNameItem::GetModuleByName(destination.getName()))
+37 GUI::GUIMasterStateMachine=>Beginning transition onFOSS::Bifrost::T123::MeasureProgress from MeasureMode
+38 GUI::GUIMasterStateMachine=>Measure progress  34
+39 GUI::GUIMasterStateMachine=>Completed transition onFOSS::Bifrost::T123::MeasureProgress to nil
+40 GUI::GUIMasterStateMachine=>Beginning transition onFOSS::Bifrost::T123::MeasureProgress from MeasureMode
