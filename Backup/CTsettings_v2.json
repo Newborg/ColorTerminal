@@ -10,21 +10,10 @@
     "LogFile_logFileBaseName": "SerialLog_",
     "LogFile_logFileTimestamp": "%Y.%m.%d_%H.%M.%S",
     "LineColorMap": {
-        "LineColorMap00": {
-            "regex": "Main::.*",
-            "color": "#1ae675"
-        },
-        "LineColorMap01": {
-            "regex": "GUI::.*",
-            "color": "#79ABFF"
-        },
-        "LineColorMap02": {
-            "regex": "TM::.*=>",
-            "color": "#cf7ce0"
-        },
-        "LineColorMap03": {
-            "regex": "GFH=>Problem report",
-            "color": "#ff4848"
-        }
+        "GUI::.*": "#79ABFF",
+        ".*TM::.*": "#00D0D0",
+        "TM::LevelSensorsI2C=>": "#FF8080",
+        "Main::.*": "#b88bf3",
+        "Mai": "#00ff00"
     }
 }

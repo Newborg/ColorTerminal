@@ -12,7 +12,7 @@
     "LineColorMap": {
         "LineColorMap00": {
             "regex": "Main::.*",
-            "color": "#1ae675"
+            "color": "#47c639"
         },
         "LineColorMap01": {
             "regex": "GUI::.*",
@@ -23,7 +23,7 @@
             "color": "#cf7ce0"
         },
         "LineColorMap03": {
-            "regex": "GFH=>Problem report",
+            "regex": "GFH=>",
             "color": "#ff4848"
         }
     }

@@ -1,4 +1,191 @@
 #####################################
+# Dict stuff
+
+DictA = {"A":"AAAA"}
+
+try:
+    print(DictA["B"])
+except KeyError:
+    print("No key man")
+
+
+
+exit()
+
+#####################################
+# List stuff
+
+ListA = ["A","B"]
+ListB = ["D","C"]
+Element = "E"
+
+print(ListA + ListB)
+print(ListA)
+
+ListA.extend(ListB)
+print(ListA)
+
+ListA = ["A","B"]
+ListA += ListB
+print(ListA)
+
+ListA.append(Element)
+print(ListA)
+
+ListA = ["A","B"]
+ListA += Element
+print(ListA)
+
+ListA = ["A","B"]
+ListA.extend(Element)
+print(ListA)
+
+exit()
+
+#####################################
+# Tk version
+
+import tkinter
+
+print(tkinter.TkVersion)
+exit()
+
+#####################################
+# String format
+
+testINt = 100
+newstring = "Hello" + "{:05d}".format(testINt)
+print(newstring)
+
+newint = int(newstring.replace("Hello",""))
+
+print(str(newint))
+
+print(str(int("10000125")))
+
+exit()
+
+
+#####################################
+# Json settings file v2
+
+# import json
+# import datetime
+# # import collections 
+
+
+
+# config = dict()
+# config["Default"] = "testing"
+# config["Empty"] = ""
+# config["HEY"] = r"%Y.%m.%d_%H.%M.%S"
+
+# with open ("SuperConfig_v2.json","w") as configfile:
+#     json.dump(config,configfile,indent=4)
+
+
+
+# with open("SuperConfig_v2.json","r") as readfile:
+#     data = json.load(readfile)
+#     print(json.dumps(data,indent=2))
+
+# print(data["HEY"])
+
+
+# timestamp = datetime.datetime.now().strftime(data["HEY"])
+# print(timestamp)
+
+# with open ("SuperConfig_v2.json","w") as configfile:
+#     config["Empty"] = "Not empty!!"
+#     config["HEY"] = "A new value!"
+#     json.dump(config,configfile,indent=4)
+
+#     # config["HEY"] = {"T123":"Hello"}
+#     # json.dump(config,configfile,indent=4)
+
+# exit()
+
+#####################################
+# Json settings file
+
+import json
+import datetime
+# import collections 
+
+
+
+config = dict()
+config["Default"] = {"testing1" : "MoreBAM", "testing2" : 1234}
+config["Empty"] = {}
+config["HEY"] = {"AHHHHH": r"%Y.%m.%d_%H.%M.%S", "T123": r"\Logs\logsdf", "T456": r"\Logs\logsdf"}
+
+with open ("SuperConfig.json","w") as configfile:
+    json.dump(config,configfile,indent=4)
+
+
+
+with open("SuperConfig.json","r") as readfile:
+    data = json.load(readfile)
+    print(json.dumps(data,indent=2))
+
+print(data["HEY"]["AHHHHH"])
+
+
+timestamp = datetime.datetime.now().strftime(data["HEY"]["AHHHHH"])
+print(timestamp)
+
+
+# print(data["DAMN"]["AHHHHH"])
+print(data.get("HEY")["AHHHHH"])
+print(data.get("DAMN",{}).get("AHHHHH","Default Value"))
+# print(data["DAMN"].get("AHHHHH","Default Value"))
+print(data.get("HEY",{}).get("13245","Default Value"))
+
+with open ("SuperConfig.json","w") as configfile:
+    config["Empty"] = {"NOT":"Hello"}
+    config["HEY"]["T123"] = "Hello"
+    json.dump(config,configfile,indent=4)
+
+    # config["HEY"] = {"T123":"Hello"}
+    # json.dump(config,configfile,indent=4)
+
+exit()
+
+
+#####################################
+# String split
+
+teststring = "Hello_there"
+
+print(teststring.split("_"))
+
+
+exit()
+#####################################
+# tkinter window focus
+
+# self.view.lift()
+# self.view.focus_force()
+# self.view.attributes('-topmost', 1)
+# self.view.attributes('-topmost', 0)
+
+
+#####################################
+# tkinter color chooser
+
+from tkinter import *
+from tkinter.colorchooser import askcolor
+
+def getColor():
+    color = askcolor("red") 
+    print(color)
+
+Button(text='Select Color', command=getColor).pack()
+mainloop()
+
+exit()
+
+#####################################
 # Dict index
 
 testing = dict()
@@ -67,43 +254,7 @@ if match:
     print(match.group(0))
 
 exit()
-#####################################
-# Json settings file
 
-import json
-import datetime
-# import collections 
-
-
-
-config = dict()
-config["Default"] = {"testing1" : "BAM", "testing2" : 1234}
-config["Empty"] = {}
-config["HEY"] = {"AHHHHH": r"%Y.%m.%d_%H.%M.%S", "T123": r"\Logs\logsdf", "T456": r"\Logs\logsdf"}
-
-with open ("SuperConfig.json","w") as configfile:
-    json.dump(config,configfile,indent=4)
-
-
-
-with open("SuperConfig.json","r") as readfile:
-    data = json.load(readfile)
-    print(json.dumps(data,indent=2))
-
-print(data["HEY"]["AHHHHH"])
-
-
-timestamp = datetime.datetime.now().strftime(data["HEY"]["AHHHHH"])
-print(timestamp)
-
-
-# print(data["DAMN"]["AHHHHH"])
-print(data.get("HEY")["AHHHHH"])
-print(data.get("DAMN",{}).get("AHHHHH","Default Value"))
-# print(data["DAMN"].get("AHHHHH","Default Value"))
-print(data.get("HEY",{}).get("13245","Default Value"))
-
-exit()
 
 #####################################
 # Ini settings file

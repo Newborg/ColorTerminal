@@ -23,7 +23,7 @@
             "color": "#cf7ce0"
         },
         "LineColorMap03": {
-            "regex": "GFH=>Problem report",
+            "regex": "GFH=>",
             "color": "#ff4848"
         }
     }

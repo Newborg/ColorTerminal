@@ -1,0 +1,18 @@
+{
+    "MainWindow_defaultWindowSize": "1100x600",
+    "TextArea_backgroundColor": "#101010",
+    "TextArea_selectBackgroundColor": "#303030",
+    "TextArea_textColor": "#FFFFFF",
+    "TextArea_fontFamily": "Consolas",
+    "TextArea_fontSize": 10,
+    "TextArea_maxLineBuffer": 10,
+    "LogFile_logFilePath": "Logs",
+    "LogFile_logFileBaseName": "SerialLog_",
+    "LogFile_logFileTimestamp": "%Y.%m.%d_%H.%M.%S",
+    "LineColorMap": {
+        "Main::.*": "#EFC090",
+        ".*TM::.*": "#00D0D0",
+        "TM::LevelSensorsI2C=>": "#FF8080",
+        "GUI::.*": "#79ABFF"
+    }
+}
