@@ -1,4 +1,20 @@
 #####################################
+# Dict index
+
+testing = dict()
+
+testing["BAM"] = "HELLO"
+
+key = "BAM"
+
+if key in testing.keys():
+    print(testing[key])
+else:
+    print("WROng key")
+
+exit()
+
+#####################################
 # List delete
 
 testlist = [1,2,3,4,5,6,7,8]
