@@ -336,7 +336,7 @@ def scanSerialPorts():
 
     for comPort in comPorts:
         try:
-            with serial.Serial(comPort.device, 115200, timeout=2) as ser:                
+            with serial.Serial(comPort.device, 115200, timeout=2):                
                 serialPortDict[comPort.device] = comPort.description
         except serial.SerialException:            
             traceLog(LogLevel.DEBUG,"scanSerialPorts: " + comPort.device + " already open")            
@@ -1102,6 +1102,7 @@ class OptionsView:
     TYPE_COLOR = "typeColor"
     TYPE_STRING = "typeString"
     TYPE_INT = "typeInt"
+    TYPE_REGEX = "typeRegex"
     TYPE_OTHER = "typeOther"
 
     GROUP_TEXT_AREA = "groupTextArea"
@@ -1128,6 +1129,8 @@ class OptionsView:
             self.view.protocol("WM_DELETE_WINDOW", self.onClosing)
 
             self.setsDict = dict()
+
+            self.notValidEntries = list()
 
             ###############
             # Text Area
@@ -1246,13 +1249,19 @@ class OptionsView:
         # Save all settings
         tempLineColorMap = dict()
         # Sort settings to guarantee right order of line coloring
-        for key in sorted(tempSetsDict.keys()):
-            if not Sets.LINE_COLOR_MAP in key:
-                self.settings.setOption(key,tempSetsDict[key]["var"].get())
-            else:
-                tempLineColorMap[key] = dict()
-                tempLineColorMap[key]["regex"] = tempSetsDict[key]["regexVar"].get()
-                tempLineColorMap[key]["color"] = tempSetsDict[key]["var"].get()                
+        for rowId in sorted(tempSetsDict.keys()):
+
+            if Sets.LINE_COLOR_MAP in rowId:
+                tempLineColorMap[rowId] = dict()
+
+            for entry in tempSetsDict[rowId].keys():
+                if not "lineFrame" in entry:
+                    setting = tempSetsDict[rowId][entry]["var"].get()
+
+                    if Sets.LINE_COLOR_MAP in rowId:
+                        tempLineColorMap[rowId][entry] = setting
+                    else:                        
+                        self.settings.setOption(rowId,setting)          
             
         self.settings.setOption(Sets.LINE_COLOR_MAP,tempLineColorMap)
 
@@ -1327,7 +1336,7 @@ class OptionsView:
                     for i in indexToChange:
                         # Save regex and color
                         rowId = self.getRowId(i)
-                        tempTextColorMap.append((self.setsDict[rowId]["regexVar"].get(),self.setsDict[rowId]["var"].get()))
+                        tempTextColorMap.append((self.setsDict[rowId]["regex"]["var"].get(),self.setsDict[rowId]["color"]["var"].get()))
 
                         # Remove rows to edit from view
                         self.setsDict[rowId]["lineFrame"].destroy()
@@ -1376,34 +1385,48 @@ class OptionsView:
         colorLine["lineFrame"].bind("<Button-1>",partial(self.focusInSet,rowId))        
         colorLine["lineFrame"].bind("<FocusOut>",partial(self.focusOut,rowId))
 
-        colorLine["regexLabel"] = tk.Label(colorLine["lineFrame"],text="Regex")
-        colorLine["regexLabel"].grid(row=0,column=0)
-        colorLine["regexLabel"].bind("<Button-1>",partial(self.focusInSet,rowId))
+        regexEntry = dict()
+        entryName = "regex"
         
-        colorLine["regexVar"] = tk.StringVar(colorLine["lineFrame"])
-        colorLine["regexVar"].set(regex)
-        # colorLine["var"].trace("w",self.validateInput)                    
-        colorLine["regexInput"] = tk.Entry(colorLine["lineFrame"],textvariable=colorLine["regexVar"],width=30)
-        colorLine["regexInput"].grid(row=0,column=1)
-        colorLine["regexInput"].bind("<Button-1>",partial(self.focusInLog,rowId))
+        regexEntry["label"] = tk.Label(colorLine["lineFrame"],text="Regex")
+        regexEntry["label"].grid(row=0,column=0)
+        regexEntry["label"].bind("<Button-1>",partial(self.focusInSet,rowId))
+        regexEntry["var"] = tk.StringVar(colorLine["lineFrame"])
+        regexEntry["var"].set(regex)        
+        regexEntry["observer"] = regexEntry["var"].trace("w",partial(self.validateInput,rowId,entryName))
 
-        colorLine["colorLabel"] = tk.Label(colorLine["lineFrame"],text="Color")
-        colorLine["colorLabel"].grid(row=0,column=2)
-        colorLine["colorLabel"].bind("<Button-1>",partial(self.focusInSet,rowId))
+        regexEntry["input"] = tk.Entry(colorLine["lineFrame"],textvariable=regexEntry["var"],width=30) # Will this work?
+        regexEntry["input"].grid(row=0,column=1)
+        regexEntry["input"].bind("<Button-1>",partial(self.focusInLog,rowId))
 
-        colorLine["var"] = tk.StringVar(colorLine["lineFrame"],name=rowId)
-        colorLine["var"].set(color)      
-        colorLine["observer"] = colorLine["var"].trace("w",self.validateInput)                                   
-        colorLine["input"] = tk.Entry(colorLine["lineFrame"],textvariable=colorLine["var"],width=10)
-        colorLine["input"].grid(row=0,column=3)
-        colorLine["input"].bind("<Button-1>",partial(self.focusInLog,rowId))
+        regexEntry["type"] = self.TYPE_REGEX
+        regexEntry["group"] = self.GROUP_LINE_COLORING
+
+        colorLine[entryName] = regexEntry
+
+
+        colorEntry = dict()
+        entryName = "color"
+
+        colorEntry["label"] = tk.Label(colorLine["lineFrame"],text="Color")
+        colorEntry["label"].grid(row=0,column=2)
+        colorEntry["label"].bind("<Button-1>",partial(self.focusInSet,rowId))
+
+        colorEntry["var"] = tk.StringVar(colorLine["lineFrame"])
+        colorEntry["var"].set(color)      
+        colorEntry["observer"] = colorEntry["var"].trace("w",partial(self.validateInput,rowId,entryName))
+        colorEntry["input"] = tk.Entry(colorLine["lineFrame"],textvariable=colorEntry["var"],width=10)
+        colorEntry["input"].grid(row=0,column=3)
+        colorEntry["input"].bind("<Button-1>",partial(self.focusInLog,rowId))
         
-        colorLine["button"] = tk.Button(colorLine["lineFrame"],bg=color,width=3,command=partial(self.getColor,rowId,True))
-        colorLine["button"].grid(row=0,column=4,padx=4)
-        colorLine["button"].bind("<Button-1>",partial(self.focusInSet,rowId))        
+        colorEntry["button"] = tk.Button(colorLine["lineFrame"],bg=color,width=3,command=partial(self.getColor,rowId,entryName,True))
+        colorEntry["button"].grid(row=0,column=4,padx=4)
+        colorEntry["button"].bind("<Button-1>",partial(self.focusInSet,rowId))        
 
-        colorLine["type"] = self.TYPE_COLOR
-        colorLine["group"] = self.GROUP_LINE_COLORING
+        colorEntry["type"] = self.TYPE_COLOR
+        colorEntry["group"] = self.GROUP_LINE_COLORING
+
+        colorLine[entryName] = colorEntry
 
         return colorLine
 
@@ -1420,27 +1443,32 @@ class OptionsView:
         row = startRow
         for setLine in setLines:
             setRow = dict()
+            entry = dict()
 
+            entryName = "entry"
+            
             # TODO Add frame and highlight to colors (remember column widths and alignment)
 
-            setRow["label"] = tk.Label(parent,text=setLine.setDisplayName)
-            setRow["label"].grid(row=row,column=0,sticky=tk.W)
+            entry["label"] = tk.Label(parent,text=setLine.setDisplayName)
+            entry["label"].grid(row=row,column=0,sticky=tk.W)
+            
             if setLine.setType == self.TYPE_INT:    
-                setRow["var"] = tk.IntVar(parent,name=setLine.setId)
+                entry["var"] = tk.IntVar(parent)
             else:
-                setRow["var"] = tk.StringVar(parent,name=setLine.setId)
-            setRow["var"].set(self.settings.get(setLine.setId))            
+                entry["var"] = tk.StringVar(parent)
+            entry["var"].set(self.settings.get(setLine.setId))
             # TODO use tkinter validateCommand
-            setRow["observer"] = setRow["var"].trace("w",self.validateInput)                        
+            entry["observer"] = entry["var"].trace("w",partial(self.validateInput,setLine.setId,entryName))
             # TODO Find better solution for entry width            
-            setRow["input"] = tk.Entry(parent,textvariable=setRow["var"],width=int(maxLen*1.5))
-            setRow["input"].grid(row=row,column=1)
+            entry["input"] = tk.Entry(parent,textvariable=entry["var"],width=int(maxLen*1.5))
+            entry["input"].grid(row=row,column=1)                      
             if setLine.setType == self.TYPE_COLOR:                
-                setRow["button"] = tk.Button(parent,bg=self.settings.get(setLine.setId),width=3,command=partial(self.getColor,setLine.setId))
-                setRow["button"].grid(row=row,column=2,padx=4)
+                entry["button"] = tk.Button(parent,bg=self.settings.get(setLine.setId),width=3,command=partial(self.getColor,setLine.setId,entryName))
+                entry["button"].grid(row=row,column=2,padx=4)
 
-            setRow["type"] = setLine.setType
-            setRow["group"] = setLine.setGroup
+            entry["type"] = setLine.setType
+            entry["group"] = setLine.setGroup
+            setRow[entryName] = entry
             setDict[setLine.setId] = setRow
 
             row += 1
@@ -1464,13 +1492,13 @@ class OptionsView:
         if self.lastFocusOutRowId == rowId:
             self.lastFocusOutRowId = ""
 
-    def getColor(self,rowId,highlight=False):
+    def getColor(self,rowId,entry,highlight=False):
         
         if highlight:
             hg = self.setsDict[rowId]["lineFrame"].cget("highlightbackground")
-            self.setsDict[rowId]["lineFrame"].config(highlightbackground=self.R)
+            self.setsDict[rowId]["lineFrame"].config(highlightbackground=self.ROW_HIGHLIGHT_COLOR)
         
-        currentColor = self.setsDict[rowId]["button"].cget("bg")
+        currentColor = self.setsDict[rowId][entry]["button"].cget("bg")
 
         if not self.isValidColor(currentColor):
             currentColor = None
@@ -1478,8 +1506,8 @@ class OptionsView:
         color = askcolor(initialcolor=currentColor,parent=self.view) 
 
         if color[1] != None:
-            self.setsDict[rowId]["var"].set(color[1])
-            self.setsDict[rowId]["button"].config(bg=color[1])
+            self.setsDict[rowId][entry]["var"].set(color[1])
+            self.setsDict[rowId][entry]["button"].config(bg=color[1])
 
         if highlight:
             self.setsDict[rowId]["lineFrame"].config(highlightbackground=hg)
@@ -1489,15 +1517,12 @@ class OptionsView:
     ####################################
     # Entry Validation
 
-    def validateInput(self,*args):        
-        # print(args)               
-
-        # TODO Cleanup/redo!
-
+    def validateInput(self,rowId,entryName,*args):        
+        
         # Get variable
         varIn = None
         try:    
-            varIn = self.setsDict[args[0]]["var"].get()
+            varIn = self.setsDict[rowId][entryName]["var"].get()
             isValid = True
         except tk.TclError:
             # print("Tcl Error")
@@ -1506,38 +1531,58 @@ class OptionsView:
         if isValid:
 
             # Check Colors
-            if self.setsDict[args[0]]["type"] == self.TYPE_COLOR:
+            if self.setsDict[rowId][entryName]["type"] == self.TYPE_COLOR:
                 color = varIn
                 isValid = self.isValidColor(color)
                 if isValid:
                     # print("Color " + str(color))
-                    self.setsDict[args[0]]["button"].config(background=color)
+                    self.setsDict[rowId][entryName]["button"].config(background=color)
+
+            # Check regex
+            if self.setsDict[rowId][entryName]["type"] == self.TYPE_REGEX: 
+                isValid = self.isValidRegex(varIn)
 
             # Check font family
-            if args[0] == Sets.FONT_FAMILY:
+            if rowId == Sets.FONT_FAMILY:
                 isValid = self.isValidFontFamily(varIn)
 
             # Check font size
-            if args[0] == Sets.FONT_SIZE:
+            if rowId == Sets.FONT_SIZE:
                 isValid = self.isValidFontSize(varIn)
 
-            if isValid and self.setsDict[args[0]]["group"] == self.GROUP_TEXT_AREA:
+            
+
+            if isValid and self.setsDict[rowId][entryName]["group"] == self.GROUP_TEXT_AREA:
                 # Update example line
                 try:
-                    tFont = Font(family=self.setsDict[Sets.FONT_FAMILY]["var"].get(),\
-                                size=self.setsDict[Sets.FONT_SIZE]["var"].get())                
-                    self.exampleText.config(background=self.setsDict[Sets.BACKGROUND_COLOR]["var"].get(),\
-                                            selectbackground=self.setsDict[Sets.SELECT_BACKGROUND_COLOR]["var"].get(),\
-                                            foreground=self.setsDict[Sets.TEXT_COLOR]["var"].get(),\
+                    tFont = Font(family=self.setsDict[Sets.FONT_FAMILY][entryName]["var"].get(),\
+                                size=self.setsDict[Sets.FONT_SIZE][entryName]["var"].get())                
+                    self.exampleText.config(background=self.setsDict[Sets.BACKGROUND_COLOR][entryName]["var"].get(),\
+                                            selectbackground=self.setsDict[Sets.SELECT_BACKGROUND_COLOR][entryName]["var"].get(),\
+                                            foreground=self.setsDict[Sets.TEXT_COLOR][entryName]["var"].get(),\
                                             font=tFont)
                 except tk.TclError:
                     # print("Tcl Error")
                     pass       
 
+        entryId = rowId + entryName
+        
+        try:
+            self.notValidEntries.remove(entryId)
+        except ValueError:
+            pass
+
         if isValid:
-            self.setsDict[args[0]]["input"].config(background="white")
+            self.setsDict[rowId][entryName]["input"].config(background="white")            
         else:
-            self.setsDict[args[0]]["input"].config(background="red")
+            self.setsDict[rowId][entryName]["input"].config(background="red")
+            self.notValidEntries.append(entryId)
+
+        if self.notValidEntries:            
+            self.setSaveButtonState(tk.DISABLED)
+        else:
+            self.setSaveButtonState(tk.NORMAL)
+
 
     # TODO validate regex
 
@@ -1566,6 +1611,14 @@ class OptionsView:
             if int(size) < 1:
                 isValid = False
 
+        return isValid
+
+    def isValidRegex(self,regex):
+        isValid = True
+        try:
+            re.compile(regex)
+        except:
+            isValid = False
         return isValid
     
     ####################################
