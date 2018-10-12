@@ -1077,12 +1077,14 @@ class OptionsView:
         
         # Delete all variable observers
         for rowId in self.setsDict.keys():
-            try:
-                observer = self.setsDict[rowId]["observer"]
-                self.setsDict[rowId]["var"].trace_vdelete("w",observer)   
-            except KeyError:
-                pass
-        
+            for entry in self.setsDict[rowId].keys():
+                if not "lineFrame" in entry:
+                    try:
+                        observer = self.setsDict[rowId][entry]["observer"]
+                        self.setsDict[rowId][entry]["var"].trace_vdelete("w",observer)                        
+                    except KeyError:
+                        pass
+    
         # Delete all view elements
         del self.setsDict        
 
