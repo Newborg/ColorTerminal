@@ -6,9 +6,12 @@ import threading
 
 keepWriting = 1
 
+# logFile = "log_example_small.txt"
+logFile = "log_search.txt"
+
 def writer():
 
-    with open("log_example_small.txt","r") as file:
+    with open(logFile,"r") as file:
         lines = file.readlines()
 
     i = 0
