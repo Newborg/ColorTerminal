@@ -1750,6 +1750,72 @@ class Spinner:
             nextIndex = 0
         return nextIndex
 
+################################################################
+################################################################
+# 
+# 
+# 
+# SEARCH BAR
+# 
+# 
+# 
+################################################################
+################################################################
+
+
+class Search:
+
+    def __init__(self,parent,textField):
+        self.parent = parent
+        self.textField = textField
+          
+
+    def close(self):
+
+        # try:          
+        #     self.view.after_cancel(self.updateJob)                        
+        # except AttributeError:
+        #     # print("No job to cancel")
+        #     pass
+
+        try:              
+            self.view.destroy()
+        except AttributeError:
+            # print("No view")
+            pass
+
+
+    def show(self):
+
+        self.view = tk.Frame(self.textField,bg="blue",highlightthickness=2,highlightbackground="red")
+        # self.view.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        self.view.place(relx=1,x=-5,y=5,anchor=tk.NE)
+
+        self.label = tk.Label(self.view,text="Hello")
+        self.label.pack(side=tk.LEFT)
+
+        self.var = tk.StringVar(self.view)
+        self.var.set("Search")
+
+        self.entry = tk.Entry(self.view,textvariable=self.var)
+        self.entry.pack(side=tk.LEFT)
+        
+        self.entry.focus_set()
+
+        self.closeButton = tk.Button(self.view,text="X",command=self.close,cursor="arrow")
+        self.closeButton.pack(side=tk.LEFT)
+
+        # self.parent.update()
+
+        # print("Text height: " + str(self.textField.winfo_height()))
+        # print("Text width: " + str(self.textField.winfo_width()))
+        # print("Text pos X: " + str(self.textField.winfo_x()))
+        # print("Text pox Y: " + str(self.textField.winfo_y()))
+
+        # print("Own height: " + str(self.view.winfo_height()))
+        # print("Own width: " + str(self.view.winfo_width()))
+        # print("Own pos X: " + str(self.view.winfo_x()))
+        # print("Own pox Y: " + str(self.view.winfo_y()))
 
 
 
@@ -1790,22 +1856,30 @@ updateGuiJob_ = root.after(50,waitForInput)
 
 # spinner = None
 
+def controlDown(e):
+    # print("Ctrl+f")
+    search = Search(middleFrame_,T_)
+    search.show()
+
 # def down(e):
+#     print("DOWN raw: " + str(e))
 #     print("DOWN: " + e.char)
-#     if e.char == 'n':        
-#         optionsView_.show(highlightWorker_.getLineColorMap())        
-#     # elif e.char == 'm':
-#     #     global spinner
-#     #     spinner = Spinner(root)
-#     #     spinner.show()
-#     # elif e.char == 'b':
-#     #     if spinner:
-#     #         spinner.close()
-#     #         spinner = None
+    # if e.char == 'n':        
+    #     search = Search(middleFrame_,T_)
+    #     search.show()
+    # elif e.char == 'm':
+    #     global spinner
+    #     spinner = Spinner(root)
+    #     spinner.show()
+    # elif e.char == 'b':
+    #     if spinner:
+    #         spinner.close()
+    #         spinner = None
 
 # def up(e):
 #     print("UP: " + e.char)
 
+root.bind('<Control-f>', controlDown)
 # root.bind('<KeyPress>', down)
 # root.bind('<KeyRelease>', up)
 
