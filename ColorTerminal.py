@@ -1791,19 +1791,37 @@ class Search:
         # self.view.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
         self.view.place(relx=1,x=-5,y=5,anchor=tk.NE)
 
+        self.textField.config(state=tk.NORMAL)
+        self.textField.insert(tk.END,"Hello there pretty lady.\n")
+        self.textField.insert(tk.END,"How are you tonight?\n")
+        self.textField.config(state=tk.DISABLED)
+
+        # self.textField.tag_configure("search", background="green")
+
         self.label = tk.Label(self.view,text="Hello")
         self.label.pack(side=tk.LEFT)
 
         self.var = tk.StringVar(self.view)
         self.var.set("Search")
+        self.var.trace("w",self.search)
 
         self.entry = tk.Entry(self.view,textvariable=self.var)
         self.entry.pack(side=tk.LEFT)
+        # self.entry.bind("<Return>",self.search)
         
         self.entry.focus_set()
 
         self.closeButton = tk.Button(self.view,text="X",command=self.close,cursor="arrow")
         self.closeButton.pack(side=tk.LEFT)
+
+
+        # start = 1.0
+        # countVar = tk.StringVar()
+        # pos = self.textField.search("There",start,stopindex=tk.END,count=countVar)
+        # self.textField.tag_configure("search", background="green")
+        # self.textField.tag_add("search", pos, pos + "+" + countVar.get() + "c")
+        # print("Position " + str(pos))
+
 
         # self.parent.update()
 
@@ -1817,7 +1835,24 @@ class Search:
         # print("Own pos X: " + str(self.view.winfo_x()))
         # print("Own pox Y: " + str(self.view.winfo_y()))
 
+    def search(self,*args):
+        
+        # print(args)
+        string = self.var.get()
 
+        self.textField.tag_delete("search")
+        self.textField.tag_configure("search", background="green")
+
+        start = 1.0
+        countVar = tk.StringVar()
+        while True:
+            pos = self.textField.search(string,start,stopindex=tk.END,count=countVar)
+            if not pos:
+                break
+            else:                
+                self.textField.tag_add("search", pos, pos + "+" + countVar.get() + "c")
+                start = pos + "+1c"
+        
 
 
 ################################################################
