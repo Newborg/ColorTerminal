@@ -37,7 +37,7 @@ class LogLevel(Enum):
     INFO = 2
     DEBUG = 3
 
-def traceLog(level,msg):    
+def traceLog(level,msg):
     timestamp = datetime.datetime.now()
     micros = int(timestamp.microsecond/1000)
     timeString = timestamp.strftime("%H:%M:%S") + "." + '{:03d}'.format(micros)
@@ -49,8 +49,8 @@ def traceLog(level,msg):
 
 class Sets:
 
-    DEFAULT_WINDOW_SIZE         = "MainWindow_defaultWindowSize"    
-    
+    DEFAULT_WINDOW_SIZE         = "MainWindow_defaultWindowSize"
+
     BACKGROUND_COLOR            = "TextArea_backgroundColor"
     SELECT_BACKGROUND_COLOR     = "TextArea_selectBackgroundColor"
     TEXT_COLOR                  = "TextArea_textColor"
@@ -79,11 +79,11 @@ class Sets:
             traceLog(LogLevel.WARNING,"Settings file not found. Using default values")
             pass
 
-        # Main Window                
+        # Main Window
         self.settings[self.DEFAULT_WINDOW_SIZE]     = settingsJson.get(self.DEFAULT_WINDOW_SIZE,"1100x600")
 
-        # Text Area                
-        self.settings[self.BACKGROUND_COLOR]        = settingsJson.get(self.BACKGROUND_COLOR,"#000000")        
+        # Text Area
+        self.settings[self.BACKGROUND_COLOR]        = settingsJson.get(self.BACKGROUND_COLOR,"#000000")
         self.settings[self.SELECT_BACKGROUND_COLOR] = settingsJson.get(self.SELECT_BACKGROUND_COLOR,"#303030")
         self.settings[self.TEXT_COLOR]              = settingsJson.get(self.TEXT_COLOR,"#FFFFFF")
         self.settings[self.FONT_FAMILY]             = settingsJson.get(self.FONT_FAMILY,"Consolas")
@@ -105,13 +105,13 @@ class Sets:
             traceLog(LogLevel.WARNING,"Error updating settings file")
             pass
 
-    
+
     def get(self,option):
         # No keycheck, should fail if wrong key
         return self.settings[option]
-        
+
     def setOption(self,option,value):
-        
+
         self.settings[option] = value
 
         # print("Saving option " + str(option) + " with value " + str(value))
@@ -131,8 +131,8 @@ class Sets:
     timeStampRegex = "\\" + timeStampBracket[0] + ".{12}\\" + timeStampBracket[1] + " \\" + timeDeltaBracket[0] + ".{6,12}\\" + timeDeltaBracket[1]
 
     # Other Colors
-    STATUS_CONNECT_BACKGROUND_COLOR = "#008800"    
-    STATUS_WORKING_BACKGROUND_COLOR = "gray"    
+    STATUS_CONNECT_BACKGROUND_COLOR = "#008800"
+    STATUS_WORKING_BACKGROUND_COLOR = "gray"
     STATUS_DISCONNECT_BACKGROUND_COLOR = "#CC0000"
     STATUS_TEXT_COLOR = "white"
 
@@ -148,7 +148,7 @@ class Sets:
     DISCONNECT_LINE_SELECT_BACKGROUND_COLOR = "#4C0808"
 
     CONNECT_COLOR_TAG = "CONNECT_COLOR_TAG"
-    DISCONNECT_COLOR_TAG = "DISCONNECT_COLOR_TAG"    
+    DISCONNECT_COLOR_TAG = "DISCONNECT_COLOR_TAG"
 
     # Hide line
     HIDE_LINE_FONT_COLOR = "#808080"
@@ -175,16 +175,16 @@ class ConnectState(Enum):
     CONNECTED = 1
     DISCONNECTED = 0
 
-class SerialLine:        
+class SerialLine:
     def __init__(self, data, timestamp):
         self.data = data
         self.timestamp = timestamp
-        
-class PrintLine:        
+
+class PrintLine:
     def __init__(self, line, lineTags, updatePreviousLine = False):
         self.line = line
         self.lineTags = lineTags
-        self.updatePreviousLine = updatePreviousLine     
+        self.updatePreviousLine = updatePreviousLine
 
 NO_SERIAL_PORT_ = "None"
 
@@ -215,13 +215,13 @@ lastLogFileInfo_ = ""
 
 ################################################################
 ################################################################
-# 
-# 
-# 
+#
+#
+#
 # TKINTER GUI ELEMENTS
-# 
-# 
-# 
+#
+#
+#
 ################################################################
 ################################################################
 
@@ -231,12 +231,12 @@ lastLogFileInfo_ = ""
 root = tk.Tk()
 
 def on_closing():
-    if messagebox.askokcancel("Quit", "Do you want to quit?"):        
+    if messagebox.askokcancel("Quit", "Do you want to quit?"):
         global closeProgram_
         closeProgram_ = True
         disconnectSerial()
 
-def destroyWindow():    
+def destroyWindow():
     traceLog(LogLevel.INFO,"Closing main window")
     root.destroy()
 
@@ -249,27 +249,27 @@ root.geometry(settings_.get(Sets.DEFAULT_WINDOW_SIZE))
 ################################
 # Status frame
 
-def connectSerial():    
+def connectSerial():
 
     traceLog(LogLevel.INFO,"Connect to serial")
 
-    global readFlag_        
+    global readFlag_
     readFlag_ = 1
     global processFlag_
     processFlag_ = 1
     global logFlag_
     logFlag_ = 1
-    
+
     global readerThread
     readerThread = threading.Thread(target=readerWorker,daemon=True,name="Reader")
     global processThread
     processThread = threading.Thread(target=processWorker,daemon=True,name="Process")
-    global logThread    
+    global logThread
     logThread = threading.Thread(target=logWriterWorker,daemon=True,name="Log")
 
     readerThread.start()
     processThread.start()
-    logThread.start()  
+    logThread.start()
 
 
 def disconnectSerial():
@@ -277,56 +277,56 @@ def disconnectSerial():
     disconnectThread = threading.Thread(target=disconnectSerialProcess,name="Disconnect")
     disconnectThread.start()
 
-def disconnectSerialProcess():    
+def disconnectSerialProcess():
     traceLog(LogLevel.INFO,"Disconnect from serial")
-    
+
     global appState_
 
     # Stop serial reader
-    global readFlag_        
-    readFlag_ = 0        
+    global readFlag_
+    readFlag_ = 0
     if readerThread.isAlive():
         readerThread.join()
 
-    # Empty process queue and stop process thread       
+    # Empty process queue and stop process thread
     processQueue_.join()
     global processFlag_
-    processFlag_ = 0      
-    if processThread.isAlive(): 
+    processFlag_ = 0
+    if processThread.isAlive():
         processThread.join()
 
-    # Empty log queue and stop log writer thread   
+    # Empty log queue and stop log writer thread
     logQueue_.join()
     global logFlag_
-    logFlag_ = 0     
+    logFlag_ = 0
     if logThread.isAlive():
         logThread.join()
 
-    # Add disconnect line if connected     
+    # Add disconnect line if connected
     if appState_ == ConnectState.CONNECTED:
         timestamp = datetime.datetime.now()
         timeString = Sets.timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + Sets.timeStampBracket[1]
-        
-        disconnectLine = timeString + Sets.disconnectLineText + lastLogFileInfo_ + "\n"    
-        
+
+        disconnectLine = timeString + Sets.disconnectLineText + lastLogFileInfo_ + "\n"
+
         highlightWorker_.highlightQueue.put(disconnectLine)
         # highlightQueue_.put(disconnectLine)
 
     traceLog(LogLevel.INFO,"Main worker threads stopped")
-    
+
     setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
-    
+
     appState_ = ConnectState.DISCONNECTED
 
     if closeProgram_:
 
         highlightWorker_.stopWorker(emptyQueue=False)
-                
+
         stopGuiWorker()
 
         # Close tkinter window (close program)
-        # TODO not a very nice way to do this :/  
-        root.after(100,destroyWindow)    
+        # TODO not a very nice way to do this :/
+        root.after(100,destroyWindow)
 
 def scanSerialPorts():
 
@@ -336,10 +336,10 @@ def scanSerialPorts():
 
     for comPort in comPorts:
         try:
-            with serial.Serial(comPort.device, 115200, timeout=2):                
+            with serial.Serial(comPort.device, 115200, timeout=2):
                 serialPortDict[comPort.device] = comPort.description
-        except serial.SerialException:            
-            traceLog(LogLevel.DEBUG,"scanSerialPorts: " + comPort.device + " already open")            
+        except serial.SerialException:
+            traceLog(LogLevel.DEBUG,"scanSerialPorts: " + comPort.device + " already open")
 
     return serialPortDict
 
@@ -355,7 +355,7 @@ def reloadSerialPorts():
         serialPortVar_.trace("w",updateSerialPortSelect)
 
         # Delete options
-        serialPortOption_["menu"].delete(0,"end")        
+        serialPortOption_["menu"].delete(0,"end")
 
         # Add new options
         for port in serialPortList_:
@@ -365,7 +365,7 @@ def reloadSerialPorts():
         serialPortLabel_.config(text=serialPorts_[serialPortVar_.get()])
 
         connectButton_.config(state=tk.NORMAL)
-        
+
     else:
         serialPortVar_.set(NO_SERIAL_PORT_)
         serialPortLabel_.config(text="No serial port found")
@@ -376,20 +376,20 @@ def reloadSerialPorts():
 
 def setAppState(state):
 
-    if state == ConnectState.CONNECTED:        
+    if state == ConnectState.CONNECTED:
         connectButton_.config(text="Disconnect")
-        connectSerial()        
+        connectSerial()
         setStatusLabel("CONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
 
-    elif state == ConnectState.DISCONNECTED:        
+    elif state == ConnectState.DISCONNECTED:
         connectButton_.config(text="Connect")
-        disconnectSerial()        
+        disconnectSerial()
         setStatusLabel("DISCONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
 
 # Button Commands
 
 def connectButtonCommand():
-    
+
     if appState_ == ConnectState.DISCONNECTED:
         # Connect to serial
         setAppState(ConnectState.CONNECTED)
@@ -402,7 +402,7 @@ def connectButtonCommand():
 def goToEndButtonCommand():
     T_.see(tk.END)
 
-def clearButtonCommand():    
+def clearButtonCommand():
     highlightWorker_.clearLineBuffer()
 
     T_.config(state=tk.NORMAL)
@@ -412,15 +412,15 @@ def clearButtonCommand():
     updateWindowBufferLineCount(0)
 
 def updateSerialPortSelect(*args):
-    if serialPortVar_.get() == NO_SERIAL_PORT_:        
+    if serialPortVar_.get() == NO_SERIAL_PORT_:
         serialPortLabel_.config(text=NO_SERIAL_PORT_)
     else:
         serialPortLabel_.config(text=serialPorts_[serialPortVar_.get()])
 
-def reloadBufferCommand():    
+def reloadBufferCommand():
     highlightWorker_.reloadLineBuffer()
 
-def hideLinesCommand():    
+def hideLinesCommand():
     highlightWorker_.toggleHideLines()
     reloadBufferCommand()
 
@@ -478,7 +478,7 @@ reloadSerialPorts()
 
 def textFrameClearTags(tagNames):
     # clear existing tags
-    for tagName in tagNames:        
+    for tagName in tagNames:
         T_.tag_delete(tagName)
 
 
@@ -486,11 +486,11 @@ def textFrameClearTags(tagNames):
 def createTextFrameLineColorTag():
     lineColorMap = highlightWorker_.getLineColorMap()
 
-    for key in sorted(lineColorMap.keys()):      
+    for key in sorted(lineColorMap.keys()):
         T_.tag_configure(key, foreground=lineColorMap[key]["color"])
 
 def reloadLineColorMapAndTags():
-    
+
     lineColorMapKeys = highlightWorker_.getLineColorMap().keys()
     textFrameClearTags(lineColorMapKeys)
 
@@ -556,12 +556,12 @@ statLabel3_.pack(side=tk.RIGHT,padx=(0,18))
 bottomFrame_.pack(side=tk.BOTTOM, fill=tk.X)
 
 def updateWindowBufferLineCount(count=-1):
-    
+
     global endLine_
 
-    if count != -1:        
+    if count != -1:
         endLine_ = count+1
-    
+
     statLabel1_.config(text="Lines in window buffer " + str(endLine_-1) + "/" + str(settings_.get(Sets.MAX_LINE_BUFFER)))
 
 
@@ -569,13 +569,13 @@ def updateWindowBufferLineCount(count=-1):
 
 ################################################################
 ################################################################
-# 
-# 
-# 
+#
+#
+#
 # WORKERS
-# 
-# 
-# 
+#
+#
+#
 ################################################################
 ################################################################
 
@@ -586,32 +586,32 @@ def readerWorker():
 
     try:
         with serial.Serial(serialPortVar_.get(), 115200, timeout=2) as ser:
-            
+
             # TODO should be done in GUI thread
-            setStatusLabel("CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)         
+            setStatusLabel("CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
             global appState_
             appState_ = ConnectState.CONNECTED
 
             try:
-                while readFlag_:                
-                    
+                while readFlag_:
+
                     line = ser.readline()
                     timestamp = datetime.datetime.now()
 
-                    if line:     
+                    if line:
                         inLine = SerialLine(line.decode("utf-8"),timestamp)
-                        processQueue_.put(inLine)                         
+                        processQueue_.put(inLine)
 
             except serial.SerialException as e:
                 traceLog(LogLevel.ERROR,"Serial read error: " + str(e))
-                # Change program state to disconnected                
+                # Change program state to disconnected
                 root.after(10,setAppState,ConnectState.DISCONNECTED)
 
-    except serial.SerialException as e:        
+    except serial.SerialException as e:
         traceLog(LogLevel.ERROR,str(e))
         # In case other threads are still starting up,
-        # wait for 2 sec        
-        # Then change program state to disconnected                
+        # wait for 2 sec
+        # Then change program state to disconnected
         root.after(2000,setAppState,ConnectState.DISCONNECTED)
 
 
@@ -644,7 +644,7 @@ def processWorker():
                 lastTimestamp = line.timestamp
 
             timedelta = line.timestamp - lastTimestamp
-            
+
             hours, remainder = divmod(timedelta.seconds, 3600)
             minutes, seconds = divmod(remainder, 60)
 
@@ -660,21 +660,21 @@ def processWorker():
                 secondstring = "{:02d}.{:03d}".format(seconds, int(timedelta.microseconds/1000))
             else:
                 secondstring = "{:2d}.{:03d}".format(seconds, int(timedelta.microseconds/1000))
-            
+
             timeDeltaString = Sets.timeDeltaBracket[0] + hourstring + minutstring + secondstring + Sets.timeDeltaBracket[1]
 
             lastTimestamp = line.timestamp
 
             # Replace newline
             newData = line.data.rstrip() + "\n"
-            
+
             # Construct newLine string
             newLine = timeString + " " + timeDeltaString + " " + newData
 
             # highlightQueue_.put(newLine)
             highlightWorker_.highlightQueue.put(newLine)
             logQueue_.put(newLine)
-            
+
         except queue.Empty:
             pass
 
@@ -687,7 +687,7 @@ def processWorker():
 class HighlightWorker():
 
     def __init__(self,settings):
-        self._settings_ = settings        
+        self._settings_ = settings
 
         self._lineColorMap_ = dict()
 
@@ -712,9 +712,9 @@ class HighlightWorker():
     # Public Interface
 
     def startWorker(self):
-        
-        if not self._highlightFlag_:        
-            self._highlightFlag_ = True     
+
+        if not self._highlightFlag_:
+            self._highlightFlag_ = True
             self._highlightThread_ = threading.Thread(target=self._highlightWorker_,daemon=True,name="Highlight")
             self._highlightThread_.start()
             # print("Highlight worker started")
@@ -730,7 +730,7 @@ class HighlightWorker():
             self.highlightQueue.join()
 
         self._highlightFlag_ = False
-        
+
         if self._highlightThread_.isAlive():
             self._highlightThread_.join()
 
@@ -746,11 +746,11 @@ class HighlightWorker():
             traceLog(LogLevel.DEBUG,"HighligthWorker, reload line color map done")
         else:
             traceLog(LogLevel.ERROR,"HighligthWorker active. Not able to reload color map")
-    
+
     def reloadLineBuffer(self):
         self._reloadLineBuffer_ = True
         # print("Highlight reloadLineBuffer")
-    
+
     def clearLineBuffer(self):
         # print("Clear line buffer")
         self._lineBuffer_.clear()
@@ -759,7 +759,7 @@ class HighlightWorker():
         if self._hideLinesFlag_:
             self._hideLinesFlag_ = False
         else:
-            self._hideLinesFlag_ = True        
+            self._hideLinesFlag_ = True
 
     ##############
     # Internal
@@ -768,16 +768,16 @@ class HighlightWorker():
         # Locate highlights
         highlights = list()
         for tagName in self._lineColorMap_.keys():
-            match = re.search(self._lineColorMap_[tagName]["regex"],line)                
+            match = re.search(self._lineColorMap_[tagName]["regex"],line)
             if match:
-                highlights.append((tagName,match.start(),match.end())) 
+                highlights.append((tagName,match.start(),match.end()))
 
         match = re.search(Sets.connectLineRegex,line)
-        if match:  
+        if match:
             highlights.append((Sets.CONNECT_COLOR_TAG,"0","0+1l"))
 
         match = re.search(Sets.disconnectLineRegex,line)
-        if match:  
+        if match:
             highlights.append((Sets.DISCONNECT_COLOR_TAG,"0","0+1l"))
 
         return highlights
@@ -802,11 +802,11 @@ class HighlightWorker():
             tempConsecutiveLinesHidden = 0
 
             for keys in self._hideLineMap_:
-                match = re.search(keys,line)                
+                match = re.search(keys,line)
                 if match:
                     tempConsecutiveLinesHidden = 1
                     break
-            
+
             if tempConsecutiveLinesHidden == 1:
                 self._consecutiveLinesHidden_ += 1
             else:
@@ -831,13 +831,13 @@ class HighlightWorker():
     # Main Worker
 
     def _highlightWorker_(self):
-    
+
         global reloadGuiBuffer_
 
         while self._highlightFlag_:
 
             newLine = ""
-            
+
             try:
                 newLine = self.highlightQueue.get(True,0.2)
                 self.highlightQueue.task_done()
@@ -846,54 +846,54 @@ class HighlightWorker():
                 pass
 
             if newLine or self._reloadLineBuffer_:
-                
+
                 if newLine:
                     self._addToLineBuffer_(newLine)
-                
+
                 linesToProcess = list()
 
                 if self._reloadLineBuffer_:
                     self._reloadLineBuffer_ = False
-                    
+
                     linesToProcess = self._lineBuffer_
 
                     # Wait for GUI queue to be empty and gui update to be done,
                     # otherwise some lines can be lost, when GUI is cleared
-                    guiQueue_.join()                                    
+                    guiQueue_.join()
                     guiEvent_.wait()
 
                     self.isReloadingLineBuffer = True
 
-                    # print("reload high lines " + str(len(self._lineBuffer_)))                    
+                    # print("reload high lines " + str(len(self._lineBuffer_)))
                     # traceLog(LogLevel.DEBUG, "Reload Line Buffer")
 
                 else:
                     linesToProcess.append(newLine)
-                
+
                 for line in linesToProcess:
 
                     consecutiveLinesHidden = self._hideLines_(line)
                     if consecutiveLinesHidden == 0:
-                        lineTags = self._locateLineTags_(line)                
-                        pLine = PrintLine(line,lineTags)  
+                        lineTags = self._locateLineTags_(line)
+                        pLine = PrintLine(line,lineTags)
                     else:
                         hideInfoLine = self._getTimeStamp_(line) + " Lines hidden: " + str(consecutiveLinesHidden) + "\n"
                         lineTags = self._getHideLineColorTags_()
-                        if consecutiveLinesHidden > 1: 
-                            pLine = PrintLine(hideInfoLine,lineTags,True)  
+                        if consecutiveLinesHidden > 1:
+                            pLine = PrintLine(hideInfoLine,lineTags,True)
                         else:
-                            pLine = PrintLine(hideInfoLine,lineTags,False)  
+                            pLine = PrintLine(hideInfoLine,lineTags,False)
 
-                    guiQueue_.put(pLine)   
-                
-                if self.isReloadingLineBuffer:  
-                    
+                    guiQueue_.put(pLine)
+
+                if self.isReloadingLineBuffer:
+
                     guiReloadEvent_.clear()
                     self.isReloadingLineBuffer = False
                     reloadGuiBuffer_ = True
-                    
+
                     # Wait for gui to have processed new buffer
-                    # guiQueue_.join()   
+                    # guiQueue_.join()
                     guiReloadEvent_.wait()
                     # print("reload high done")
 
@@ -916,19 +916,19 @@ def logWriterWorker():
     linesInLogFile_ = 0
 
     with open(fullFilename,"a") as file:
-        while logFlag_:            
+        while logFlag_:
             try:
-                logLine = logQueue_.get(True,0.2)  
-                logQueue_.task_done()              
+                logLine = logQueue_.get(True,0.2)
+                logQueue_.task_done()
                 file.write(logLine)
-                linesInLogFile_ += 1                       
+                linesInLogFile_ += 1
             except queue.Empty:
                 pass
-            
+
 
     filesize = os.path.getsize(fullFilename)
 
-    global lastLogFileInfo_    
+    global lastLogFileInfo_
     lastLogFileInfo_ = filename + " (Size " + "{:.3f}".format(filesize/1024) + "KB)"
 
     statLabel3_.config(text="Log file saved: " + lastLogFileInfo_, fg="green")
@@ -952,48 +952,48 @@ def insertLine(newLine):
         T_.delete(1.0,2.0)
 
 def updateLastLine(newLine):
-    lastline = T_.index("end-2c").split(".")[0]    
-    T_.delete(lastline + ".0",lastline +".0+1l")     
+    lastline = T_.index("end-2c").split(".")[0]
+    T_.delete(lastline + ".0",lastline +".0+1l")
     T_.insert(lastline + ".0", newLine)
     # I don't think there is a need for scrolling?
-    
+
 
 def updateGUI():
 
-    global endLine_    
+    global endLine_
     global reloadGuiBuffer_
-    
+
     reloadInitiated = False
 
     receivedLines = list()
 
     if not highlightWorker_.isReloadingLineBuffer:
 
-        try:     
+        try:
             # We have to make sure that the queue is empty before continuing
-            while True:            
+            while True:
                 receivedLines.append(guiQueue_.get_nowait())
-                guiQueue_.task_done()            
+                guiQueue_.task_done()
 
 
         except queue.Empty:
 
             # Open text widget for editing
             T_.config(state=tk.NORMAL)
-            
-            if reloadGuiBuffer_:            
+
+            if reloadGuiBuffer_:
                 reloadGuiBuffer_ = False
                 reloadInitiated = True
                 linesToReload = len(receivedLines)
-                traceLog(LogLevel.DEBUG,"Reload GUI buffer (Len " + str(linesToReload) + ")")              
-                
+                traceLog(LogLevel.DEBUG,"Reload GUI buffer (Len " + str(linesToReload) + ")")
+
                 # Clear window
                 T_.delete(1.0,tk.END)
 
             for msg in receivedLines:
                 if msg.updatePreviousLine:
                     updateLastLine(msg.line)
-                else:              
+                else:
                     insertLine(msg.line)
 
                 # Highlight/color text
@@ -1007,20 +1007,20 @@ def updateGUI():
         updateWindowBufferLineCount()
         statLabel2_.config(text="Lines in log file " + str(linesInLogFile_))
 
-        if reloadInitiated:        
+        if reloadInitiated:
             guiReloadEvent_.set()
-            traceLog(LogLevel.DEBUG,"Reload GUI buffer done")   
+            traceLog(LogLevel.DEBUG,"Reload GUI buffer done")
 
 def startGuiWorker():
 
-    cancelGuiJob()    
+    cancelGuiJob()
 
     global updateGuiFlag_
-    updateGuiFlag_ = 1 
+    updateGuiFlag_ = 1
 
     global updateGuiJob_
     updateGuiJob_ = root.after(50,waitForInput)
-   
+
 
 def stopGuiWorker():
     "Will block until GUI worker is done. GUI queue is always emptied before stop."
@@ -1041,7 +1041,7 @@ def cancelGuiJob():
 def waitForInput():
     global updateGuiJob_
     if updateGuiFlag_:
-        guiEvent_.clear()        
+        guiEvent_.clear()
         updateGUI()
         guiEvent_.set()
         updateGuiJob_ = root.after(100,waitForInput)
@@ -1053,13 +1053,13 @@ def waitForInput():
 
 ################################################################
 ################################################################
-# 
-# 
-# 
+#
+#
+#
 # OPTIONS VIEW
-# 
-# 
-# 
+#
+#
+#
 ################################################################
 ################################################################
 
@@ -1069,33 +1069,33 @@ class OptionsView:
     def __init__(self,root,settings):
         self.root = root
         self.settings = settings
-        
+
         self.showing = False
         self.saving = False
-    
-    def onClosing(self,savingSettings=False): 
-        
+
+    def onClosing(self,savingSettings=False):
+
         # Delete all variable observers
         for rowId in self.setsDict.keys():
             for entry in self.setsDict[rowId].keys():
                 if not "lineFrame" in entry:
                     try:
                         observer = self.setsDict[rowId][entry]["observer"]
-                        self.setsDict[rowId][entry]["var"].trace_vdelete("w",observer)                        
+                        self.setsDict[rowId][entry]["var"].trace_vdelete("w",observer)
                     except KeyError:
                         pass
-    
+
         # Delete all view elements
-        del self.setsDict        
+        del self.setsDict
 
         # Close window
         self.view.destroy()
-        
+
         if not savingSettings:
             self.showing = False
-        
+
     class SetLine:
-        def __init__(self,setGroup,setId,setDisplayName,setType):            
+        def __init__(self,setGroup,setId,setDisplayName,setType):
             self.setGroup = setGroup
             self.setId = setId
             self.setDisplayName = setDisplayName
@@ -1118,14 +1118,14 @@ class OptionsView:
     ROW_HIGHLIGHT_COLOR = "gray"
 
     def show(self,lineColorMap):
-        
+
         # Only allow one options view at a time
         if not self.showing:
 
-            self.showing = True            
+            self.showing = True
 
             self.lineColorMap = lineColorMap
-            
+
             self.view = tk.Toplevel(self.root)
             self.view.title("Options")
             self.view.protocol("WM_DELETE_WINDOW", self.onClosing)
@@ -1147,10 +1147,10 @@ class OptionsView:
             setLines.append(self.SetLine(self.GROUP_TEXT_AREA, Sets.FONT_FAMILY, "Font Family", self.TYPE_STRING))
             setLines.append(self.SetLine(self.GROUP_TEXT_AREA, Sets.FONT_SIZE, "Font Size", self.TYPE_INT))
 
-            
+
             self.setsDict.update(self.createStandardRows(self.textAreaFrame,setLines,0))
 
-            
+
             tFont = Font(family=self.settings.get(Sets.FONT_FAMILY), size=self.settings.get(Sets.FONT_SIZE))
 
             self.exampleText = tk.Text(self.textAreaFrame,height=1,width=2,\
@@ -1177,7 +1177,7 @@ class OptionsView:
 
 
             ###############
-            # Line Coloring 
+            # Line Coloring
 
             self.lineColoringFrame = tk.LabelFrame(self.view,text="Line Coloring")
             self.lineColoringFrame.grid(row=0,column=2,padx=(0,10),pady=10,sticky=tk.N)
@@ -1193,12 +1193,12 @@ class OptionsView:
             self.deleteButton = tk.Button(self.lineColoringFrame,text="Delete",command=partial(self.editLineColorRow,self.EDIT_DELETE))
             self.deleteButton.grid(row=2,column=2,padx=2)
             self.lastFocusInRowId = ""
-            self.lastFocusOutRowId = ""        
+            self.lastFocusOutRowId = ""
 
             self.newButtonRow = len(self.lineColorMap)
             self.newButton  = tk.Button(self.lineColoringFrame,text="New Line",command=partial(self.addNewEmptyLineColor,self.lineColoringFrame))
             self.newButton.grid(row=self.newButtonRow,column=0,sticky=tk.W,padx=(2,100),pady=2)
-            
+
             ###############
             # Control buttons
 
@@ -1214,7 +1214,7 @@ class OptionsView:
                 self.optionsSaveButton.config(state=tk.DISABLED)
             else:
                 self.optionsSaveButton.config(state=tk.NORMAL)
-    
+
     def saveSettings(self):
 
         saveSettingsThread = threading.Thread(target=self.saveSettingsProcess,name="SaveSettings")
@@ -1233,21 +1233,21 @@ class OptionsView:
 
     def saveSettingsProcess(self):
         # Saving will block, so must be done in different thread
-        
+
         # setsDict will be deleted in the onClosing function
         tempSetsDict = self.setsDict
-        
+
         # Close options view
         root.after(10,self.onClosing,True)
 
         # Show saving message
         saveSpinner = Spinner(self.root)
         saveSpinner.show(indicators=False,message="Reloading View")
-        
+
         # Stop workers using the settings
-        highlightWorker_.stopWorker(emptyQueue=False)        
-        stopGuiWorker()        
-        
+        highlightWorker_.stopWorker(emptyQueue=False)
+        stopGuiWorker()
+
         # Save all settings
         tempLineColorMap = dict()
         # Sort settings to guarantee right order of line coloring
@@ -1262,9 +1262,9 @@ class OptionsView:
 
                     if Sets.LINE_COLOR_MAP in rowId:
                         tempLineColorMap[rowId][entry] = setting
-                    else:                        
-                        self.settings.setOption(rowId,setting)          
-            
+                    else:
+                        self.settings.setOption(rowId,setting)
+
         self.settings.setOption(Sets.LINE_COLOR_MAP,tempLineColorMap)
 
         # Once settings have been saved, allow for reopen of options view
@@ -1273,12 +1273,12 @@ class OptionsView:
         # Reload main interface
         reloadLineColorMapAndTags()
         reloadTextFrame()
-        
+
         # Start hilightworker to prepare buffer reload
-        highlightWorker_.startWorker()  
-                
+        highlightWorker_.startWorker()
+
         # Reload line/gui buffer
-        reloadBufferCommand()        
+        reloadBufferCommand()
         guiReloadEvent_.clear()
 
         # Start gui worker to process new buffer
@@ -1288,12 +1288,12 @@ class OptionsView:
         guiReloadEvent_.wait()
 
         # Remove spinner
-        saveSpinner.close()   
+        saveSpinner.close()
 
         # Update save button, if window has been opened again
-        root.after(10,self.setSaveButtonState,tk.NORMAL)     
+        root.after(10,self.setSaveButtonState,tk.NORMAL)
         self.saving = False
-    
+
 
     ####################################
     # View Creation
@@ -1320,21 +1320,21 @@ class OptionsView:
 
                 # Get row number
                 rowNum = int(self.lastFocusInRowId.replace(Sets.LINE_COLOR_MAP,""))
-                
-                # Find index of rows to edit                
+
+                # Find index of rows to edit
                 indexToChange = list()
                 if edit == self.EDIT_UP:
-                    if rowNum > 0:                                
+                    if rowNum > 0:
                         indexToChange = [rowNum-1, rowNum]
                 elif edit == self.EDIT_DOWN:
-                    if rowNum < (self.newButtonRow - 1):                    
+                    if rowNum < (self.newButtonRow - 1):
                         indexToChange = [rowNum, rowNum+1]
-                elif edit == self.EDIT_DELETE:                    
+                elif edit == self.EDIT_DELETE:
                     indexToChange = range(rowNum,self.newButtonRow)
-                        
-                if indexToChange:   
 
-                    tempTextColorMap = list()                               
+                if indexToChange:
+
+                    tempTextColorMap = list()
                     for i in indexToChange:
                         # Save regex and color
                         rowId = self.getRowId(i)
@@ -1343,21 +1343,21 @@ class OptionsView:
                         # Remove rows to edit from view
                         self.setsDict[rowId]["lineFrame"].destroy()
                         del self.setsDict[rowId]
-                    
+
                     # Reorder or delete saved rows
                     newRowNum = -1
-                    if edit == self.EDIT_UP:                        
+                    if edit == self.EDIT_UP:
                         tempTextColorMap[1], tempTextColorMap[0] = tempTextColorMap[0], tempTextColorMap[1]
                         newRowNum = rowNum-1
-                    elif edit == self.EDIT_DOWN:                        
+                    elif edit == self.EDIT_DOWN:
                         tempTextColorMap[1], tempTextColorMap[0] = tempTextColorMap[0], tempTextColorMap[1]
                         newRowNum = rowNum+1
-                    elif edit == self.EDIT_DELETE:                        
+                    elif edit == self.EDIT_DELETE:
                         del tempTextColorMap[0]
-                    
-                    # Recreate saved rows                       
+
+                    # Recreate saved rows
                     for i,(regex,color) in enumerate(tempTextColorMap):
-                        rowId = self.getRowId(indexToChange[i])             
+                        rowId = self.getRowId(indexToChange[i])
                         self.setsDict[rowId] = self.createSingleLineColorRow(self.lineColoringFrame,indexToChange[i],rowId,regex,color)
 
                     # If move up or down, refocus
@@ -1365,11 +1365,11 @@ class OptionsView:
                         rowId = self.getRowId(newRowNum)
                         self.focusInSet(rowId)
                     # If delete, update row count and move newButton
-                    else:                        
-                        self.newButtonRow = self.newButtonRow - 1 
+                    else:
+                        self.newButtonRow = self.newButtonRow - 1
                         self.newButton.grid(row=self.newButtonRow)
                         self.lastFocusInRowId = ""
-    
+
 
     def createLineColorRows(self,parent,lineColorMap):
         setDict = dict()
@@ -1379,22 +1379,22 @@ class OptionsView:
 
         return setDict
 
-    def createSingleLineColorRow(self,parent,row,rowId,regex,color):        
-        colorLine = dict()        
+    def createSingleLineColorRow(self,parent,row,rowId,regex,color):
+        colorLine = dict()
 
         colorLine["lineFrame"] = tk.Frame(parent,highlightcolor=self.ROW_HIGHLIGHT_COLOR,highlightthickness=2)
-        colorLine["lineFrame"].grid(row=row,column=0)        
-        colorLine["lineFrame"].bind("<Button-1>",partial(self.focusInSet,rowId))        
+        colorLine["lineFrame"].grid(row=row,column=0)
+        colorLine["lineFrame"].bind("<Button-1>",partial(self.focusInSet,rowId))
         colorLine["lineFrame"].bind("<FocusOut>",partial(self.focusOut,rowId))
 
         regexEntry = dict()
         entryName = "regex"
-        
+
         regexEntry["label"] = tk.Label(colorLine["lineFrame"],text="Regex")
         regexEntry["label"].grid(row=0,column=0)
         regexEntry["label"].bind("<Button-1>",partial(self.focusInSet,rowId))
         regexEntry["var"] = tk.StringVar(colorLine["lineFrame"])
-        regexEntry["var"].set(regex)        
+        regexEntry["var"].set(regex)
         regexEntry["observer"] = regexEntry["var"].trace("w",partial(self.validateInput,rowId,entryName))
 
         regexEntry["input"] = tk.Entry(colorLine["lineFrame"],textvariable=regexEntry["var"],width=30) # Will this work?
@@ -1415,15 +1415,15 @@ class OptionsView:
         colorEntry["label"].bind("<Button-1>",partial(self.focusInSet,rowId))
 
         colorEntry["var"] = tk.StringVar(colorLine["lineFrame"])
-        colorEntry["var"].set(color)      
+        colorEntry["var"].set(color)
         colorEntry["observer"] = colorEntry["var"].trace("w",partial(self.validateInput,rowId,entryName))
         colorEntry["input"] = tk.Entry(colorLine["lineFrame"],textvariable=colorEntry["var"],width=10)
         colorEntry["input"].grid(row=0,column=3)
         colorEntry["input"].bind("<Button-1>",partial(self.focusInLog,rowId))
-        
+
         colorEntry["button"] = tk.Button(colorLine["lineFrame"],bg=color,width=3,command=partial(self.getColor,rowId,entryName,True))
         colorEntry["button"].grid(row=0,column=4,padx=4)
-        colorEntry["button"].bind("<Button-1>",partial(self.focusInSet,rowId))        
+        colorEntry["button"].bind("<Button-1>",partial(self.focusInSet,rowId))
 
         colorEntry["type"] = self.TYPE_COLOR
         colorEntry["group"] = self.GROUP_LINE_COLORING
@@ -1448,23 +1448,23 @@ class OptionsView:
             entry = dict()
 
             entryName = "entry"
-            
+
             # TODO Add frame and highlight to colors (remember column widths and alignment)
 
             entry["label"] = tk.Label(parent,text=setLine.setDisplayName)
             entry["label"].grid(row=row,column=0,sticky=tk.W)
-            
-            if setLine.setType == self.TYPE_INT:    
+
+            if setLine.setType == self.TYPE_INT:
                 entry["var"] = tk.IntVar(parent)
             else:
                 entry["var"] = tk.StringVar(parent)
             entry["var"].set(self.settings.get(setLine.setId))
             # TODO use tkinter validateCommand
             entry["observer"] = entry["var"].trace("w",partial(self.validateInput,setLine.setId,entryName))
-            # TODO Find better solution for entry width            
+            # TODO Find better solution for entry width
             entry["input"] = tk.Entry(parent,textvariable=entry["var"],width=int(maxLen*1.5))
-            entry["input"].grid(row=row,column=1)                      
-            if setLine.setType == self.TYPE_COLOR:                
+            entry["input"].grid(row=row,column=1)
+            if setLine.setType == self.TYPE_COLOR:
                 entry["button"] = tk.Button(parent,bg=self.settings.get(setLine.setId),width=3,command=partial(self.getColor,setLine.setId,entryName))
                 entry["button"].grid(row=row,column=2,padx=4)
 
@@ -1482,30 +1482,30 @@ class OptionsView:
     ####################################
     # View Interaction
 
-    def focusOut(self,rowId,event):        
+    def focusOut(self,rowId,event):
         self.lastFocusOutRowId = rowId
 
-    def focusInSet(self,rowId,event=0):        
-        self.setsDict[rowId]["lineFrame"].focus_set()   
+    def focusInSet(self,rowId,event=0):
+        self.setsDict[rowId]["lineFrame"].focus_set()
         self.focusInLog(rowId,event)
 
-    def focusInLog(self,rowId,event=0):        
+    def focusInLog(self,rowId,event=0):
         self.lastFocusInRowId = rowId
         if self.lastFocusOutRowId == rowId:
             self.lastFocusOutRowId = ""
 
     def getColor(self,rowId,entry,highlight=False):
-        
+
         if highlight:
             hg = self.setsDict[rowId]["lineFrame"].cget("highlightbackground")
             self.setsDict[rowId]["lineFrame"].config(highlightbackground=self.ROW_HIGHLIGHT_COLOR)
-        
+
         currentColor = self.setsDict[rowId][entry]["button"].cget("bg")
 
         if not self.isValidColor(currentColor):
             currentColor = None
 
-        color = askcolor(initialcolor=currentColor,parent=self.view) 
+        color = askcolor(initialcolor=currentColor,parent=self.view)
 
         if color[1] != None:
             self.setsDict[rowId][entry]["var"].set(color[1])
@@ -1514,16 +1514,16 @@ class OptionsView:
         if highlight:
             self.setsDict[rowId]["lineFrame"].config(highlightbackground=hg)
             self.focusInLog(rowId)
-            
+
 
     ####################################
     # Entry Validation
 
-    def validateInput(self,rowId,entryName,*args):        
-        
+    def validateInput(self,rowId,entryName,*args):
+
         # Get variable
         varIn = None
-        try:    
+        try:
             varIn = self.setsDict[rowId][entryName]["var"].get()
             isValid = True
         except tk.TclError:
@@ -1541,7 +1541,7 @@ class OptionsView:
                     self.setsDict[rowId][entryName]["button"].config(background=color)
 
             # Check regex
-            if self.setsDict[rowId][entryName]["type"] == self.TYPE_REGEX: 
+            if self.setsDict[rowId][entryName]["type"] == self.TYPE_REGEX:
                 isValid = self.isValidRegex(varIn)
 
             # Check font family
@@ -1552,35 +1552,35 @@ class OptionsView:
             if rowId == Sets.FONT_SIZE:
                 isValid = self.isValidFontSize(varIn)
 
-            
+
 
             if isValid and self.setsDict[rowId][entryName]["group"] == self.GROUP_TEXT_AREA:
                 # Update example line
                 try:
                     tFont = Font(family=self.setsDict[Sets.FONT_FAMILY][entryName]["var"].get(),\
-                                size=self.setsDict[Sets.FONT_SIZE][entryName]["var"].get())                
+                                size=self.setsDict[Sets.FONT_SIZE][entryName]["var"].get())
                     self.exampleText.config(background=self.setsDict[Sets.BACKGROUND_COLOR][entryName]["var"].get(),\
                                             selectbackground=self.setsDict[Sets.SELECT_BACKGROUND_COLOR][entryName]["var"].get(),\
                                             foreground=self.setsDict[Sets.TEXT_COLOR][entryName]["var"].get(),\
                                             font=tFont)
                 except tk.TclError:
                     # print("Tcl Error")
-                    pass       
+                    pass
 
         entryId = rowId + entryName
-        
+
         try:
             self.notValidEntries.remove(entryId)
         except ValueError:
             pass
 
         if isValid:
-            self.setsDict[rowId][entryName]["input"].config(background="white")            
+            self.setsDict[rowId][entryName]["input"].config(background="white")
         else:
             self.setsDict[rowId][entryName]["input"].config(background="red")
             self.notValidEntries.append(entryId)
 
-        if self.notValidEntries:            
+        if self.notValidEntries:
             self.setSaveButtonState(tk.DISABLED)
         else:
             self.setSaveButtonState(tk.NORMAL)
@@ -1622,7 +1622,7 @@ class OptionsView:
         except:
             isValid = False
         return isValid
-    
+
     ####################################
     # Misc
 
@@ -1632,13 +1632,13 @@ class OptionsView:
 
 ################################################################
 ################################################################
-# 
-# 
-# 
+#
+#
+#
 # SPINNER
-# 
-# 
-# 
+#
+#
+#
 ################################################################
 ################################################################
 
@@ -1646,20 +1646,20 @@ class OptionsView:
 class Spinner:
 
     def __init__(self,root):
-        self.root = root             
-        self.runFlag = True   
+        self.root = root
+        self.runFlag = True
 
     def close(self):
 
         self.runFlag = False
 
-        try:          
-            self.view.after_cancel(self.updateJob)                        
+        try:
+            self.view.after_cancel(self.updateJob)
         except AttributeError:
             # print("No job to cancel")
             pass
 
-        try:              
+        try:
             self.view.destroy()
         except AttributeError:
             # print("No view")
@@ -1685,8 +1685,8 @@ class Spinner:
             indicatorBaseFrame = tk.Frame(self.view,bg=bgColor)
             indicatorBaseFrame.pack(padx=padding,pady=padding)
 
-            # Setup        
-            colors = [bgColor,"#222","#444","#777"]        
+            # Setup
+            colors = [bgColor,"#222","#444","#777"]
             colorSequenceIndexList = [0,0,0,0,0,0,1,2,3,2,1]
 
             self.updatePeriod_ms = 100
@@ -1694,25 +1694,25 @@ class Spinner:
             indicatorY = 20
             indicatorSpacing = 10
             indicatorCount = 5
-            
+
             # Create color list
             self.colorSequence = list()
-            for i in range(len(colorSequenceIndexList)):                
+            for i in range(len(colorSequenceIndexList)):
                 self.colorSequence.append(colors[colorSequenceIndexList[i]])
-            
+
             self.colorSequenceIndex = 0
 
             self.indicators = list()
             for i in range(indicatorCount):
                 indicator = tk.Frame(indicatorBaseFrame,bg=bgColor,width=indicatorX,height=indicatorY)
-                if i > 0: 
-                    padx = (0,indicatorSpacing) 
-                else: 
+                if i > 0:
+                    padx = (0,indicatorSpacing)
+                else:
                     padx = 0
                 # Add indicators right to left, to get movement correct
-                indicator.pack(side=tk.RIGHT,padx=padx)            
+                indicator.pack(side=tk.RIGHT,padx=padx)
                 self.indicators.append(indicator)
-                
+
             if self.animate:
                 self.updateJob = self.view.after(self.updatePeriod_ms,self.updateIndicators)
 
@@ -1733,7 +1733,7 @@ class Spinner:
             indicatorLabel.pack(padx=padding, pady=(topPad,padding))
 
     def updateIndicators(self):
-        
+
         colorLen = len(self.colorSequence)
 
         for index,indicator in enumerate(self.indicators):
@@ -1752,13 +1752,13 @@ class Spinner:
 
 ################################################################
 ################################################################
-# 
-# 
-# 
+#
+#
+#
 # SEARCH BAR
-# 
-# 
-# 
+#
+#
+#
 ################################################################
 ################################################################
 
@@ -1768,18 +1768,22 @@ class Search:
     def __init__(self,parent,textField):
         self.parent = parent
         self.textField = textField
-          
+        self.showing = False
+
+        self.results = list()
+        self.selectedResult = -1
 
     def close(self):
 
-        # try:          
-        #     self.view.after_cancel(self.updateJob)                        
+        # try:
+        #     self.view.after_cancel(self.updateJob)
         # except AttributeError:
         #     # print("No job to cancel")
         #     pass
 
-        try:              
+        try:
             self.view.destroy()
+            self.showing = False
         except AttributeError:
             # print("No view")
             pass
@@ -1787,33 +1791,78 @@ class Search:
 
     def show(self):
 
-        self.view = tk.Frame(self.textField,bg="blue",highlightthickness=2,highlightbackground="red")
-        # self.view.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-        self.view.place(relx=1,x=-5,y=5,anchor=tk.NE)
+        self.noResultString = "No result"
 
-        self.textField.config(state=tk.NORMAL)
-        self.textField.insert(tk.END,"Hello there pretty lady.\n")
-        self.textField.insert(tk.END,"How are you tonight?\n")
-        self.textField.config(state=tk.DISABLED)
+        if not self.showing:
 
-        # self.textField.tag_configure("search", background="green")
+            self.showing = True
 
-        self.label = tk.Label(self.view,text="Hello")
-        self.label.pack(side=tk.LEFT)
+            self.view = tk.Frame(self.textField,bg="blue",highlightthickness=2,highlightbackground="red")
+            # self.view.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+            self.view.place(relx=1,x=-5,y=5,anchor=tk.NE)
 
-        self.var = tk.StringVar(self.view)
-        self.var.set("Search")
-        self.var.trace("w",self.search)
+            self.textField.config(state=tk.NORMAL)
+            loops = 6
+            self.textField.insert(tk.END,"start\n")
+            for i in range(loops):
+                self.textField.insert(tk.END,"Main::NaOH Pump=>=== Pumping 50.000000 ml, flowSamples=0 ===\n")
+                self.textField.insert(tk.END,"TM::TitrationSequence=>Detecting boric color:-0.146 > limit:-0.130\n")
+                self.textField.insert(tk.END,"GUI::GUIMasterStateMachine=>Beginning transition onFOSS::Bifrost::T123::MeasureProgress from MeasureMode\n")
+                self.textField.insert(tk.END,"GUI::GUIMasterStateMachine=>Measure progress 34\n")
+                self.textField.insert(tk.END,"Main::SyncFile=>Registering SyncFile with watchdog manager. Prio: 3\n")
+                self.textField.insert(tk.END,"Hello\n")
+                self.textField.insert(tk.END,"Hello\n")
+            self.textField.insert(tk.END,"the end\n")
+            self.textField.config(state=tk.DISABLED)
 
-        self.entry = tk.Entry(self.view,textvariable=self.var)
-        self.entry.pack(side=tk.LEFT)
-        # self.entry.bind("<Return>",self.search)
-        
-        self.entry.focus_set()
+            # self.textField.tag_configure("search", background="green")
 
-        self.closeButton = tk.Button(self.view,text="X",command=self.close,cursor="arrow")
-        self.closeButton.pack(side=tk.LEFT)
+            self.var = tk.StringVar(self.view)
+            self.var.set("")
+            self.var.trace("w",self.search)
 
+            self.entry = tk.Entry(self.view,textvariable=self.var)
+            self.entry.pack(side=tk.LEFT)
+            self.entry.bind("<Return>",self.selectNextResult)
+
+            self.entry.focus_set()
+
+            self.label = tk.Label(self.view,text=self.noResultString,width=10,anchor=tk.W)
+            self.label.pack(side=tk.LEFT,anchor=tk.E)
+
+            self.caseVar = tk.StringVar(self.view)
+            # self.caseVar.trace("w",self.search)
+            self.caseButton = tk.Checkbutton(self.view,text="Aa",variable=self.caseVar,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)            
+            self.caseButton.pack(side=tk.LEFT)
+            self.caseButton.deselect()
+
+            self.regexVar = tk.StringVar(self.view)
+            # self.regexVar.trace("w",self.search)
+            self.regexButton = tk.Checkbutton(self.view,text=".*",variable=self.regexVar,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)            
+            self.regexButton.pack(side=tk.LEFT)
+            self.regexButton.deselect()
+            
+
+            self.closeButton = tk.Button(self.view,text="X",command=self.close,cursor="arrow")
+            self.closeButton.pack(side=tk.LEFT)
+
+
+            self.textField.tag_configure(self.TAG_SEARCH_SELECT_BG, background="gray")
+            self.textField.tag_configure(self.TAG_SEARCH, background="green")
+            self.textField.tag_configure(self.TAG_SEARCH_SELECT, background="blue")
+            
+
+
+        else:
+
+            self.entry.focus_set()
+
+    TAG_SEARCH = "tagSearch"
+    TAG_SEARCH_SELECT = "tagSearchSelect"
+    TAG_SEARCH_SELECT_BG = "tagSearchSelectBg"
+
+    STRING_TRUE = "True"
+    STRING_FALSE = "False"
 
         # start = 1.0
         # countVar = tk.StringVar()
@@ -1836,34 +1885,102 @@ class Search:
         # print("Own pox Y: " + str(self.view.winfo_y()))
 
     def search(self,*args):
-        
+
         # print(args)
         string = self.var.get()
 
-        self.textField.tag_delete("search")
-        self.textField.tag_configure("search", background="green")
+        # self.textField.tag_delete("search")
+        # self.textField.tag_delete("search_select")
+        self.textField.tag_remove(self.TAG_SEARCH,1.0,tk.END)
+        self.textField.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
+        self.textField.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
+        
 
-        start = 1.0
-        countVar = tk.StringVar()
-        while True:
-            pos = self.textField.search(string,start,stopindex=tk.END,count=countVar)
-            if not pos:
-                break
-            else:                
-                self.textField.tag_add("search", pos, pos + "+" + countVar.get() + "c")
-                start = pos + "+1c"
+        self.results = list()
+
+        if string:
+            # self.textField.tag_configure("search", background="green")
+            # self.textField.tag_configure("search_select", background="blue")
+
+            # print("Case: " + str(self.caseVar.get()))
+            # print("Regex: " + str(self.regexVar.get()))
+
+            # nocase = self.caseVar.get() == 1
+            if self.caseVar.get() == self.STRING_TRUE:
+                nocase = True
+            else:
+                nocase = False
+
+            # regexp = self.regexVar.get() == 1
+            if self.regexVar.get() == self.STRING_TRUE:
+                regexp = True
+            else:
+                regexp = False
+
+            start = 1.0
+            countVar = tk.StringVar()
+            while True:
+                pos = self.textField.search(string,start,stopindex=tk.END,count=countVar,nocase=nocase,regexp=regexp)
+                if not pos:
+                    break
+                else:
+                    # self.textField.tag_add("search", pos, pos + "+" + countVar.get() + "c")
+                    self.results.append((pos,pos + "+" + countVar.get() + "c"))
+                    start = pos + "+1c"
+
+            # if self.results:
+                # self.label.config(text="1 of " + str(len(self.results)))
+                
+            # else:
+                # self.label.config(text=self.noResultString)
+
+            for result in self.results:
+                    self.textField.tag_add(self.TAG_SEARCH, result[0], result[1])
+
+            self.selectedResult = -1
+            self.selectNextResult()
+        # else:
+            # self.label.config(text=self.noResultString)
+
+        if not self.results:
+            self.label.config(text=self.noResultString)
+
+    def selectNextResult(self,*args):
+        self.incrementResultIndex()
+        if self.selectedResult > -1:
+            
+            selected = self.textField.tag_ranges(self.TAG_SEARCH_SELECT)
+            if selected:
+                self.textField.tag_remove(self.TAG_SEARCH_SELECT,selected[0],selected[1])
+            self.textField.tag_add(self.TAG_SEARCH_SELECT, self.results[self.selectedResult][0], self.results[self.selectedResult][1])
+
+            selectedBg = self.textField.tag_ranges(self.TAG_SEARCH_SELECT_BG)
+            if selectedBg:
+                self.textField.tag_remove(self.TAG_SEARCH_SELECT_BG,selectedBg[0],selectedBg[1])
+            selectLine = self.results[self.selectedResult][0].split(".")[0]
+            self.textField.tag_add(self.TAG_SEARCH_SELECT_BG, selectLine + ".0", selectLine + ".0+1l")
+
+            self.label.config(text=str(self.selectedResult+1) + " of " + str(len(self.results)))
+            self.textField.see(self.results[self.selectedResult][0])
         
 
 
+    def incrementResultIndex(self):
+        if self.results:
+            resultCount = len(self.results)
+            self.selectedResult += 1
+            if self.selectedResult >= resultCount:
+                self.selectedResult = 0
+
 ################################################################
 ################################################################
-# 
-# 
-# 
+#
+#
+#
 # MAIN LOOP
-# 
-# 
-# 
+#
+#
+#
 ################################################################
 ################################################################
 
@@ -1888,18 +2005,19 @@ createTextFrameLineColorTag()
 updateGuiJob_ = root.after(50,waitForInput)
 
 
+search_ = Search(middleFrame_,T_)
 
 # spinner = None
 
 def controlDown(e):
     # print("Ctrl+f")
-    search = Search(middleFrame_,T_)
-    search.show()
+
+    search_.show()
 
 # def down(e):
 #     print("DOWN raw: " + str(e))
 #     print("DOWN: " + e.char)
-    # if e.char == 'n':        
+    # if e.char == 'n':
     #     search = Search(middleFrame_,T_)
     #     search.show()
     # elif e.char == 'm':
