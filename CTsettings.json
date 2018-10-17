@@ -25,6 +25,10 @@
         "LineColorMap03": {
             "regex": "GFH=>Problem report",
             "color": "#ff4848"
+        },
+        "LineColorMap04": {
+            "regex": "Main::Updater.*%",
+            "color": "#ff8040"
         }
     }
 }

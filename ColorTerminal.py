@@ -1773,7 +1773,7 @@ class Search:
         self.results = list()
         self.selectedResult = -1
 
-    def close(self):
+    def close(self,*event):
 
         # try:
         #     self.view.after_cancel(self.updateJob)
@@ -1781,11 +1781,18 @@ class Search:
         #     # print("No job to cancel")
         #     pass
 
-        try:
+        self.textField.tag_delete(self.TAG_SEARCH)
+        self.textField.tag_delete(self.TAG_SEARCH_SELECT)
+        self.textField.tag_delete(self.TAG_SEARCH_SELECT_BG)
+
+        self.entry.unbind("<Escape>")
+        self.textField.unbind("<Escape>")
+
+        try:            
             self.view.destroy()
             self.showing = False
         except AttributeError:
-            # print("No view")
+            print("No view")
             pass
 
 
@@ -1800,6 +1807,13 @@ class Search:
             self.view = tk.Frame(self.textField,bg="blue",highlightthickness=2,highlightbackground="red")
             # self.view.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
             self.view.place(relx=1,x=-5,y=5,anchor=tk.NE)
+
+            
+
+
+            self.textField.tag_configure(self.TAG_SEARCH_SELECT_BG, background="gray")
+            self.textField.tag_configure(self.TAG_SEARCH, background="green")
+            self.textField.tag_configure(self.TAG_SEARCH_SELECT, background="blue")
 
             self.textField.config(state=tk.NORMAL)
             loops = 6
@@ -1831,13 +1845,13 @@ class Search:
             self.label.pack(side=tk.LEFT,anchor=tk.E)
 
             self.caseVar = tk.StringVar(self.view)
-            # self.caseVar.trace("w",self.search)
-            self.caseButton = tk.Checkbutton(self.view,text="Aa",variable=self.caseVar,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)            
+            self.caseVar.trace("w",self.search)
+            self.caseButton = tk.Checkbutton(self.view,text="Aa",variable=self.caseVar,cursor="arrow",onvalue=self.STRING_FALSE,offvalue=self.STRING_TRUE)            
             self.caseButton.pack(side=tk.LEFT)
             self.caseButton.deselect()
 
             self.regexVar = tk.StringVar(self.view)
-            # self.regexVar.trace("w",self.search)
+            self.regexVar.trace("w",self.search)
             self.regexButton = tk.Checkbutton(self.view,text=".*",variable=self.regexVar,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)            
             self.regexButton.pack(side=tk.LEFT)
             self.regexButton.deselect()
@@ -1847,11 +1861,9 @@ class Search:
             self.closeButton.pack(side=tk.LEFT)
 
 
-            self.textField.tag_configure(self.TAG_SEARCH_SELECT_BG, background="gray")
-            self.textField.tag_configure(self.TAG_SEARCH, background="green")
-            self.textField.tag_configure(self.TAG_SEARCH_SELECT, background="blue")
             
-
+            self.textField.bind("<Escape>",self.close)
+            self.entry.bind("<Escape>",self.close)
 
         else:
 
@@ -1860,6 +1872,7 @@ class Search:
     TAG_SEARCH = "tagSearch"
     TAG_SEARCH_SELECT = "tagSearchSelect"
     TAG_SEARCH_SELECT_BG = "tagSearchSelectBg"
+
 
     STRING_TRUE = "True"
     STRING_FALSE = "False"
@@ -2036,6 +2049,10 @@ root.bind('<Control-f>', controlDown)
 # root.bind('<KeyPress>', down)
 # root.bind('<KeyRelease>', up)
 
+def escapeTest(*args):
+    print("ESCAPE!")
+
+# root.bind("<Escape>",escapeTest)
 
 traceLog(LogLevel.INFO,"Main loop started")
 
