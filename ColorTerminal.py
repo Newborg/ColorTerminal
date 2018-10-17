@@ -50,6 +50,7 @@ def traceLog(level,msg):
 class Sets:
 
     DEFAULT_WINDOW_SIZE         = "MainWindow_defaultWindowSize"
+    THEME_COLOR                 = "MainWindow_themeColor"
 
     BACKGROUND_COLOR            = "TextArea_backgroundColor"
     SELECT_BACKGROUND_COLOR     = "TextArea_selectBackgroundColor"
@@ -58,6 +59,10 @@ class Sets:
     FONT_SIZE                   = "TextArea_fontSize"
     MAX_LINE_BUFFER             = "TextArea_maxLineBuffer"
 
+    SEARCH_MATCH_COLOR          = "Search_MatchColor"
+    SEARCH_SELECTED_COLOR       = "Search_SelectedColor"
+    SEARCH_SELECTED_LINE_COLOR  = "Search_SelectedLineColor"
+    
     LOG_FILE_PATH               = "LogFile_logFilePath"
     LOG_FILE_BASE_NAME          = "LogFile_logFileBaseName"
     LOG_FILE_TIMESTAMP          = "LogFile_logFileTimestamp"
@@ -80,23 +85,29 @@ class Sets:
             pass
 
         # Main Window
-        self.settings[self.DEFAULT_WINDOW_SIZE]     = settingsJson.get(self.DEFAULT_WINDOW_SIZE,"1100x600")
+        self.settings[self.DEFAULT_WINDOW_SIZE]         = settingsJson.get(self.DEFAULT_WINDOW_SIZE,"1100x600")
+        self.settings[self.THEME_COLOR]                 = settingsJson.get(self.THEME_COLOR,"#42bcf4")
 
         # Text Area
-        self.settings[self.BACKGROUND_COLOR]        = settingsJson.get(self.BACKGROUND_COLOR,"#000000")
-        self.settings[self.SELECT_BACKGROUND_COLOR] = settingsJson.get(self.SELECT_BACKGROUND_COLOR,"#303030")
-        self.settings[self.TEXT_COLOR]              = settingsJson.get(self.TEXT_COLOR,"#FFFFFF")
-        self.settings[self.FONT_FAMILY]             = settingsJson.get(self.FONT_FAMILY,"Consolas")
-        self.settings[self.FONT_SIZE]               = settingsJson.get(self.FONT_SIZE,10)
-        self.settings[self.MAX_LINE_BUFFER]         = settingsJson.get(self.MAX_LINE_BUFFER,4000)
+        self.settings[self.BACKGROUND_COLOR]            = settingsJson.get(self.BACKGROUND_COLOR,"#000000")
+        self.settings[self.SELECT_BACKGROUND_COLOR]     = settingsJson.get(self.SELECT_BACKGROUND_COLOR,"#303030")
+        self.settings[self.TEXT_COLOR]                  = settingsJson.get(self.TEXT_COLOR,"#FFFFFF")
+        self.settings[self.FONT_FAMILY]                 = settingsJson.get(self.FONT_FAMILY,"Consolas")
+        self.settings[self.FONT_SIZE]                   = settingsJson.get(self.FONT_SIZE,10)
+        self.settings[self.MAX_LINE_BUFFER]             = settingsJson.get(self.MAX_LINE_BUFFER,4000)
+
+        # Search
+        self.settings[self.SEARCH_MATCH_COLOR]          = settingsJson.get(self.SEARCH_MATCH_COLOR,"#9e6209")
+        self.settings[self.SEARCH_SELECTED_COLOR]       = settingsJson.get(self.SEARCH_SELECTED_COLOR,"#06487f")
+        self.settings[self.SEARCH_SELECTED_LINE_COLOR]  = settingsJson.get(self.SEARCH_SELECTED_LINE_COLOR,"#303030")
 
         # Log File
-        self.settings[self.LOG_FILE_PATH]           = settingsJson.get(self.LOG_FILE_PATH,"Logs")
-        self.settings[self.LOG_FILE_BASE_NAME]      = settingsJson.get(self.LOG_FILE_BASE_NAME,"SerialLog_")
-        self.settings[self.LOG_FILE_TIMESTAMP]      = settingsJson.get(self.LOG_FILE_TIMESTAMP,"%Y.%m.%d_%H.%M.%S")
+        self.settings[self.LOG_FILE_PATH]               = settingsJson.get(self.LOG_FILE_PATH,"Logs")
+        self.settings[self.LOG_FILE_BASE_NAME]          = settingsJson.get(self.LOG_FILE_BASE_NAME,"SerialLog_")
+        self.settings[self.LOG_FILE_TIMESTAMP]          = settingsJson.get(self.LOG_FILE_TIMESTAMP,"%Y.%m.%d_%H.%M.%S")
 
         # Line Color Map
-        self.settings[self.LINE_COLOR_MAP]          = settingsJson.get(self.LINE_COLOR_MAP,{})
+        self.settings[self.LINE_COLOR_MAP]              = settingsJson.get(self.LINE_COLOR_MAP,{})
 
         try:
             with open(self.jsonFileName,"w") as jsonFile:
@@ -1004,8 +1015,10 @@ def updateGUI():
             # Disable text widget edit
             T_.config(state=tk.DISABLED)
 
-        updateWindowBufferLineCount()
-        statLabel2_.config(text="Lines in log file " + str(linesInLogFile_))
+        if receivedLines:
+            updateWindowBufferLineCount()
+            statLabel2_.config(text="Lines in log file " + str(linesInLogFile_))
+            search_.search(searchStringUpdated=False)
 
         if reloadInitiated:
             guiReloadEvent_.set()
@@ -1108,6 +1121,7 @@ class OptionsView:
     TYPE_OTHER = "typeOther"
 
     GROUP_TEXT_AREA = "groupTextArea"
+    GROUP_SEARCH = "groupSearch"
     GROUP_LOGGING = "groupLogging"
     GROUP_LINE_COLORING = "groupLineColoring"
 
@@ -1163,10 +1177,23 @@ class OptionsView:
             self.exampleText.insert(1.0,"[12:34:56.789] Main::test")
 
             ###############
+            # Search
+            
+            self.searchFrame = tk.LabelFrame(self.view,text="Search")
+            self.searchFrame.grid(row=0,column=1,padx=(0,10),pady=10,sticky=tk.N)
+
+            setLines = list()
+            setLines.append(self.SetLine(self.GROUP_SEARCH, Sets.SEARCH_MATCH_COLOR, "Search match background color", self.TYPE_COLOR))
+            setLines.append(self.SetLine(self.GROUP_SEARCH, Sets.SEARCH_SELECTED_COLOR, "Search selected background color", self.TYPE_COLOR))
+            setLines.append(self.SetLine(self.GROUP_SEARCH, Sets.SEARCH_SELECTED_LINE_COLOR, "Search selected line background color", self.TYPE_COLOR))
+
+            self.setsDict.update(self.createStandardRows(self.searchFrame,setLines,0))
+
+            ###############
             # Logging
 
             self.loggingFrame = tk.LabelFrame(self.view,text="Logging")
-            self.loggingFrame.grid(row=0,column=1,padx=(0,10),pady=10,sticky=tk.N)
+            self.loggingFrame.grid(row=0,column=2,padx=(0,10),pady=10,sticky=tk.N)
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_LOGGING, Sets.LOG_FILE_PATH, "Log file path", self.TYPE_OTHER))
@@ -1180,7 +1207,7 @@ class OptionsView:
             # Line Coloring
 
             self.lineColoringFrame = tk.LabelFrame(self.view,text="Line Coloring")
-            self.lineColoringFrame.grid(row=0,column=2,padx=(0,10),pady=10,sticky=tk.N)
+            self.lineColoringFrame.grid(row=0,column=3,padx=(0,10),pady=10,sticky=tk.N)
 
             self.setsDict.update(self.createLineColorRows(self.lineColoringFrame,self.lineColorMap))
 
@@ -1203,7 +1230,7 @@ class OptionsView:
             # Control buttons
 
             self.optionsButtonsFrame = tk.Frame(self.view)
-            self.optionsButtonsFrame.grid(row=1,column=2,padx=(0,10),pady=(0,10),sticky=tk.E)
+            self.optionsButtonsFrame.grid(row=1,column=3,padx=(0,10),pady=(0,10),sticky=tk.E)
 
             self.optionsCancelButton = tk.Button(self.optionsButtonsFrame,text="Cancel",command=self.onClosing)
             self.optionsCancelButton.grid(row=0,column=0,padx=5)
@@ -1765,225 +1792,179 @@ class Spinner:
 
 class Search:
 
-    def __init__(self,parent,textField):
-        self.parent = parent
-        self.textField = textField
-        self.showing = False
+    def __init__(self,textField,settings):        
+        self._textField_ = textField
+        self._settings_ = settings
+        self._showing_ = False
 
-        self.results = list()
-        self.selectedResult = -1
+        self._results_ = list()
+        self._selectedResult_ = -1
 
     def close(self,*event):
 
-        # try:
-        #     self.view.after_cancel(self.updateJob)
-        # except AttributeError:
-        #     # print("No job to cancel")
-        #     pass
+        self._textField_.tag_delete(self.TAG_SEARCH)
+        self._textField_.tag_delete(self.TAG_SEARCH_SELECT)
+        self._textField_.tag_delete(self.TAG_SEARCH_SELECT_BG)
 
-        self.textField.tag_delete(self.TAG_SEARCH)
-        self.textField.tag_delete(self.TAG_SEARCH_SELECT)
-        self.textField.tag_delete(self.TAG_SEARCH_SELECT_BG)
+        self._entry_.unbind("<Escape>")
+        self._textField_.unbind("<Escape>")
 
-        self.entry.unbind("<Escape>")
-        self.textField.unbind("<Escape>")
-
-        try:            
-            self.view.destroy()
-            self.showing = False
+        try:
+            self._showing_ = False
+            self._view_.destroy()            
         except AttributeError:
-            print("No view")
             pass
-
-
-    def show(self):
-
-        self.noResultString = "No result"
-
-        if not self.showing:
-
-            self.showing = True
-
-            self.view = tk.Frame(self.textField,bg="blue",highlightthickness=2,highlightbackground="red")
-            # self.view.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-            self.view.place(relx=1,x=-5,y=5,anchor=tk.NE)
-
-            
-
-
-            self.textField.tag_configure(self.TAG_SEARCH_SELECT_BG, background="gray")
-            self.textField.tag_configure(self.TAG_SEARCH, background="green")
-            self.textField.tag_configure(self.TAG_SEARCH_SELECT, background="blue")
-
-            self.textField.config(state=tk.NORMAL)
-            loops = 6
-            self.textField.insert(tk.END,"start\n")
-            for i in range(loops):
-                self.textField.insert(tk.END,"Main::NaOH Pump=>=== Pumping 50.000000 ml, flowSamples=0 ===\n")
-                self.textField.insert(tk.END,"TM::TitrationSequence=>Detecting boric color:-0.146 > limit:-0.130\n")
-                self.textField.insert(tk.END,"GUI::GUIMasterStateMachine=>Beginning transition onFOSS::Bifrost::T123::MeasureProgress from MeasureMode\n")
-                self.textField.insert(tk.END,"GUI::GUIMasterStateMachine=>Measure progress 34\n")
-                self.textField.insert(tk.END,"Main::SyncFile=>Registering SyncFile with watchdog manager. Prio: 3\n")
-                self.textField.insert(tk.END,"Hello\n")
-                self.textField.insert(tk.END,"Hello\n")
-            self.textField.insert(tk.END,"the end\n")
-            self.textField.config(state=tk.DISABLED)
-
-            # self.textField.tag_configure("search", background="green")
-
-            self.var = tk.StringVar(self.view)
-            self.var.set("")
-            self.var.trace("w",self.search)
-
-            self.entry = tk.Entry(self.view,textvariable=self.var)
-            self.entry.pack(side=tk.LEFT)
-            self.entry.bind("<Return>",self.selectNextResult)
-
-            self.entry.focus_set()
-
-            self.label = tk.Label(self.view,text=self.noResultString,width=10,anchor=tk.W)
-            self.label.pack(side=tk.LEFT,anchor=tk.E)
-
-            self.caseVar = tk.StringVar(self.view)
-            self.caseVar.trace("w",self.search)
-            self.caseButton = tk.Checkbutton(self.view,text="Aa",variable=self.caseVar,cursor="arrow",onvalue=self.STRING_FALSE,offvalue=self.STRING_TRUE)            
-            self.caseButton.pack(side=tk.LEFT)
-            self.caseButton.deselect()
-
-            self.regexVar = tk.StringVar(self.view)
-            self.regexVar.trace("w",self.search)
-            self.regexButton = tk.Checkbutton(self.view,text=".*",variable=self.regexVar,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)            
-            self.regexButton.pack(side=tk.LEFT)
-            self.regexButton.deselect()
-            
-
-            self.closeButton = tk.Button(self.view,text="X",command=self.close,cursor="arrow")
-            self.closeButton.pack(side=tk.LEFT)
-
-
-            
-            self.textField.bind("<Escape>",self.close)
-            self.entry.bind("<Escape>",self.close)
-
-        else:
-
-            self.entry.focus_set()
 
     TAG_SEARCH = "tagSearch"
     TAG_SEARCH_SELECT = "tagSearchSelect"
     TAG_SEARCH_SELECT_BG = "tagSearchSelectBg"
 
-
     STRING_TRUE = "True"
     STRING_FALSE = "False"
 
-        # start = 1.0
-        # countVar = tk.StringVar()
-        # pos = self.textField.search("There",start,stopindex=tk.END,count=countVar)
-        # self.textField.tag_configure("search", background="green")
-        # self.textField.tag_add("search", pos, pos + "+" + countVar.get() + "c")
-        # print("Position " + str(pos))
+    NO_RESULT_STRING = "No result"
+
+    def show(self):
+
+        if not self._showing_:
+
+            self._showing_ = True
+
+            self._view_ = tk.Frame(self._textField_,highlightthickness=2,highlightcolor=self._settings_.get(Sets.THEME_COLOR))
+            self._view_.place(relx=1,x=-5,y=5,anchor=tk.NE)
+
+            self._textField_.tag_configure(self.TAG_SEARCH_SELECT_BG, background=self._settings_.get(Sets.SEARCH_SELECTED_LINE_COLOR))
+            self._textField_.tag_configure(self.TAG_SEARCH, background=self._settings_.get(Sets.SEARCH_MATCH_COLOR))
+            self._textField_.tag_configure(self.TAG_SEARCH_SELECT, background=self._settings_.get(Sets.SEARCH_SELECTED_COLOR))
+
+            # self.textField.config(state=tk.NORMAL)
+            # loops = 10
+            # self.textField.insert(tk.END,"start\n")
+            # for i in range(loops):
+            #     self.textField.insert(tk.END,"Main::NaOH Pump=>=== Pumping 50.000000 ml, flowSamples=0 ===\n")
+            #     self.textField.insert(tk.END,"TM::TitrationSequence=>Detecting boric color:-0.146 > limit:-0.130\n")
+            #     self.textField.insert(tk.END,"GUI::GUIMasterStateMachine=>Beginning transition onFOSS::Bifrost::T123::MeasureProgress from MeasureMode\n")
+            #     self.textField.insert(tk.END,"GUI::GUIMasterStateMachine=>Measure progress 34\n")
+            #     self.textField.insert(tk.END,"Main::SyncFile=>Registering SyncFile with watchdog manager. Prio: 3\n")
+            #     self.textField.insert(tk.END,"Hello\n")
+            #     self.textField.insert(tk.END,"Hello\n")
+            #     self.textField.insert(tk.END,"Hello\n")
+            #     self.textField.insert(tk.END,"Hello\n")
+            #     self.textField.insert(tk.END,"Hello\n")
+            # self.textField.insert(tk.END,"the end\n")
+            # self.textField.config(state=tk.DISABLED)
+
+            self._var_ = tk.StringVar(self._view_)
+            self._var_.set("")
+            self._var_.trace("w",self.search)
+
+            self._entry_ = tk.Entry(self._view_,textvariable=self._var_)
+            self._entry_.pack(side=tk.LEFT,padx=(4,2))
+            self._entry_.bind("<Return>",self._selectNextResult_)
+
+            self._entry_.focus_set()
+
+            self._label_ = tk.Label(self._view_,text=self.NO_RESULT_STRING,width=10,anchor=tk.W)
+            self._label_.pack(side=tk.LEFT,anchor=tk.E)
+
+            self._caseVar_ = tk.StringVar(self._view_)
+            self._caseVar_.trace("w",self.search)
+            self._caseButton_ = tk.Checkbutton(self._view_,text="Aa",variable=self._caseVar_,cursor="arrow",onvalue=self.STRING_FALSE,offvalue=self.STRING_TRUE)
+            self._caseButton_.pack(side=tk.LEFT)
+            self._caseButton_.deselect()
+
+            self._regexVar_ = tk.StringVar(self._view_)
+            self._regexVar_.trace("w",self.search)
+            self._regexButton_ = tk.Checkbutton(self._view_,text=".*",variable=self._regexVar_,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)
+            self._regexButton_.pack(side=tk.LEFT)
+            self._regexButton_.deselect()
+
+            self._closeButton_ = tk.Button(self._view_,text="X",command=self.close,cursor="arrow",relief=tk.FLAT)
+            self._closeButton_.pack(side=tk.LEFT)
+
+            # Bind escape to close view
+            self._textField_.bind("<Escape>",self.close)
+            self._entry_.bind("<Escape>",self.close)
+
+        else:
+
+            self._entry_.focus_set()
 
 
-        # self.parent.update()
 
-        # print("Text height: " + str(self.textField.winfo_height()))
-        # print("Text width: " + str(self.textField.winfo_width()))
-        # print("Text pos X: " + str(self.textField.winfo_x()))
-        # print("Text pox Y: " + str(self.textField.winfo_y()))
-
-        # print("Own height: " + str(self.view.winfo_height()))
-        # print("Own width: " + str(self.view.winfo_width()))
-        # print("Own pos X: " + str(self.view.winfo_x()))
-        # print("Own pox Y: " + str(self.view.winfo_y()))
-
-    def search(self,*args):
-
-        # print(args)
-        string = self.var.get()
-
-        # self.textField.tag_delete("search")
-        # self.textField.tag_delete("search_select")
-        self.textField.tag_remove(self.TAG_SEARCH,1.0,tk.END)
-        self.textField.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
-        self.textField.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
+    def search(self,searchStringUpdated=True,*args):
         
+        if self._showing_:
 
-        self.results = list()
-
-        if string:
-            # self.textField.tag_configure("search", background="green")
-            # self.textField.tag_configure("search_select", background="blue")
-
-            # print("Case: " + str(self.caseVar.get()))
-            # print("Regex: " + str(self.regexVar.get()))
-
-            # nocase = self.caseVar.get() == 1
-            if self.caseVar.get() == self.STRING_TRUE:
-                nocase = True
-            else:
-                nocase = False
-
-            # regexp = self.regexVar.get() == 1
-            if self.regexVar.get() == self.STRING_TRUE:
-                regexp = True
-            else:
-                regexp = False
-
-            start = 1.0
-            countVar = tk.StringVar()
-            while True:
-                pos = self.textField.search(string,start,stopindex=tk.END,count=countVar,nocase=nocase,regexp=regexp)
-                if not pos:
-                    break
-                else:
-                    # self.textField.tag_add("search", pos, pos + "+" + countVar.get() + "c")
-                    self.results.append((pos,pos + "+" + countVar.get() + "c"))
-                    start = pos + "+1c"
-
-            # if self.results:
-                # self.label.config(text="1 of " + str(len(self.results)))
-                
-            # else:
-                # self.label.config(text=self.noResultString)
-
-            for result in self.results:
-                    self.textField.tag_add(self.TAG_SEARCH, result[0], result[1])
-
-            self.selectedResult = -1
-            self.selectNextResult()
-        # else:
-            # self.label.config(text=self.noResultString)
-
-        if not self.results:
-            self.label.config(text=self.noResultString)
-
-    def selectNextResult(self,*args):
-        self.incrementResultIndex()
-        if self.selectedResult > -1:
+            string = self._var_.get()
             
-            selected = self.textField.tag_ranges(self.TAG_SEARCH_SELECT)
+            # If the search string has not been updated, 
+            # no need to reload the tags, just search additional lines.
+            # Used from the guiWorker, whenever new lines are added.
+            if searchStringUpdated:
+                self._textField_.tag_remove(self.TAG_SEARCH,1.0,tk.END)
+                self._textField_.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
+                self._textField_.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
+                self._start_ = 1.0
+                self._results_ = list()
+
+            if string:
+
+                nocase = True if self._caseVar_.get() == self.STRING_TRUE else False
+                regexp = True if self._regexVar_.get() == self.STRING_TRUE else False
+                
+                countVar = tk.StringVar()
+                while True:
+                    pos = self._textField_.search(string,self._start_,stopindex=tk.END,count=countVar,nocase=nocase,regexp=regexp)
+                    if not pos:
+                        break
+                    else:
+                        self._results_.append((pos,pos + "+" + countVar.get() + "c"))
+                        self._start_ = pos + "+1c"
+
+                for result in self._results_:
+                        self._textField_.tag_add(self.TAG_SEARCH, result[0], result[1])
+
+                if searchStringUpdated:
+                    self._selectedResult_ = -1                
+                    self._selectNextResult_()
+
+            self._updateResultInfo_()
+
+    def _selectNextResult_(self,*args):
+        self._incrementResultIndex_()
+        if self._selectedResult_ > -1:
+
+            # Selected result tag
+            selected = self._textField_.tag_ranges(self.TAG_SEARCH_SELECT)
             if selected:
-                self.textField.tag_remove(self.TAG_SEARCH_SELECT,selected[0],selected[1])
-            self.textField.tag_add(self.TAG_SEARCH_SELECT, self.results[self.selectedResult][0], self.results[self.selectedResult][1])
+                self._textField_.tag_remove(self.TAG_SEARCH_SELECT,selected[0],selected[1])
+            self._textField_.tag_add(self.TAG_SEARCH_SELECT, self._results_[self._selectedResult_][0], self._results_[self._selectedResult_][1])
 
-            selectedBg = self.textField.tag_ranges(self.TAG_SEARCH_SELECT_BG)
+            # Background of selected line
+            selectedBg = self._textField_.tag_ranges(self.TAG_SEARCH_SELECT_BG)
             if selectedBg:
-                self.textField.tag_remove(self.TAG_SEARCH_SELECT_BG,selectedBg[0],selectedBg[1])
-            selectLine = self.results[self.selectedResult][0].split(".")[0]
-            self.textField.tag_add(self.TAG_SEARCH_SELECT_BG, selectLine + ".0", selectLine + ".0+1l")
+                self._textField_.tag_remove(self.TAG_SEARCH_SELECT_BG,selectedBg[0],selectedBg[1])
+            selectLine = self._results_[self._selectedResult_][0].split(".")[0]
+            self._textField_.tag_add(self.TAG_SEARCH_SELECT_BG, selectLine + ".0", selectLine + ".0+1l")
 
-            self.label.config(text=str(self.selectedResult+1) + " of " + str(len(self.results)))
-            self.textField.see(self.results[self.selectedResult][0])
+            self._textField_.see(self._results_[self._selectedResult_][0])
+
+            self._updateResultInfo_()
+
+    def _incrementResultIndex_(self):
+        if self._results_:            
+            self._selectedResult_ += 1
+            if self._selectedResult_ >= len(self._results_):
+                self._selectedResult_ = 0
+
+    def _updateResultInfo_(self):
         
-
-
-    def incrementResultIndex(self):
-        if self.results:
-            resultCount = len(self.results)
-            self.selectedResult += 1
-            if self.selectedResult >= resultCount:
-                self.selectedResult = 0
+        if not self._results_:
+            self._label_.config(text=self.NO_RESULT_STRING)
+        else:
+            self._label_.config(text=str(self._selectedResult_+1) + " of " + str(len(self._results_)))
+            
 
 ################################################################
 ################################################################
@@ -2018,7 +1999,7 @@ createTextFrameLineColorTag()
 updateGuiJob_ = root.after(50,waitForInput)
 
 
-search_ = Search(middleFrame_,T_)
+search_ = Search(T_,settings_)
 
 # spinner = None
 

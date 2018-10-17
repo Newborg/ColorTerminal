@@ -6,8 +6,8 @@ import threading
 
 keepWriting = 1
 
-# logFile = "log_example_small.txt"
-logFile = "log_search.txt"
+logFile = "log_example_small.txt"
+# logFile = "log_search.txt"
 
 def writer():
 
