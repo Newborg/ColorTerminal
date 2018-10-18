@@ -62,7 +62,7 @@ class Sets:
     SEARCH_MATCH_COLOR          = "Search_MatchColor"
     SEARCH_SELECTED_COLOR       = "Search_SelectedColor"
     SEARCH_SELECTED_LINE_COLOR  = "Search_SelectedLineColor"
-    
+
     LOG_FILE_PATH               = "LogFile_logFilePath"
     LOG_FILE_BASE_NAME          = "LogFile_logFileBaseName"
     LOG_FILE_TIMESTAMP          = "LogFile_logFileTimestamp"
@@ -414,6 +414,9 @@ def goToEndButtonCommand():
     T_.see(tk.END)
 
 def clearButtonCommand():
+
+    search_.close()
+
     highlightWorker_.clearLineBuffer()
 
     T_.config(state=tk.NORMAL)
@@ -436,6 +439,7 @@ def hideLinesCommand():
     reloadBufferCommand()
 
 def showOptionsView():
+    search_.close()
     optionsView_.show(highlightWorker_.getLineColorMap())
 
 def setStatusLabel(labelText, bgColor):
@@ -1178,7 +1182,7 @@ class OptionsView:
 
             ###############
             # Search
-            
+
             self.searchFrame = tk.LabelFrame(self.view,text="Search")
             self.searchFrame.grid(row=0,column=1,padx=(0,10),pady=10,sticky=tk.N)
 
@@ -1792,7 +1796,7 @@ class Spinner:
 
 class Search:
 
-    def __init__(self,textField,settings):        
+    def __init__(self,textField,settings):
         self._textField_ = textField
         self._settings_ = settings
         self._showing_ = False
@@ -1802,18 +1806,20 @@ class Search:
 
     def close(self,*event):
 
-        self._textField_.tag_delete(self.TAG_SEARCH)
-        self._textField_.tag_delete(self.TAG_SEARCH_SELECT)
-        self._textField_.tag_delete(self.TAG_SEARCH_SELECT_BG)
+        if self._showing_:
 
-        self._entry_.unbind("<Escape>")
-        self._textField_.unbind("<Escape>")
+            self._textField_.tag_delete(self.TAG_SEARCH)
+            self._textField_.tag_delete(self.TAG_SEARCH_SELECT)
+            self._textField_.tag_delete(self.TAG_SEARCH_SELECT_BG)
 
-        try:
-            self._showing_ = False
-            self._view_.destroy()            
-        except AttributeError:
-            pass
+            self._entry_.unbind("<Escape>")
+            self._textField_.unbind("<Escape>")
+
+            try:
+                self._view_.destroy()
+                self._showing_ = False
+            except AttributeError:
+                pass
 
     TAG_SEARCH = "tagSearch"
     TAG_SEARCH_SELECT = "tagSearchSelect"
@@ -1893,12 +1899,12 @@ class Search:
 
 
     def search(self,searchStringUpdated=True,*args):
-        
+
         if self._showing_:
 
             string = self._var_.get()
-            
-            # If the search string has not been updated, 
+
+            # If the search string has not been updated,
             # no need to reload the tags, just search additional lines.
             # Used from the guiWorker, whenever new lines are added.
             if searchStringUpdated:
@@ -1912,7 +1918,7 @@ class Search:
 
                 nocase = True if self._caseVar_.get() == self.STRING_TRUE else False
                 regexp = True if self._regexVar_.get() == self.STRING_TRUE else False
-                
+
                 countVar = tk.StringVar()
                 while True:
                     pos = self._textField_.search(string,self._start_,stopindex=tk.END,count=countVar,nocase=nocase,regexp=regexp)
@@ -1926,7 +1932,7 @@ class Search:
                         self._textField_.tag_add(self.TAG_SEARCH, result[0], result[1])
 
                 if searchStringUpdated:
-                    self._selectedResult_ = -1                
+                    self._selectedResult_ = -1
                     self._selectNextResult_()
 
             self._updateResultInfo_()
@@ -1953,18 +1959,18 @@ class Search:
             self._updateResultInfo_()
 
     def _incrementResultIndex_(self):
-        if self._results_:            
+        if self._results_:
             self._selectedResult_ += 1
             if self._selectedResult_ >= len(self._results_):
                 self._selectedResult_ = 0
 
     def _updateResultInfo_(self):
-        
+
         if not self._results_:
             self._label_.config(text=self.NO_RESULT_STRING)
         else:
             self._label_.config(text=str(self._selectedResult_+1) + " of " + str(len(self._results_)))
-            
+
 
 ################################################################
 ################################################################
