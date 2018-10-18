@@ -410,10 +410,10 @@ def connectButtonCommand():
         setAppState(ConnectState.DISCONNECTED)
 
 
-def goToEndButtonCommand():
+def goToEndButtonCommand(*args):
     T_.see(tk.END)
 
-def clearButtonCommand():
+def clearButtonCommand(*args):
 
     search_.close()
 
@@ -457,7 +457,7 @@ statusLabelHeader_.pack(side=tk.RIGHT)
 connectButton_ = tk.Button(topFrame_,text="Connect", command=connectButtonCommand, width=10)
 connectButton_.pack(side=tk.LEFT)
 
-goToEndButton_ = tk.Button(topFrame_,text="Go to end", command=goToEndButtonCommand, width=10)
+goToEndButton_ = tk.Button(topFrame_,text="Go to end", command=goToEndButtonCommand, width=10, underline=6)
 goToEndButton_.pack(side=tk.LEFT)
 
 # reloadBufferButton_ = tk.Button(topFrame_,text="Reload buffer", command=reloadBufferCommand, width=10)
@@ -2036,10 +2036,8 @@ root.bind('<Control-f>', controlDown)
 # root.bind('<KeyPress>', down)
 # root.bind('<KeyRelease>', up)
 
-def escapeTest(*args):
-    print("ESCAPE!")
-
-# root.bind("<Escape>",escapeTest)
+root.bind("<Alt-e>", goToEndButtonCommand)
+# root.bind("<Alt-c>", clearButtonCommand)
 
 traceLog(LogLevel.INFO,"Main loop started")
 
