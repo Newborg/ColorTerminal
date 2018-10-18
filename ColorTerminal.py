@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter.font import Font
 from tkinter.colorchooser import askcolor
+from tkinter import ttk
 
 from functools import partial
 
@@ -1245,6 +1246,20 @@ class OptionsView:
                 self.optionsSaveButton.config(state=tk.DISABLED)
             else:
                 self.optionsSaveButton.config(state=tk.NORMAL)
+
+            ###############
+            # Tab testing
+
+            self.tabsFrame = tk.Frame(self.view)
+            self.tabsFrame.grid(row=2,column=0)
+
+            tabControl = ttk.Notebook(self.tabsFrame)
+            tab1 = tk.Frame(tabControl)
+            tabControl.add(tab1, text="Tab 1")
+            tabControl.grid(row=0,column=0)
+
+            labelTest = tk.Label(tab1,text="HELLO")
+            labelTest.grid(row=0,column=0)
 
     def saveSettings(self):
 
