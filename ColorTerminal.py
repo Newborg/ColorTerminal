@@ -1162,6 +1162,9 @@ class OptionsView:
             tabControl = Notebook(self.tabsFrame,padding=10)
 
             tabControl.grid(row=0,column=0)
+            tabIndex = 0
+
+            tabOverview = dict()
 
             ###############
             # Text Area
@@ -1170,6 +1173,8 @@ class OptionsView:
             self.textAreaFrame = tk.Frame(tabControl,padx=5,pady=5)
             self.textAreaFrame.grid(row=0,column=0,sticky=tk.N)
             tabControl.add(self.textAreaFrame, text="Text Area")
+            tabOverview[self.GROUP_TEXT_AREA] = tabIndex
+            tabIndex += 1
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_TEXT_AREA, Sets.BACKGROUND_COLOR, "Background Color", self.TYPE_COLOR))
@@ -1200,6 +1205,8 @@ class OptionsView:
             self.searchFrame = tk.Frame(tabControl,padx=5,pady=5)
             self.searchFrame.grid(row=0,column=0,sticky=tk.N)
             tabControl.add(self.searchFrame, text="Search")
+            tabOverview[self.GROUP_SEARCH] = tabIndex
+            tabIndex += 1
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_SEARCH, Sets.SEARCH_MATCH_COLOR, "Search match background color", self.TYPE_COLOR))
@@ -1215,6 +1222,8 @@ class OptionsView:
             self.loggingFrame = tk.Frame(tabControl,padx=5,pady=5)
             self.loggingFrame.grid(row=0,column=0,sticky=tk.N)
             tabControl.add(self.loggingFrame, text="Logging")
+            tabOverview[self.GROUP_LOGGING] = tabIndex
+            tabIndex += 1
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_LOGGING, Sets.LOG_FILE_PATH, "Log file path", self.TYPE_OTHER))
@@ -1231,6 +1240,8 @@ class OptionsView:
             self.lineColoringFrame = tk.Frame(tabControl,padx=5,pady=5)
             self.lineColoringFrame.grid(row=0,column=0,sticky=tk.N)
             tabControl.add(self.lineColoringFrame, text="Line Coloring")
+            tabOverview[self.GROUP_LINE_COLORING] = tabIndex
+            tabIndex += 1
 
             self.setsDict.update(self.createLineColorRows(self.lineColoringFrame,self.lineColorMap))
 
@@ -1249,8 +1260,6 @@ class OptionsView:
             self.newButton  = tk.Button(self.lineColoringFrame,text="New Line",command=partial(self.addNewEmptyLineColor,self.lineColoringFrame))
             self.newButton.grid(row=self.newButtonRow,column=0,sticky=tk.W,padx=(2,100),pady=2)
 
-
-
             ###############
             # Control buttons
 
@@ -1266,7 +1275,9 @@ class OptionsView:
                 self.optionsSaveButton.config(state=tk.DISABLED)
             else:
                 self.optionsSaveButton.config(state=tk.NORMAL)
-
+            
+            # TEST
+            tabControl.select(tabOverview[self.GROUP_LOGGING])
 
 
     def saveSettings(self):
