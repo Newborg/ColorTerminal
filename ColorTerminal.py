@@ -9,7 +9,7 @@ import tkinter as tk
 from tkinter import messagebox
 from tkinter.font import Font
 from tkinter.colorchooser import askcolor
-from tkinter import ttk
+from tkinter.ttk import Notebook
 
 from functools import partial
 
@@ -1154,10 +1154,22 @@ class OptionsView:
             self.notValidEntries = list()
 
             ###############
+            # Tab
+
+            self.tabsFrame = tk.Frame(self.view)
+            self.tabsFrame.grid(row=0,column=0)
+
+            tabControl = Notebook(self.tabsFrame,padding=10)
+
+            tabControl.grid(row=0,column=0)
+
+            ###############
             # Text Area
 
-            self.textAreaFrame = tk.LabelFrame(self.view,text="Text Area")
-            self.textAreaFrame.grid(row=0,column=0,padx=(10,10),pady=10,sticky=tk.N)
+            # self.textAreaFrame = tk.LabelFrame(tabControl,text="Text Area")
+            self.textAreaFrame = tk.Frame(tabControl,padx=5,pady=5)
+            self.textAreaFrame.grid(row=0,column=0,sticky=tk.N)
+            tabControl.add(self.textAreaFrame, text="Text Area")
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_TEXT_AREA, Sets.BACKGROUND_COLOR, "Background Color", self.TYPE_COLOR))
@@ -1184,8 +1196,10 @@ class OptionsView:
             ###############
             # Search
 
-            self.searchFrame = tk.LabelFrame(self.view,text="Search")
-            self.searchFrame.grid(row=0,column=1,padx=(0,10),pady=10,sticky=tk.N)
+            # self.searchFrame = tk.LabelFrame(tabControl,text="Search")
+            self.searchFrame = tk.Frame(tabControl,padx=5,pady=5)
+            self.searchFrame.grid(row=0,column=0,sticky=tk.N)
+            tabControl.add(self.searchFrame, text="Search")
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_SEARCH, Sets.SEARCH_MATCH_COLOR, "Search match background color", self.TYPE_COLOR))
@@ -1197,8 +1211,10 @@ class OptionsView:
             ###############
             # Logging
 
-            self.loggingFrame = tk.LabelFrame(self.view,text="Logging")
-            self.loggingFrame.grid(row=0,column=2,padx=(0,10),pady=10,sticky=tk.N)
+            # self.loggingFrame = tk.LabelFrame(tabControl,text="Logging")
+            self.loggingFrame = tk.Frame(tabControl,padx=5,pady=5)
+            self.loggingFrame.grid(row=0,column=0,sticky=tk.N)
+            tabControl.add(self.loggingFrame, text="Logging")
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_LOGGING, Sets.LOG_FILE_PATH, "Log file path", self.TYPE_OTHER))
@@ -1211,8 +1227,10 @@ class OptionsView:
             ###############
             # Line Coloring
 
-            self.lineColoringFrame = tk.LabelFrame(self.view,text="Line Coloring")
-            self.lineColoringFrame.grid(row=0,column=3,padx=(0,10),pady=10,sticky=tk.N)
+            # self.lineColoringFrame = tk.LabelFrame(tabControl,text="Line Coloring")
+            self.lineColoringFrame = tk.Frame(tabControl,padx=5,pady=5)
+            self.lineColoringFrame.grid(row=0,column=0,sticky=tk.N)
+            tabControl.add(self.lineColoringFrame, text="Line Coloring")
 
             self.setsDict.update(self.createLineColorRows(self.lineColoringFrame,self.lineColorMap))
 
@@ -1231,11 +1249,13 @@ class OptionsView:
             self.newButton  = tk.Button(self.lineColoringFrame,text="New Line",command=partial(self.addNewEmptyLineColor,self.lineColoringFrame))
             self.newButton.grid(row=self.newButtonRow,column=0,sticky=tk.W,padx=(2,100),pady=2)
 
+
+
             ###############
             # Control buttons
 
             self.optionsButtonsFrame = tk.Frame(self.view)
-            self.optionsButtonsFrame.grid(row=1,column=3,padx=(0,10),pady=(0,10),sticky=tk.E)
+            self.optionsButtonsFrame.grid(row=1,column=0,padx=(0,10),pady=(0,10),sticky=tk.E)
 
             self.optionsCancelButton = tk.Button(self.optionsButtonsFrame,text="Cancel",command=self.onClosing)
             self.optionsCancelButton.grid(row=0,column=0,padx=5)
@@ -1247,19 +1267,7 @@ class OptionsView:
             else:
                 self.optionsSaveButton.config(state=tk.NORMAL)
 
-            ###############
-            # Tab testing
 
-            self.tabsFrame = tk.Frame(self.view)
-            self.tabsFrame.grid(row=2,column=0)
-
-            tabControl = ttk.Notebook(self.tabsFrame)
-            tab1 = tk.Frame(tabControl)
-            tabControl.add(tab1, text="Tab 1")
-            tabControl.grid(row=0,column=0)
-
-            labelTest = tk.Label(tab1,text="HELLO")
-            labelTest.grid(row=0,column=0)
 
     def saveSettings(self):
 
@@ -1443,7 +1451,7 @@ class OptionsView:
         regexEntry["var"].set(regex)
         regexEntry["observer"] = regexEntry["var"].trace("w",partial(self.validateInput,rowId,entryName))
 
-        regexEntry["input"] = tk.Entry(colorLine["lineFrame"],textvariable=regexEntry["var"],width=30) # Will this work?
+        regexEntry["input"] = tk.Entry(colorLine["lineFrame"],textvariable=regexEntry["var"],width=30,takefocus=False) # Will this work?
         regexEntry["input"].grid(row=0,column=1)
         regexEntry["input"].bind("<Button-1>",partial(self.focusInLog,rowId))
 
@@ -1463,7 +1471,7 @@ class OptionsView:
         colorEntry["var"] = tk.StringVar(colorLine["lineFrame"])
         colorEntry["var"].set(color)
         colorEntry["observer"] = colorEntry["var"].trace("w",partial(self.validateInput,rowId,entryName))
-        colorEntry["input"] = tk.Entry(colorLine["lineFrame"],textvariable=colorEntry["var"],width=10)
+        colorEntry["input"] = tk.Entry(colorLine["lineFrame"],textvariable=colorEntry["var"],width=10,takefocus=False)
         colorEntry["input"].grid(row=0,column=3)
         colorEntry["input"].bind("<Button-1>",partial(self.focusInLog,rowId))
 
@@ -1508,7 +1516,7 @@ class OptionsView:
             # TODO use tkinter validateCommand
             entry["observer"] = entry["var"].trace("w",partial(self.validateInput,setLine.setId,entryName))
             # TODO Find better solution for entry width
-            entry["input"] = tk.Entry(parent,textvariable=entry["var"],width=int(maxLen*1.5))
+            entry["input"] = tk.Entry(parent,textvariable=entry["var"],width=int(maxLen*1.5),takefocus=False)
             entry["input"].grid(row=row,column=1)
             if setLine.setType == self.TYPE_COLOR:
                 entry["button"] = tk.Button(parent,bg=self.settings.get(setLine.setId),width=3,command=partial(self.getColor,setLine.setId,entryName))
