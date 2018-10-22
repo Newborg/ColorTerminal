@@ -1136,6 +1136,18 @@ class OptionsView:
 
     ROW_HIGHLIGHT_COLOR = "gray"
 
+    LOG_EXAMPLE_FILE = "log_example.txt"
+
+    def loadLogExample(self):
+        log = "[12:34:56.789] Main::test\n[12:34:56.789] Main::TestTwo"
+        try:
+            with open(self.LOG_EXAMPLE_FILE,"r") as file:
+                log = file.read()
+        except FileNotFoundError:
+            traceLog(LogLevel.WARNING,"Log example file not found. Using default example")
+            pass
+        return log
+
     def show(self,lineColorMap):
 
         # Only allow one options view at a time
@@ -1153,28 +1165,65 @@ class OptionsView:
 
             self.notValidEntries = list()
 
-            ###############
-            # Tab
+            ##############################
+            # TABS
 
             self.tabsFrame = tk.Frame(self.view)
             self.tabsFrame.grid(row=0,column=0)
 
-            tabControl = Notebook(self.tabsFrame,padding=10)
+            self.tabControl = Notebook(self.tabsFrame,padding=10)
 
-            tabControl.grid(row=0,column=0)
-            tabIndex = 0
+            self.tabControl.grid(row=0,column=0,sticky=tk.N)
+            # tabIndex = 0
 
-            tabOverview = dict()
+            # tabOverview = dict()
+            self.tabList = list()
+
+            ##############################
+            # TEXT EXAMPLE
+
+            logExample = self.loadLogExample()
+            # exampleLineCount = len(logExample.splitlines())
+            # logExampleHeight = exampleLineCount + 1
+            # logExampleWidth = 80
+            exampleTextFrameHeightMin = 280
+            exampleTextFrameWidth = 600
+
+            self.exampleTextFrame = tk.Frame(self.tabsFrame,height=exampleTextFrameHeightMin,width=exampleTextFrameWidth)
+            self.exampleTextFrame.grid(row=0,column=1, padx=(0,10), pady=(10,10), sticky=tk.N+tk.S)
+            self.exampleTextFrame.grid_propagate(False)
+            self.exampleTextFrame.grid_columnconfigure(0,weight=1)
+            self.exampleTextFrame.grid_rowconfigure(0,weight=1)
+
+            tFont = Font(family=self.settings.get(Sets.FONT_FAMILY), size=self.settings.get(Sets.FONT_SIZE))
+            self.textAreaExampleText = tk.Text(self.exampleTextFrame,height=1, width=2, \
+                                            wrap=tk.NONE,\
+                                            background=self.settings.get(Sets.BACKGROUND_COLOR),\
+                                            selectbackground=self.settings.get(Sets.SELECT_BACKGROUND_COLOR),\
+                                            foreground=self.settings.get(Sets.TEXT_COLOR),\
+                                            font=tFont)
+            self.textAreaExampleText.grid(row=0,column=0, padx=(0,0), pady=(10,0),sticky=tk.E+tk.W+tk.N+tk.S)
+
+            self.textAreaExampleText.insert(1.0,logExample)
+
+            xscrollbar=tk.Scrollbar(self.exampleTextFrame, orient=tk.HORIZONTAL, command=self.textAreaExampleText.xview)
+            xscrollbar.grid(row=1,column=0,sticky=tk.W+tk.E)
+            self.textAreaExampleText["xscrollcommand"]=xscrollbar.set
+
+            yscrollbar=tk.Scrollbar(self.exampleTextFrame, orient=tk.VERTICAL, command=self.textAreaExampleText.yview)
+            yscrollbar.grid(row=0,column=1,sticky=tk.N+tk.S)
+            self.textAreaExampleText["yscrollcommand"]=yscrollbar.set
 
             ###############
             # Text Area
 
-            # self.textAreaFrame = tk.LabelFrame(tabControl,text="Text Area")
-            self.textAreaFrame = tk.Frame(tabControl,padx=5,pady=5)
+            # self.textAreaFrame = tk.LabelFrame(self.tabControl,text="Text Area")
+            self.textAreaFrame = tk.Frame(self.tabControl,padx=5,pady=5)
             self.textAreaFrame.grid(row=0,column=0,sticky=tk.N)
-            tabControl.add(self.textAreaFrame, text="Text Area")
-            tabOverview[self.GROUP_TEXT_AREA] = tabIndex
-            tabIndex += 1
+            self.tabControl.add(self.textAreaFrame, text="Text Area")
+            # tabOverview[self.GROUP_TEXT_AREA] = tabIndex
+            # tabIndex += 1
+            self.tabList.append(self.GROUP_TEXT_AREA)
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_TEXT_AREA, Sets.BACKGROUND_COLOR, "Background Color", self.TYPE_COLOR))
@@ -1186,6 +1235,15 @@ class OptionsView:
 
             self.setsDict.update(self.createStandardRows(self.textAreaFrame,setLines,0))
 
+            # tFont = Font(family=self.settings.get(Sets.FONT_FAMILY), size=self.settings.get(Sets.FONT_SIZE))
+            # self.textAreaExampleText = tk.Text(self.textAreaFrame,height=logExampleHeight, width=logExampleWidth, wrap=tk.NONE,\
+            #                                 background=self.settings.get(Sets.BACKGROUND_COLOR),\
+            #                                 selectbackground=self.settings.get(Sets.SELECT_BACKGROUND_COLOR),\
+            #                                 foreground=self.settings.get(Sets.TEXT_COLOR),\
+            #                                 font=tFont)
+            # self.textAreaExampleText.grid(row=0,column=1)
+
+            # self.textAreaExampleText.insert(1.0,logExample)
 
             tFont = Font(family=self.settings.get(Sets.FONT_FAMILY), size=self.settings.get(Sets.FONT_SIZE))
 
@@ -1201,12 +1259,13 @@ class OptionsView:
             ###############
             # Search
 
-            # self.searchFrame = tk.LabelFrame(tabControl,text="Search")
-            self.searchFrame = tk.Frame(tabControl,padx=5,pady=5)
+            # self.searchFrame = tk.LabelFrame(self.tabControl,text="Search")
+            self.searchFrame = tk.Frame(self.tabControl,padx=5,pady=5)
             self.searchFrame.grid(row=0,column=0,sticky=tk.N)
-            tabControl.add(self.searchFrame, text="Search")
-            tabOverview[self.GROUP_SEARCH] = tabIndex
-            tabIndex += 1
+            self.tabControl.add(self.searchFrame, text="Search")
+            # tabOverview[self.GROUP_SEARCH] = tabIndex
+            # tabIndex += 1
+            self.tabList.append(self.GROUP_SEARCH)
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_SEARCH, Sets.SEARCH_MATCH_COLOR, "Search match background color", self.TYPE_COLOR))
@@ -1218,12 +1277,13 @@ class OptionsView:
             ###############
             # Logging
 
-            # self.loggingFrame = tk.LabelFrame(tabControl,text="Logging")
-            self.loggingFrame = tk.Frame(tabControl,padx=5,pady=5)
+            # self.loggingFrame = tk.LabelFrame(self.tabControl,text="Logging")
+            self.loggingFrame = tk.Frame(self.tabControl,padx=5,pady=5)
             self.loggingFrame.grid(row=0,column=0,sticky=tk.N)
-            tabControl.add(self.loggingFrame, text="Logging")
-            tabOverview[self.GROUP_LOGGING] = tabIndex
-            tabIndex += 1
+            self.tabControl.add(self.loggingFrame, text="Logging")
+            # tabOverview[self.GROUP_LOGGING] = tabIndex
+            # tabIndex += 1
+            self.tabList.append(self.GROUP_LOGGING)
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_LOGGING, Sets.LOG_FILE_PATH, "Log file path", self.TYPE_OTHER))
@@ -1236,12 +1296,13 @@ class OptionsView:
             ###############
             # Line Coloring
 
-            # self.lineColoringFrame = tk.LabelFrame(tabControl,text="Line Coloring")
-            self.lineColoringFrame = tk.Frame(tabControl,padx=5,pady=5)
+            # self.lineColoringFrame = tk.LabelFrame(self.tabControl,text="Line Coloring")
+            self.lineColoringFrame = tk.Frame(self.tabControl,padx=5,pady=5)
             self.lineColoringFrame.grid(row=0,column=0,sticky=tk.N)
-            tabControl.add(self.lineColoringFrame, text="Line Coloring")
-            tabOverview[self.GROUP_LINE_COLORING] = tabIndex
-            tabIndex += 1
+            self.tabControl.add(self.lineColoringFrame, text="Line Coloring")
+            # tabOverview[self.GROUP_LINE_COLORING] = tabIndex
+            # tabIndex += 1
+            self.tabList.append(self.GROUP_LINE_COLORING)
 
             self.setsDict.update(self.createLineColorRows(self.lineColoringFrame,self.lineColorMap))
 
@@ -1260,25 +1321,37 @@ class OptionsView:
             self.newButton  = tk.Button(self.lineColoringFrame,text="New Line",command=partial(self.addNewEmptyLineColor,self.lineColoringFrame))
             self.newButton.grid(row=self.newButtonRow,column=0,sticky=tk.W,padx=(2,100),pady=2)
 
-            ###############
-            # Control buttons
+
+
+            ##############################
+            # CONTROL BUTTONS
 
             self.optionsButtonsFrame = tk.Frame(self.view)
-            self.optionsButtonsFrame.grid(row=1,column=0,padx=(0,10),pady=(0,10),sticky=tk.E)
+            self.optionsButtonsFrame.grid(row=1,column=0,padx=(10,10),pady=(0,10),sticky=tk.W+tk.E)
+
+            self.optionsInfoLabel = tk.Label(self.optionsButtonsFrame,text="",justify=tk.LEFT)
+            self.optionsInfoLabel.grid(row=0,column=0,sticky=tk.W)
+            self.optionsButtonsFrame.columnconfigure(0,weight=1)
 
             self.optionsCancelButton = tk.Button(self.optionsButtonsFrame,text="Cancel",command=self.onClosing)
-            self.optionsCancelButton.grid(row=0,column=0,padx=5)
+            self.optionsCancelButton.grid(row=0,column=1,padx=5,sticky=tk.E)
 
             self.optionsSaveButton = tk.Button(self.optionsButtonsFrame,text="Save",command=self.saveSettings)
-            self.optionsSaveButton.grid(row=0,column=1)
+            self.optionsSaveButton.grid(row=0,column=2,sticky=tk.E)
             if self.saving:
                 self.optionsSaveButton.config(state=tk.DISABLED)
             else:
                 self.optionsSaveButton.config(state=tk.NORMAL)
-            
-            # TEST
-            tabControl.select(tabOverview[self.GROUP_LOGGING])
 
+            # TEST
+            # self.tabControl.select(tabOverview[self.GROUP_LINE_COLORING])
+
+            self.tabControl.bind("<<NotebookTabChanged>>",self.tabChanged)
+
+    def tabChanged(self,event):
+        print(event)
+        print("TAB CHANGED!!!")
+        print("Current tab " + self.tabList[self.tabControl.index("current")])
 
     def saveSettings(self):
 
@@ -1339,7 +1412,7 @@ class OptionsView:
         reloadLineColorMapAndTags()
         reloadTextFrame()
 
-        # Start hilightworker to prepare buffer reload
+        # Start highlightworker to prepare buffer reload
         highlightWorker_.startWorker()
 
         # Reload line/gui buffer
@@ -1580,6 +1653,38 @@ class OptionsView:
             self.setsDict[rowId]["lineFrame"].config(highlightbackground=hg)
             self.focusInLog(rowId)
 
+    class WidgetSize:
+        def __init__(self,width,height,posx,posy):
+            self.width = width
+            self.height = height
+            self.posx = posx
+            self.posy = posy
+
+    def getWidgetSize(self,widget):
+
+        width = widget.winfo_width()
+        height = widget.winfo_height()
+        posx = widget.winfo_x()
+        posy = widget.winfo_y()
+
+        return self.WidgetSize(width,height,posx,posy)
+
+    def updateExampleText(self,group):
+        
+        entryName = "entry"
+
+        if group == self.GROUP_TEXT_AREA:
+            # General text area
+            try:
+                tFont = Font(family=self.setsDict[Sets.FONT_FAMILY][entryName]["var"].get(),\
+                            size=self.setsDict[Sets.FONT_SIZE][entryName]["var"].get())
+                self.textAreaExampleText.config(background=self.setsDict[Sets.BACKGROUND_COLOR][entryName]["var"].get(),\
+                                                selectbackground=self.setsDict[Sets.SELECT_BACKGROUND_COLOR][entryName]["var"].get(),\
+                                                foreground=self.setsDict[Sets.TEXT_COLOR][entryName]["var"].get(),\
+                                                font=tFont)
+            except tk.TclError:
+                # print("Tcl Error")
+                pass
 
     ####################################
     # Entry Validation
@@ -1619,20 +1724,23 @@ class OptionsView:
 
 
 
-            if isValid and self.setsDict[rowId][entryName]["group"] == self.GROUP_TEXT_AREA:
-                # Update example line
-                try:
-                    tFont = Font(family=self.setsDict[Sets.FONT_FAMILY][entryName]["var"].get(),\
-                                size=self.setsDict[Sets.FONT_SIZE][entryName]["var"].get())
-                    self.exampleText.config(background=self.setsDict[Sets.BACKGROUND_COLOR][entryName]["var"].get(),\
-                                            selectbackground=self.setsDict[Sets.SELECT_BACKGROUND_COLOR][entryName]["var"].get(),\
-                                            foreground=self.setsDict[Sets.TEXT_COLOR][entryName]["var"].get(),\
-                                            font=tFont)
-                except tk.TclError:
-                    # print("Tcl Error")
-                    pass
+            # if isValid and self.setsDict[rowId][entryName]["group"] == self.GROUP_TEXT_AREA:
+            if isValid:
 
-        entryId = rowId + entryName
+                self.updateExampleText(self.setsDict[rowId][entryName]["group"])
+                # Update example line
+                # try:
+                #     tFont = Font(family=self.setsDict[Sets.FONT_FAMILY][entryName]["var"].get(),\
+                #                 size=self.setsDict[Sets.FONT_SIZE][entryName]["var"].get())
+                #     self.exampleText.config(background=self.setsDict[Sets.BACKGROUND_COLOR][entryName]["var"].get(),\
+                #                             selectbackground=self.setsDict[Sets.SELECT_BACKGROUND_COLOR][entryName]["var"].get(),\
+                #                             foreground=self.setsDict[Sets.TEXT_COLOR][entryName]["var"].get(),\
+                #                             font=tFont)
+                # except tk.TclError:
+                #     # print("Tcl Error")
+                #     pass
+
+        entryId = rowId + "_" + entryName
 
         try:
             self.notValidEntries.remove(entryId)
@@ -1645,13 +1753,22 @@ class OptionsView:
             self.setsDict[rowId][entryName]["input"].config(background="red")
             self.notValidEntries.append(entryId)
 
+        infoText = ""
+        for notValidEntry in self.notValidEntries:
+            if infoText:
+                infoText += "\n"
+            infoText += notValidEntry + " not valid."
+
+        if infoText:
+            self.optionsInfoLabel.config(text=infoText)
+        else:
+            self.optionsInfoLabel.config(text="")
+
         if self.notValidEntries:
             self.setSaveButtonState(tk.DISABLED)
         else:
             self.setSaveButtonState(tk.NORMAL)
 
-
-    # TODO validate regex
 
     def isValidColor(self,colorString):
         isValid = True

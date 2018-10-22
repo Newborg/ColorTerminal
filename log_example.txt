@@ -1,0 +1,15 @@
+[10:10:10.673] ( 0.008) Main::CannisterMonitorApp=>Registering CannisterMonitorApp with watchdog manager. Prio: 3
+[10:10:10.679] ( 0.006) Main::TestSeqApp=>Registering TestSeqApp with watchdog manager. Prio: 3
+[10:10:10.684] ( 0.004) Main::ModuleMgr=>Dhcp Discovery Ip Valid: 192.168.0.10
+[10:10:10.687] ( 0.002) TM::TM_MasterStateMachine=>=== Idle ===
+[10:10:10.691] ( 0.004) TM::ID handler=>ID chip 1 not installed
+[10:10:10.742] ( 0.051) Main::DMMasterStateMachine=>Link up to module 0x06
+[10:10:10.747] ( 0.004) Main::TroubleShooting Master=>Link up - Module# = 6
+[10:10:10.756] ( 0.009) Main::TroubleShooting Master=>Requesting troubleshooting summary from module with address: 1606
+[10:10:11.797] ( 1.040) GUI::MsgDisp=>Registering MsgDisp with watchdog manager. Prio: 3
+[10:10:11.820] ( 0.023) GUI::FileServer=>Active file devices (1):
+[10:10:11.826] ( 0.006) GUI::FileServer=>  C: Volume name: InternalFlash
+[10:10:11.832] ( 0.006) GUI::FileServer=>Registering FileServer with watchdog manager. Prio: 3
+[10:10:11.838] ( 0.006) GUI::SyncFile=>Registering SyncFile with watchdog manager. Prio: 3
+[11:25:17.583] ( 0.005) Main::FileServer=>  Forward file request to FI, handle=6
+[11:25:17.700] ( 0.117) Main::Updater=>Progress 0%: Updating SN 7
