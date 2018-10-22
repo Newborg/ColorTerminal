@@ -1349,11 +1349,6 @@ class OptionsView:
 
             self.tabControl.bind("<<NotebookTabChanged>>",self.tabChanged)
 
-    def tabChanged(self,event):
-        print(event)
-        print("TAB CHANGED!!!")
-        print("Current tab " + self.tabList[self.tabControl.index("current")])
-
     def saveSettings(self):
 
         saveSettingsThread = threading.Thread(target=self.saveSettingsProcess,name="SaveSettings")
@@ -1670,10 +1665,29 @@ class OptionsView:
 
         return self.WidgetSize(width,height,posx,posy)
 
+    def tabChanged(self,event):        
+        print("Current tab " + self.tabList[self.tabControl.index("current")])
+        self.updateExampleText(self.tabList[self.tabControl.index("current")])
+
     def updateExampleText(self,group):
         
-        entryName = "entry"
+        #####################
+        # Setup
 
+        # TODO when to clear?
+
+        # Delete all search tags
+        self.textAreaExampleText.tag_delete(Sets.SEARCH_SELECTED_LINE_COLOR)
+        self.textAreaExampleText.tag_delete(Sets.SEARCH_MATCH_COLOR)
+        self.textAreaExampleText.tag_delete(Sets.SEARCH_SELECTED_COLOR)
+
+        # Delete all current line color tags
+        tagNames = self.textAreaExampleText.tag_names()
+        for tagName in tagNames:
+            if Sets.LINE_COLOR_MAP in tagName:
+                self.textAreaExampleText.tag_delete(tagName)
+        
+        entryName = "entry"
         if group == self.GROUP_TEXT_AREA:
             # General text area
             try:
@@ -1683,19 +1697,69 @@ class OptionsView:
                                                 selectbackground=self.setsDict[Sets.SELECT_BACKGROUND_COLOR][entryName]["var"].get(),\
                                                 foreground=self.setsDict[Sets.TEXT_COLOR][entryName]["var"].get(),\
                                                 font=tFont)
-            except tk.TclError:
-                # print("Tcl Error")
+            except tk.TclError:                
                 pass
 
-        else group == self.GROUP_LINE_COLORING:
+        elif group == self.GROUP_SEARCH:
             
+            searchString = "Main"
+
+            # Create tags
+            self.textAreaExampleText.tag_configure(Sets.SEARCH_SELECTED_LINE_COLOR, background=self.setsDict[Sets.SEARCH_SELECTED_LINE_COLOR][entryName]["var"].get())
+            self.textAreaExampleText.tag_configure(Sets.SEARCH_MATCH_COLOR, background=self.setsDict[Sets.SEARCH_MATCH_COLOR][entryName]["var"].get())
+            self.textAreaExampleText.tag_configure(Sets.SEARCH_SELECTED_COLOR, background=self.setsDict[Sets.SEARCH_SELECTED_COLOR][entryName]["var"].get())
+
+            # Do search
+            countVar = tk.StringVar()
+            results = list()
+            start = 1.0
+            while True:
+                pos = self.textAreaExampleText.search(searchString,start,stopindex=tk.END,count=countVar,nocase=False,regexp=False)
+                if not pos:
+                    break
+                else:
+                    results.append((pos,pos + "+" + countVar.get() + "c"))                      
+                    start = pos + "+1c"
+
+            # Add tags
+            first = True
+            for result in results:
+                self.textAreaExampleText.tag_add(Sets.SEARCH_MATCH_COLOR, result[0], result[1])
+                if first:
+                    first = False
+                    self.textAreaExampleText.tag_add(Sets.SEARCH_SELECTED_COLOR, result[0], result[1])
+                    selectLine = result[0].split(".")[0]                    
+                    self.textAreaExampleText.tag_add(Sets.SEARCH_SELECTED_LINE_COLOR, selectLine + ".0", selectLine + ".0+1l")
+
+                    
             
+        if group == self.GROUP_LINE_COLORING or group == self.GROUP_SEARCH:
 
-            # self._textField_.tag_configure(self.TAG_SEARCH_SELECT_BG, background=self._settings_.get(Sets.SEARCH_SELECTED_LINE_COLOR))
-            # self._textField_.tag_configure(self.TAG_SEARCH, background=self._settings_.get(Sets.SEARCH_MATCH_COLOR))
-            # self._textField_.tag_configure(self.TAG_SEARCH_SELECT, background=self._settings_.get(Sets.SEARCH_SELECTED_COLOR))
+            # Get line color map from view
+            tempLineColorMap = list()
+            for rowId in sorted(self.setsDict.keys()):
+                if Sets.LINE_COLOR_MAP in rowId:
+                    lineInfo = dict()
+                    lineInfo["rowId"] = rowId
+                    lineInfo["regex"] = self.setsDict[rowId]["regex"]["var"].get()
+                    lineInfo["color"] = self.setsDict[rowId]["color"]["var"].get()
+                    tempLineColorMap.append(lineInfo)
 
-            pass
+            # Apply new line colors
+            for lineInfo in tempLineColorMap:
+                self.textAreaExampleText.tag_configure(lineInfo["rowId"],foreground=lineInfo["color"])
+
+                countVar = tk.StringVar()
+                start = 1.0
+                while True:
+                    pos = self.textAreaExampleText.search(lineInfo["regex"],start,stopindex=tk.END,count=countVar,nocase=False,regexp=True)
+                    if not pos:
+                        break
+                    else:
+                        self.textAreaExampleText.tag_add(lineInfo["rowId"],pos,pos + "+" + countVar.get() + "c")                        
+                        start = pos + "+1c"
+
+       
 
     ####################################
     # Entry Validation
