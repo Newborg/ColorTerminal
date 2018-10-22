@@ -1245,16 +1245,16 @@ class OptionsView:
 
             # self.textAreaExampleText.insert(1.0,logExample)
 
-            tFont = Font(family=self.settings.get(Sets.FONT_FAMILY), size=self.settings.get(Sets.FONT_SIZE))
+            # tFont = Font(family=self.settings.get(Sets.FONT_FAMILY), size=self.settings.get(Sets.FONT_SIZE))
 
-            self.exampleText = tk.Text(self.textAreaFrame,height=1,width=2,\
-                                    background=self.settings.get(Sets.BACKGROUND_COLOR),\
-                                    selectbackground=self.settings.get(Sets.SELECT_BACKGROUND_COLOR),\
-                                    foreground=self.settings.get(Sets.TEXT_COLOR),\
-                                    font=tFont)
+            # self.exampleText = tk.Text(self.textAreaFrame,height=1,width=2,\
+            #                         background=self.settings.get(Sets.BACKGROUND_COLOR),\
+            #                         selectbackground=self.settings.get(Sets.SELECT_BACKGROUND_COLOR),\
+            #                         foreground=self.settings.get(Sets.TEXT_COLOR),\
+            #                         font=tFont)
 
-            self.exampleText.grid(row=5,column=0,columnspan=3,sticky=tk.W+tk.E)
-            self.exampleText.insert(1.0,"[12:34:56.789] Main::test")
+            # self.exampleText.grid(row=5,column=0,columnspan=3,sticky=tk.W+tk.E)
+            # self.exampleText.insert(1.0,"[12:34:56.789] Main::test")
 
             ###############
             # Search
@@ -1320,6 +1320,7 @@ class OptionsView:
             self.newButtonRow = len(self.lineColorMap)
             self.newButton  = tk.Button(self.lineColoringFrame,text="New Line",command=partial(self.addNewEmptyLineColor,self.lineColoringFrame))
             self.newButton.grid(row=self.newButtonRow,column=0,sticky=tk.W,padx=(2,100),pady=2)
+
 
 
 
@@ -1685,6 +1686,16 @@ class OptionsView:
             except tk.TclError:
                 # print("Tcl Error")
                 pass
+
+        else group == self.GROUP_LINE_COLORING:
+            
+            
+
+            # self._textField_.tag_configure(self.TAG_SEARCH_SELECT_BG, background=self._settings_.get(Sets.SEARCH_SELECTED_LINE_COLOR))
+            # self._textField_.tag_configure(self.TAG_SEARCH, background=self._settings_.get(Sets.SEARCH_MATCH_COLOR))
+            # self._textField_.tag_configure(self.TAG_SEARCH_SELECT, background=self._settings_.get(Sets.SEARCH_SELECTED_COLOR))
+
+            pass
 
     ####################################
     # Entry Validation
