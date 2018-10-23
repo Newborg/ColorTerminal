@@ -24,6 +24,11 @@ import queue
 
 import re
 
+# ColorTerminal
+from traceLog import traceLog,LogLevel
+import settings as Sets
+import spinner
+
 ################################
 # Constants
 
@@ -32,142 +37,142 @@ SETTINGS_FILE_NAME_ = "CTsettings.json"
 ################################
 # Trace
 
-class LogLevel(Enum):
-    ERROR = 0
-    WARNING = 1
-    INFO = 2
-    DEBUG = 3
+# class LogLevel(Enum):
+#     ERROR = 0
+#     WARNING = 1
+#     INFO = 2
+#     DEBUG = 3
 
-def traceLog(level,msg):
-    timestamp = datetime.datetime.now()
-    micros = int(timestamp.microsecond/1000)
-    timeString = timestamp.strftime("%H:%M:%S") + "." + '{:03d}'.format(micros)
+# def traceLog(level,msg):
+#     timestamp = datetime.datetime.now()
+#     micros = int(timestamp.microsecond/1000)
+#     timeString = timestamp.strftime("%H:%M:%S") + "." + '{:03d}'.format(micros)
 
-    print(timeString + " [" + level.name + "] " + msg)
+#     print(timeString + " [" + level.name + "] " + msg)
 
 ################################
 # Settings
 
-class Sets:
+# class Sets:
 
-    DEFAULT_WINDOW_SIZE         = "MainWindow_defaultWindowSize"
-    THEME_COLOR                 = "MainWindow_themeColor"
+#     DEFAULT_WINDOW_SIZE         = "MainWindow_defaultWindowSize"
+#     THEME_COLOR                 = "MainWindow_themeColor"
 
-    BACKGROUND_COLOR            = "TextArea_backgroundColor"
-    SELECT_BACKGROUND_COLOR     = "TextArea_selectBackgroundColor"
-    TEXT_COLOR                  = "TextArea_textColor"
-    FONT_FAMILY                 = "TextArea_fontFamily"
-    FONT_SIZE                   = "TextArea_fontSize"
-    MAX_LINE_BUFFER             = "TextArea_maxLineBuffer"
+#     BACKGROUND_COLOR            = "TextArea_backgroundColor"
+#     SELECT_BACKGROUND_COLOR     = "TextArea_selectBackgroundColor"
+#     TEXT_COLOR                  = "TextArea_textColor"
+#     FONT_FAMILY                 = "TextArea_fontFamily"
+#     FONT_SIZE                   = "TextArea_fontSize"
+#     MAX_LINE_BUFFER             = "TextArea_maxLineBuffer"
 
-    SEARCH_MATCH_COLOR          = "Search_MatchColor"
-    SEARCH_SELECTED_COLOR       = "Search_SelectedColor"
-    SEARCH_SELECTED_LINE_COLOR  = "Search_SelectedLineColor"
+#     SEARCH_MATCH_COLOR          = "Search_MatchColor"
+#     SEARCH_SELECTED_COLOR       = "Search_SelectedColor"
+#     SEARCH_SELECTED_LINE_COLOR  = "Search_SelectedLineColor"
 
-    LOG_FILE_PATH               = "LogFile_logFilePath"
-    LOG_FILE_BASE_NAME          = "LogFile_logFileBaseName"
-    LOG_FILE_TIMESTAMP          = "LogFile_logFileTimestamp"
+#     LOG_FILE_PATH               = "LogFile_logFilePath"
+#     LOG_FILE_BASE_NAME          = "LogFile_logFileBaseName"
+#     LOG_FILE_TIMESTAMP          = "LogFile_logFileTimestamp"
 
-    LINE_COLOR_MAP              = "LineColorMap"
+#     LINE_COLOR_MAP              = "LineColorMap"
 
-    def __init__(self,jsonFileName):
-        self.jsonFileName = jsonFileName
-        self.settings = dict()
+#     def __init__(self,jsonFileName):
+#         self.jsonFileName = jsonFileName
+#         self.settings = dict()
 
-    def reload(self):
+#     def reload(self):
 
-        settingsJson = dict()
+#         settingsJson = dict()
 
-        try:
-            with open(self.jsonFileName,"r") as jsonFile:
-                settingsJson = json.load(jsonFile)
-        except FileNotFoundError:
-            traceLog(LogLevel.WARNING,"Settings file not found. Using default values")
-            pass
+#         try:
+#             with open(self.jsonFileName,"r") as jsonFile:
+#                 settingsJson = json.load(jsonFile)
+#         except FileNotFoundError:
+#             traceLog(LogLevel.WARNING,"Settings file not found. Using default values")
+#             pass
 
-        # Main Window
-        self.settings[self.DEFAULT_WINDOW_SIZE]         = settingsJson.get(self.DEFAULT_WINDOW_SIZE,"1100x600")
-        self.settings[self.THEME_COLOR]                 = settingsJson.get(self.THEME_COLOR,"#42bcf4")
+#         # Main Window
+#         self.settings[self.DEFAULT_WINDOW_SIZE]         = settingsJson.get(self.DEFAULT_WINDOW_SIZE,"1100x600")
+#         self.settings[self.THEME_COLOR]                 = settingsJson.get(self.THEME_COLOR,"#42bcf4")
 
-        # Text Area
-        self.settings[self.BACKGROUND_COLOR]            = settingsJson.get(self.BACKGROUND_COLOR,"#000000")
-        self.settings[self.SELECT_BACKGROUND_COLOR]     = settingsJson.get(self.SELECT_BACKGROUND_COLOR,"#303030")
-        self.settings[self.TEXT_COLOR]                  = settingsJson.get(self.TEXT_COLOR,"#FFFFFF")
-        self.settings[self.FONT_FAMILY]                 = settingsJson.get(self.FONT_FAMILY,"Consolas")
-        self.settings[self.FONT_SIZE]                   = settingsJson.get(self.FONT_SIZE,10)
-        self.settings[self.MAX_LINE_BUFFER]             = settingsJson.get(self.MAX_LINE_BUFFER,4000)
+#         # Text Area
+#         self.settings[self.BACKGROUND_COLOR]            = settingsJson.get(self.BACKGROUND_COLOR,"#000000")
+#         self.settings[self.SELECT_BACKGROUND_COLOR]     = settingsJson.get(self.SELECT_BACKGROUND_COLOR,"#303030")
+#         self.settings[self.TEXT_COLOR]                  = settingsJson.get(self.TEXT_COLOR,"#FFFFFF")
+#         self.settings[self.FONT_FAMILY]                 = settingsJson.get(self.FONT_FAMILY,"Consolas")
+#         self.settings[self.FONT_SIZE]                   = settingsJson.get(self.FONT_SIZE,10)
+#         self.settings[self.MAX_LINE_BUFFER]             = settingsJson.get(self.MAX_LINE_BUFFER,4000)
 
-        # Search
-        self.settings[self.SEARCH_MATCH_COLOR]          = settingsJson.get(self.SEARCH_MATCH_COLOR,"#9e6209")
-        self.settings[self.SEARCH_SELECTED_COLOR]       = settingsJson.get(self.SEARCH_SELECTED_COLOR,"#06487f")
-        self.settings[self.SEARCH_SELECTED_LINE_COLOR]  = settingsJson.get(self.SEARCH_SELECTED_LINE_COLOR,"#303030")
+#         # Search
+#         self.settings[self.SEARCH_MATCH_COLOR]          = settingsJson.get(self.SEARCH_MATCH_COLOR,"#9e6209")
+#         self.settings[self.SEARCH_SELECTED_COLOR]       = settingsJson.get(self.SEARCH_SELECTED_COLOR,"#06487f")
+#         self.settings[self.SEARCH_SELECTED_LINE_COLOR]  = settingsJson.get(self.SEARCH_SELECTED_LINE_COLOR,"#303030")
 
-        # Log File
-        self.settings[self.LOG_FILE_PATH]               = settingsJson.get(self.LOG_FILE_PATH,"Logs")
-        self.settings[self.LOG_FILE_BASE_NAME]          = settingsJson.get(self.LOG_FILE_BASE_NAME,"SerialLog_")
-        self.settings[self.LOG_FILE_TIMESTAMP]          = settingsJson.get(self.LOG_FILE_TIMESTAMP,"%Y.%m.%d_%H.%M.%S")
+#         # Log File
+#         self.settings[self.LOG_FILE_PATH]               = settingsJson.get(self.LOG_FILE_PATH,"Logs")
+#         self.settings[self.LOG_FILE_BASE_NAME]          = settingsJson.get(self.LOG_FILE_BASE_NAME,"SerialLog_")
+#         self.settings[self.LOG_FILE_TIMESTAMP]          = settingsJson.get(self.LOG_FILE_TIMESTAMP,"%Y.%m.%d_%H.%M.%S")
 
-        # Line Color Map
-        self.settings[self.LINE_COLOR_MAP]              = settingsJson.get(self.LINE_COLOR_MAP,{})
+#         # Line Color Map
+#         self.settings[self.LINE_COLOR_MAP]              = settingsJson.get(self.LINE_COLOR_MAP,{})
 
-        try:
-            with open(self.jsonFileName,"w") as jsonFile:
-                json.dump(self.settings,jsonFile,indent=4)
-        except:
-            traceLog(LogLevel.WARNING,"Error updating settings file")
-            pass
-
-
-    def get(self,option):
-        # No keycheck, should fail if wrong key
-        return self.settings[option]
-
-    def setOption(self,option,value):
-
-        self.settings[option] = value
-
-        # print("Saving option " + str(option) + " with value " + str(value))
-
-        try:
-            with open(self.jsonFileName,"w") as jsonFile:
-                json.dump(self.settings,jsonFile,indent=4)
-        except FileNotFoundError:
-            traceLog(LogLevel.WARNING,"Settings file not found. Not able to save setting")
-            pass
-
-    # Static for now
-
-    # Time Stamp
-    timeStampBracket = ["[","]"]
-    timeDeltaBracket = ["(",")"]
-    timeStampRegex = "\\" + timeStampBracket[0] + ".{12}\\" + timeStampBracket[1] + " \\" + timeDeltaBracket[0] + ".{6,12}\\" + timeDeltaBracket[1]
-
-    # Other Colors
-    STATUS_CONNECT_BACKGROUND_COLOR = "#008800"
-    STATUS_WORKING_BACKGROUND_COLOR = "gray"
-    STATUS_DISCONNECT_BACKGROUND_COLOR = "#CC0000"
-    STATUS_TEXT_COLOR = "white"
-
-    # Connect Status Lines
-    CONNECT_LINE_TEXT = " Connected to port\n"
-    connectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + CONNECT_LINE_TEXT
-    CONNECT_LINE_BACKGROUND_COLOR = "#008800"
-    CONNECT_LINE_SELECT_BACKGROUND_COLOR = "#084C08"
-
-    disconnectLineText = " Disconnected from port. Log file "
-    disconnectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + disconnectLineText
-    DISCONNECT_LINE_BACKGROUND_COLOR = "#880000"
-    DISCONNECT_LINE_SELECT_BACKGROUND_COLOR = "#4C0808"
-
-    CONNECT_COLOR_TAG = "CONNECT_COLOR_TAG"
-    DISCONNECT_COLOR_TAG = "DISCONNECT_COLOR_TAG"
-
-    # Hide line
-    HIDE_LINE_FONT_COLOR = "#808080"
-    HIDELINE_COLOR_TAG = "HIDELINE_COLOR_TAG"
+#         try:
+#             with open(self.jsonFileName,"w") as jsonFile:
+#                 json.dump(self.settings,jsonFile,indent=4)
+#         except:
+#             traceLog(LogLevel.WARNING,"Error updating settings file")
+#             pass
 
 
-settings_ = Sets(SETTINGS_FILE_NAME_)
+#     def get(self,option):
+#         # No keycheck, should fail if wrong key
+#         return self.settings[option]
+
+#     def setOption(self,option,value):
+
+#         self.settings[option] = value
+
+#         # print("Saving option " + str(option) + " with value " + str(value))
+
+#         try:
+#             with open(self.jsonFileName,"w") as jsonFile:
+#                 json.dump(self.settings,jsonFile,indent=4)
+#         except FileNotFoundError:
+#             traceLog(LogLevel.WARNING,"Settings file not found. Not able to save setting")
+#             pass
+
+#     # Static for now
+
+#     # Time Stamp
+#     timeStampBracket = ["[","]"]
+#     timeDeltaBracket = ["(",")"]
+#     timeStampRegex = "\\" + timeStampBracket[0] + ".{12}\\" + timeStampBracket[1] + " \\" + timeDeltaBracket[0] + ".{6,12}\\" + timeDeltaBracket[1]
+
+#     # Other Colors
+#     STATUS_CONNECT_BACKGROUND_COLOR = "#008800"
+#     STATUS_WORKING_BACKGROUND_COLOR = "gray"
+#     STATUS_DISCONNECT_BACKGROUND_COLOR = "#CC0000"
+#     STATUS_TEXT_COLOR = "white"
+
+#     # Connect Status Lines
+#     CONNECT_LINE_TEXT = " Connected to port\n"
+#     connectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + CONNECT_LINE_TEXT
+#     CONNECT_LINE_BACKGROUND_COLOR = "#008800"
+#     CONNECT_LINE_SELECT_BACKGROUND_COLOR = "#084C08"
+
+#     disconnectLineText = " Disconnected from port. Log file "
+#     disconnectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + disconnectLineText
+#     DISCONNECT_LINE_BACKGROUND_COLOR = "#880000"
+#     DISCONNECT_LINE_SELECT_BACKGROUND_COLOR = "#4C0808"
+
+#     CONNECT_COLOR_TAG = "CONNECT_COLOR_TAG"
+#     DISCONNECT_COLOR_TAG = "DISCONNECT_COLOR_TAG"
+
+#     # Hide line
+#     HIDE_LINE_FONT_COLOR = "#808080"
+#     HIDELINE_COLOR_TAG = "HIDELINE_COLOR_TAG"
+
+
+settings_ = Sets.Settings(SETTINGS_FILE_NAME_)
 
 settings_.reload()
 
@@ -207,20 +212,20 @@ readFlag_ = 1
 processFlag_ = 1
 logFlag_ = 1
 
-updateGuiFlag_ = 1
-updateGuiJob_ = None
+# updateGuiFlag_ = 1
+# updateGuiJob_ = None
 
 appState_ = ConnectState.DISCONNECTED
 
 closeProgram_ = False
 
-endLine_ = 1
+# endLine_ = 1
 
 processQueue_ = queue.Queue()
 logQueue_ = queue.Queue()
-guiQueue_ = queue.Queue()
+# guiQueue_ = queue.Queue()
 
-reloadGuiBuffer_ = False
+# reloadGuiBuffer_ = False
 
 linesInLogFile_ = 0
 lastLogFileInfo_ = ""
@@ -334,7 +339,7 @@ def disconnectSerialProcess():
 
         highlightWorker_.stopWorker(emptyQueue=False)
 
-        stopGuiWorker()
+        guiWorker_.stopWorker()
 
         # Close tkinter window (close program)
         # TODO not a very nice way to do this :/
@@ -424,7 +429,7 @@ def clearButtonCommand(*args):
     T_.delete(1.0,tk.END)
     T_.config(state=tk.DISABLED)
 
-    updateWindowBufferLineCount(0)
+    updateWindowBufferLineCount_(0)
 
 def updateSerialPortSelect(*args):
     if serialPortVar_.get() == NO_SERIAL_PORT_:
@@ -571,14 +576,9 @@ statLabel3_.pack(side=tk.RIGHT,padx=(0,18))
 
 bottomFrame_.pack(side=tk.BOTTOM, fill=tk.X)
 
-def updateWindowBufferLineCount(count=-1):
+def updateWindowBufferLineCount_(count):
 
-    global endLine_
-
-    if count != -1:
-        endLine_ = count+1
-
-    statLabel1_.config(text="Lines in window buffer " + str(endLine_-1) + "/" + str(settings_.get(Sets.MAX_LINE_BUFFER)))
+    statLabel1_.config(text="Lines in window buffer " + str(count) + "/" + str(settings_.get(Sets.MAX_LINE_BUFFER)))
 
 
 
@@ -709,6 +709,8 @@ class HighlightWorker():
 
         self._lineBuffer_ = list()
 
+        self._guiWorker_ = None
+
         self._consecutiveLinesHidden_ = 0
         self._hideLineMap_ = list()
         self._hideLineMap_.append("GUI::.*")
@@ -726,6 +728,9 @@ class HighlightWorker():
 
     ##############
     # Public Interface
+
+    def setGuiWorker(self,guiWorker):
+        self._guiWorker_ = guiWorker
 
     def startWorker(self):
 
@@ -848,8 +853,6 @@ class HighlightWorker():
 
     def _highlightWorker_(self):
 
-        global reloadGuiBuffer_
-
         while self._highlightFlag_:
 
             newLine = ""
@@ -875,8 +878,8 @@ class HighlightWorker():
 
                     # Wait for GUI queue to be empty and gui update to be done,
                     # otherwise some lines can be lost, when GUI is cleared
-                    guiQueue_.join()
-                    guiEvent_.wait()
+                    self._guiWorker_.guiQueue.join()
+                    self._guiWorker_.guiEvent.wait()
 
                     self.isReloadingLineBuffer = True
 
@@ -900,18 +903,16 @@ class HighlightWorker():
                         else:
                             pLine = PrintLine(hideInfoLine,lineTags,False)
 
-                    guiQueue_.put(pLine)
+                    self._guiWorker_.guiQueue.put(pLine)
 
                 if self.isReloadingLineBuffer:
 
-                    guiReloadEvent_.clear()
+                    self._guiWorker_.guiReloadEvent.clear()
                     self.isReloadingLineBuffer = False
-                    reloadGuiBuffer_ = True
-
-                    # Wait for gui to have processed new buffer
-                    # guiQueue_.join()
-                    guiReloadEvent_.wait()
-                    # print("reload high done")
+                    self._guiWorker_.reloadGuiBuffer()
+                    
+                    # Wait for gui to have processed new buffer                    
+                    self._guiWorker_.guiReloadEvent.wait()                    
 
 ################################
 # Log writer worker
@@ -952,117 +953,143 @@ def logWriterWorker():
 ################################
 # GUI worker
 
-def insertLine(newLine):
+class GuiWorker:
 
-    global endLine_
+    def __init__(self,settings,textArea,search):
+        self._settings_ = settings        
+        self._textArea_ = textArea
+        self._search_ = search
+        self._highlightWorker_ = None
+        
+        self._endLine_ = 1
 
-    # Control window scolling
-    bottomVisibleLine = int(T_.index("@0,%d" % T_.winfo_height()).split(".")[0])
-    endLine_ = int(T_.index(tk.END).split(".")[0])
-    T_.insert(tk.END, newLine)
-    if (bottomVisibleLine >= (endLine_-1)):
-        T_.see(tk.END)
+        self.guiQueue = queue.Queue()
 
-    # Limit number of lines in window
-    if endLine_ > settings_.get(Sets.MAX_LINE_BUFFER):
-        T_.delete(1.0,2.0)
+        self.guiEvent = threading.Event()
+        self.guiEvent.set() # wait will not block
 
-def updateLastLine(newLine):
-    lastline = T_.index("end-2c").split(".")[0]
-    T_.delete(lastline + ".0",lastline +".0+1l")
-    T_.insert(lastline + ".0", newLine)
-    # I don't think there is a need for scrolling?
+        self.guiReloadEvent = threading.Event()
+        self.guiReloadEvent.set()
+        self._updateGuiJob_ = None
 
+        self._updateGuiFlag_ = False
+        self._reloadGuiBuffer_ = False
 
-def updateGUI():
+    ##############
+    # Public Interface
 
-    global endLine_
-    global reloadGuiBuffer_
+    def setHighlightWorker(self,highlightWorker):
+        self._highlightWorker_ = highlightWorker
 
-    reloadInitiated = False
+    def startWorker(self):
 
-    receivedLines = list()
-
-    if not highlightWorker_.isReloadingLineBuffer:
-
-        try:
-            # We have to make sure that the queue is empty before continuing
-            while True:
-                receivedLines.append(guiQueue_.get_nowait())
-                guiQueue_.task_done()
+        self._cancelGuiJob_()
+        self._updateGuiFlag_ = True
+        self._updateGuiJob_ = root.after(50,self._waitForInput_)
 
 
-        except queue.Empty:
+    def stopWorker(self):
+        "Will block until GUI worker is done. GUI queue is always emptied before stop."
 
-            # Open text widget for editing
-            T_.config(state=tk.NORMAL)
+        self._cancelGuiJob_()
+        
+        self._updateGuiFlag_ = False
+        time.sleep(0.05) # This might not be needed, but is just to be sure that the updateGui function has not started
+        self.guiEvent.wait()
 
-            if reloadGuiBuffer_:
-                reloadGuiBuffer_ = False
-                reloadInitiated = True
-                linesToReload = len(receivedLines)
-                traceLog(LogLevel.DEBUG,"Reload GUI buffer (Len " + str(linesToReload) + ")")
+    def reloadGuiBuffer(self):
+        self._reloadGuiBuffer_ = True
 
-                # Clear window
-                T_.delete(1.0,tk.END)
+    ##############
+    # Internal
 
-            for msg in receivedLines:
-                if msg.updatePreviousLine:
-                    updateLastLine(msg.line)
-                else:
-                    insertLine(msg.line)
+    def _insertLine_(self,newLine):
 
-                # Highlight/color text
-                lastline = T_.index("end-2c").split(".")[0]
-                for lineTag in msg.lineTags:
-                    T_.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
+        # Control window scolling
+        bottomVisibleLine = int(self._textArea_.index("@0,%d" % self._textArea_.winfo_height()).split(".")[0])
+        self._endLine_ = int(self._textArea_.index(tk.END).split(".")[0])
+        self._textArea_.insert(tk.END, newLine)
+        if (bottomVisibleLine >= (self._endLine_-1)):
+            self._textArea_.see(tk.END)
 
-            # Disable text widget edit
-            T_.config(state=tk.DISABLED)
+        # Limit number of lines in window
+        if self._endLine_ > self._settings_.get(Sets.MAX_LINE_BUFFER):
+            self._textArea_.delete(1.0,2.0)
 
-        if receivedLines:
-            updateWindowBufferLineCount()
-            statLabel2_.config(text="Lines in log file " + str(linesInLogFile_))
-            search_.search(searchStringUpdated=False)
+    def _updateLastLine_(self,newLine):
+        lastline = self._textArea_.index("end-2c").split(".")[0]
+        self._textArea_.delete(lastline + ".0",lastline +".0+1l")
+        self._textArea_.insert(lastline + ".0", newLine)
+        # I don't think there is a need for scrolling?
 
-        if reloadInitiated:
-            guiReloadEvent_.set()
-            traceLog(LogLevel.DEBUG,"Reload GUI buffer done")
+    ##############
+    # Main Worker
 
-def startGuiWorker():
+    def _updateGUI_(self):
 
-    cancelGuiJob()
+        reloadInitiated = False
 
-    global updateGuiFlag_
-    updateGuiFlag_ = 1
+        receivedLines = list()
 
-    global updateGuiJob_
-    updateGuiJob_ = root.after(50,waitForInput)
+        if not self._highlightWorker_.isReloadingLineBuffer:
+
+            try:
+                # We have to make sure that the queue is empty before continuing
+                while True:
+                    receivedLines.append(self.guiQueue.get_nowait())
+                    self.guiQueue.task_done()
 
 
-def stopGuiWorker():
-    "Will block until GUI worker is done. GUI queue is always emptied before stop."
+            except queue.Empty:
 
-    cancelGuiJob()
+                # Open text widget for editing
+                self._textArea_.config(state=tk.NORMAL)
 
-    global updateGuiFlag_
-    updateGuiFlag_ = 0
-    time.sleep(0.05) # This might not be needed, but is just to be sure that the updateGui function has not started
-    guiEvent_.wait()
+                if self._reloadGuiBuffer_:
+                    self._reloadGuiBuffer_ = False
+                    reloadInitiated = True
+                    linesToReload = len(receivedLines)
+                    traceLog(LogLevel.DEBUG,"Reload GUI buffer (Len " + str(linesToReload) + ")")
 
-def cancelGuiJob():
-    global updateGuiJob_
-    if updateGuiJob_ is not None:
-        root.after_cancel(updateGuiJob_)
-        updateGuiJob_ = None
+                    # Clear window
+                    self._textArea_.delete(1.0,tk.END)
 
-def waitForInput():
-    global updateGuiJob_
-    if updateGuiFlag_:
-        guiEvent_.clear()
-        updateGUI()
-        guiEvent_.set()
-        updateGuiJob_ = root.after(100,waitForInput)
+                for msg in receivedLines:
+                    if msg.updatePreviousLine:
+                        self._updateLastLine_(msg.line)
+                    else:
+                        self._insertLine_(msg.line)
+
+                    # Highlight/color text
+                    lastline = self._textArea_.index("end-2c").split(".")[0]
+                    for lineTag in msg.lineTags:
+                        self._textArea_.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
+
+                # Disable text widget edit
+                self._textArea_.config(state=tk.DISABLED)
+
+            if receivedLines:
+                updateWindowBufferLineCount_(self._endLine_-1) # TODO
+                statLabel2_.config(text="Lines in log file " + str(linesInLogFile_)) # TODO
+                self._search_.search(searchStringUpdated=False)
+
+            if reloadInitiated:
+                self.guiReloadEvent.set()
+                traceLog(LogLevel.DEBUG,"Reload GUI buffer done")
+
+   
+
+    def _cancelGuiJob_(self):        
+        if self._updateGuiJob_ is not None:
+            root.after_cancel(self._updateGuiJob_)
+            self._updateGuiJob_ = None
+
+    def _waitForInput_(self):        
+        if self._updateGuiFlag_:
+            self.guiEvent.clear()
+            self._updateGUI_()
+            self.guiEvent.set()
+            self._updateGuiJob_ = root.after(100,self._waitForInput_)
 
 
 
@@ -1084,9 +1111,11 @@ def waitForInput():
 
 class OptionsView:
 
-    def __init__(self,root,settings):
+    def __init__(self,root,settings,highlightWorker,guiWorker):
         self.root = root
         self._settings_ = settings
+        self._highlightWorker_ = highlightWorker
+        self._guiWorker_ = guiWorker
 
         self._showing_ = False
         self._saving_ = False
@@ -1333,12 +1362,12 @@ class OptionsView:
         root.after(10,self._onClosing_,True)
 
         # Show saving message
-        saveSpinner = Spinner(self.root)
+        saveSpinner = spinner.Spinner(self.root)
         saveSpinner.show(indicators=False,message="Reloading View")
 
         # Stop workers using the settings
-        highlightWorker_.stopWorker(emptyQueue=False)
-        stopGuiWorker()
+        self._highlightWorker_.stopWorker(emptyQueue=False)
+        self._guiWorker_.stopWorker()
 
         # Save all settings
         tempLineColorMap = dict()
@@ -1367,17 +1396,17 @@ class OptionsView:
         reloadTextFrame()
 
         # Start highlightworker to prepare buffer reload
-        highlightWorker_.startWorker()
+        self._highlightWorker_.startWorker()
 
         # Reload line/gui buffer
         reloadBufferCommand()
-        guiReloadEvent_.clear()
+        self._guiWorker_.guiReloadEvent.clear()
 
         # Start gui worker to process new buffer
-        startGuiWorker()
+        self._guiWorker_.startWorker()
 
         # Wait for GUI worker to have processed the new buffer
-        guiReloadEvent_.wait()
+        self._guiWorker_.guiReloadEvent.wait()
 
         # Remove spinner
         saveSpinner.close()
@@ -1845,112 +1874,112 @@ class OptionsView:
 ################################################################
 
 
-class Spinner:
+# class Spinner:
 
-    def __init__(self,root):
-        self.root = root
-        self.runFlag = True
+#     def __init__(self,root):
+#         self.root = root
+#         self.runFlag = True
 
-    def close(self):
+#     def close(self):
 
-        self.runFlag = False
+#         self.runFlag = False
 
-        try:
-            self.view.after_cancel(self.updateJob)
-        except AttributeError:
-            # print("No job to cancel")
-            pass
+#         try:
+#             self.view.after_cancel(self.updateJob)
+#         except AttributeError:
+#             # print("No job to cancel")
+#             pass
 
-        try:
-            self.view.destroy()
-        except AttributeError:
-            # print("No view")
-            pass
+#         try:
+#             self.view.destroy()
+#         except AttributeError:
+#             # print("No view")
+#             pass
 
 
-    def show(self,indicators=True,animate=False,message=""):
+#     def show(self,indicators=True,animate=False,message=""):
 
-        self.animate = animate
+#         self.animate = animate
 
-        bgColor = "black"
-        borderColor = "#777"
-        padding = 20
+#         bgColor = "black"
+#         borderColor = "#777"
+#         padding = 20
 
-        self.view = tk.Frame(self.root,bg=bgColor,highlightthickness=2,highlightbackground=borderColor)
-        self.view.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+#         self.view = tk.Frame(self.root,bg=bgColor,highlightthickness=2,highlightbackground=borderColor)
+#         self.view.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        ########################
-        # Indicators
+#         ########################
+#         # Indicators
 
-        if indicators:
+#         if indicators:
 
-            indicatorBaseFrame = tk.Frame(self.view,bg=bgColor)
-            indicatorBaseFrame.pack(padx=padding,pady=padding)
+#             indicatorBaseFrame = tk.Frame(self.view,bg=bgColor)
+#             indicatorBaseFrame.pack(padx=padding,pady=padding)
 
-            # Setup
-            colors = [bgColor,"#222","#444","#777"]
-            colorSequenceIndexList = [0,0,0,0,0,0,1,2,3,2,1]
+#             # Setup
+#             colors = [bgColor,"#222","#444","#777"]
+#             colorSequenceIndexList = [0,0,0,0,0,0,1,2,3,2,1]
 
-            self.updatePeriod_ms = 100
-            indicatorX = 20
-            indicatorY = 20
-            indicatorSpacing = 10
-            indicatorCount = 5
+#             self.updatePeriod_ms = 100
+#             indicatorX = 20
+#             indicatorY = 20
+#             indicatorSpacing = 10
+#             indicatorCount = 5
 
-            # Create color list
-            self.colorSequence = list()
-            for i in range(len(colorSequenceIndexList)):
-                self.colorSequence.append(colors[colorSequenceIndexList[i]])
+#             # Create color list
+#             self.colorSequence = list()
+#             for i in range(len(colorSequenceIndexList)):
+#                 self.colorSequence.append(colors[colorSequenceIndexList[i]])
 
-            self.colorSequenceIndex = 0
+#             self.colorSequenceIndex = 0
 
-            self.indicators = list()
-            for i in range(indicatorCount):
-                indicator = tk.Frame(indicatorBaseFrame,bg=bgColor,width=indicatorX,height=indicatorY)
-                if i > 0:
-                    padx = (0,indicatorSpacing)
-                else:
-                    padx = 0
-                # Add indicators right to left, to get movement correct
-                indicator.pack(side=tk.RIGHT,padx=padx)
-                self.indicators.append(indicator)
+#             self.indicators = list()
+#             for i in range(indicatorCount):
+#                 indicator = tk.Frame(indicatorBaseFrame,bg=bgColor,width=indicatorX,height=indicatorY)
+#                 if i > 0:
+#                     padx = (0,indicatorSpacing)
+#                 else:
+#                     padx = 0
+#                 # Add indicators right to left, to get movement correct
+#                 indicator.pack(side=tk.RIGHT,padx=padx)
+#                 self.indicators.append(indicator)
 
-            if self.animate:
-                self.updateJob = self.view.after(self.updatePeriod_ms,self.updateIndicators)
+#             if self.animate:
+#                 self.updateJob = self.view.after(self.updatePeriod_ms,self.updateIndicators)
 
-        ########################
-        # Text
+#         ########################
+#         # Text
 
-        if indicators:
-            topPad = 0
-        else:
-            topPad = padding
+#         if indicators:
+#             topPad = 0
+#         else:
+#             topPad = padding
 
-        if message:
-            textColor = "white"
-            font = ("arial",14)
-            # font = ("courier new",12)
+#         if message:
+#             textColor = "white"
+#             font = ("arial",14)
+#             # font = ("courier new",12)
 
-            indicatorLabel = tk.Label(self.view,text=message,fg=textColor,bg=bgColor,font=font)
-            indicatorLabel.pack(padx=padding, pady=(topPad,padding))
+#             indicatorLabel = tk.Label(self.view,text=message,fg=textColor,bg=bgColor,font=font)
+#             indicatorLabel.pack(padx=padding, pady=(topPad,padding))
 
-    def updateIndicators(self):
+#     def updateIndicators(self):
 
-        colorLen = len(self.colorSequence)
+#         colorLen = len(self.colorSequence)
 
-        for index,indicator in enumerate(self.indicators):
-            indicator.config(bg=self.colorSequence[self._nextIndex_(colorLen,self.colorSequenceIndex+index)])
+#         for index,indicator in enumerate(self.indicators):
+#             indicator.config(bg=self.colorSequence[self._nextIndex_(colorLen,self.colorSequenceIndex+index)])
 
-        self.colorSequenceIndex = self._nextIndex_(colorLen,self.colorSequenceIndex)
+#         self.colorSequenceIndex = self._nextIndex_(colorLen,self.colorSequenceIndex)
 
-        if self.animate and self.runFlag:
-            self.updateJob = self.view.after(self.updatePeriod_ms,self.updateIndicators)
+#         if self.animate and self.runFlag:
+#             self.updateJob = self.view.after(self.updatePeriod_ms,self.updateIndicators)
 
-    def _nextIndex_(self,len,currentIndex):
-        nextIndex = currentIndex + 1
-        if nextIndex >= len:
-            nextIndex = 0
-        return nextIndex
+#     def _nextIndex_(self,len,currentIndex):
+#         nextIndex = currentIndex + 1
+#         if nextIndex >= len:
+#             nextIndex = 0
+#         return nextIndex
 
 ################################################################
 ################################################################
@@ -1967,9 +1996,9 @@ class Spinner:
 
 class Search:
 
-    def __init__(self,textField,settings):
-        self._textField_ = textField
+    def __init__(self,settings,textField):
         self._settings_ = settings
+        self._textField_ = textField        
         self._showing_ = False
 
         self._results_ = list()
@@ -2142,24 +2171,24 @@ readerThread = threading.Thread()
 processThread = threading.Thread()
 logThread = threading.Thread()
 
+
+search_ = Search(settings_,T_)
+
+
 highlightWorker_ = HighlightWorker(settings_)
+guiWorker_ = GuiWorker(settings_,T_,search_)
+
+
+highlightWorker_.setGuiWorker(guiWorker_)
+guiWorker_.setHighlightWorker(highlightWorker_)
+
 highlightWorker_.startWorker()
+guiWorker_.startWorker()
 
-guiEvent_ = threading.Event()
-guiEvent_.set() # wait will not block
-
-guiReloadEvent_ = threading.Event()
-guiReloadEvent_.set()
-
-
-optionsView_ = OptionsView(root,settings_)
+optionsView_ = OptionsView(root,settings_,highlightWorker_,guiWorker_)
 
 
 createTextFrameLineColorTag()
-updateGuiJob_ = root.after(50,waitForInput)
-
-
-search_ = Search(T_,settings_)
 
 
 
