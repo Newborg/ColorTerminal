@@ -10,7 +10,6 @@ from tkinter import messagebox
 from tkinter.font import Font
 from tkinter.colorchooser import askcolor
 from tkinter.ttk import Notebook
-# from tkinter.ttk import Button
 
 from functools import partial
 
@@ -1087,31 +1086,31 @@ class OptionsView:
 
     def __init__(self,root,settings):
         self.root = root
-        self.settings = settings
+        self._settings_ = settings
 
-        self.showing = False
-        self.saving = False
+        self._showing_ = False
+        self._saving_ = False
 
-    def onClosing(self,savingSettings=False):
+    def _onClosing_(self,savingSettings=False):
 
         # Delete all variable observers
-        for rowId in self.setsDict.keys():
-            for entry in self.setsDict[rowId].keys():
+        for rowId in self._setsDict_.keys():
+            for entry in self._setsDict_[rowId].keys():
                 if not "lineFrame" in entry:
                     try:
-                        observer = self.setsDict[rowId][entry]["observer"]
-                        self.setsDict[rowId][entry]["var"].trace_vdelete("w",observer)
+                        observer = self._setsDict_[rowId][entry]["observer"]
+                        self._setsDict_[rowId][entry]["var"].trace_vdelete("w",observer)
                     except KeyError:
                         pass
 
         # Delete all view elements
-        del self.setsDict
+        del self._setsDict_
 
         # Close window
-        self.view.destroy()
+        self._view_.destroy()
 
         if not savingSettings:
-            self.showing = False
+            self._showing_ = False
 
     class SetLine:
         def __init__(self,setGroup,setId,setDisplayName,setType):
@@ -1139,7 +1138,7 @@ class OptionsView:
 
     LOG_EXAMPLE_FILE = "log_example.txt"
 
-    def loadLogExample(self):
+    def _loadLogExample_(self):
         log = "[12:34:56.789] Main::test\n[12:34:56.789] Main::TestTwo"
         try:
             with open(self.LOG_EXAMPLE_FILE,"r") as file:
@@ -1152,70 +1151,70 @@ class OptionsView:
     def show(self,lineColorMap):
 
         # Only allow one options view at a time
-        if not self.showing:
+        if not self._showing_:
 
-            self.showing = True
+            self._showing_ = True
 
-            self.lineColorMap = lineColorMap
+            self._lineColorMap_ = lineColorMap
 
-            self.view = tk.Toplevel(self.root)
-            self.view.title("Options")
-            self.view.protocol("WM_DELETE_WINDOW", self.onClosing)
+            self._view_ = tk.Toplevel(self.root)
+            self._view_.title("Options")
+            self._view_.protocol("WM_DELETE_WINDOW", self._onClosing_)
 
-            self.setsDict = dict()
+            self._setsDict_ = dict()
 
-            self.notValidEntries = list()
+            self._notValidEntries_ = list()
 
             ##############################
-            # TABS
+            # TAB CONTROL
 
-            self.tabsFrame = tk.Frame(self.view)
-            self.tabsFrame.grid(row=0,column=0)
+            self._tabsFrame_ = tk.Frame(self._view_)
+            self._tabsFrame_.grid(row=0,column=0)
 
-            self.tabControl = Notebook(self.tabsFrame,padding=10)
+            self._tabControl_ = Notebook(self._tabsFrame_,padding=10)
 
-            self.tabControl.grid(row=0,column=0,sticky=tk.N)            
-            self.tabList = list()
+            self._tabControl_.grid(row=0,column=0,sticky=tk.N)
+            self._tabList_ = list()
 
             ##############################
             # TEXT EXAMPLE
 
-            logExample = self.loadLogExample()            
+            logExample = self._loadLogExample_()
             exampleTextFrameHeightMin = 280
             exampleTextFrameWidth = 600
 
-            self.exampleTextFrame = tk.Frame(self.tabsFrame,height=exampleTextFrameHeightMin,width=exampleTextFrameWidth)
-            self.exampleTextFrame.grid(row=0,column=1, padx=(0,10), pady=(10,10), sticky=tk.N+tk.S)
-            self.exampleTextFrame.grid_propagate(False)
-            self.exampleTextFrame.grid_columnconfigure(0,weight=1)
-            self.exampleTextFrame.grid_rowconfigure(0,weight=1)
+            self._exampleTextFrame_ = tk.Frame(self._tabsFrame_,height=exampleTextFrameHeightMin,width=exampleTextFrameWidth)
+            self._exampleTextFrame_.grid(row=0,column=1, padx=(0,10), pady=(10,10), sticky=tk.N+tk.S)
+            self._exampleTextFrame_.grid_propagate(False)
+            self._exampleTextFrame_.grid_columnconfigure(0,weight=1)
+            self._exampleTextFrame_.grid_rowconfigure(0,weight=1)
 
-            tFont = Font(family=self.settings.get(Sets.FONT_FAMILY), size=self.settings.get(Sets.FONT_SIZE))
-            self.textAreaExampleText = tk.Text(self.exampleTextFrame,height=1, width=2, \
+            tFont = Font(family=self._settings_.get(Sets.FONT_FAMILY), size=self._settings_.get(Sets.FONT_SIZE))
+            self._exampleText_ = tk.Text(self._exampleTextFrame_,height=1, width=2, \
                                             wrap=tk.NONE,\
-                                            background=self.settings.get(Sets.BACKGROUND_COLOR),\
-                                            selectbackground=self.settings.get(Sets.SELECT_BACKGROUND_COLOR),\
-                                            foreground=self.settings.get(Sets.TEXT_COLOR),\
+                                            background=self._settings_.get(Sets.BACKGROUND_COLOR),\
+                                            selectbackground=self._settings_.get(Sets.SELECT_BACKGROUND_COLOR),\
+                                            foreground=self._settings_.get(Sets.TEXT_COLOR),\
                                             font=tFont)
-            self.textAreaExampleText.grid(row=0,column=0, padx=(0,0), pady=(10,0),sticky=tk.E+tk.W+tk.N+tk.S)
+            self._exampleText_.grid(row=0,column=0, padx=(0,0), pady=(10,0),sticky=tk.E+tk.W+tk.N+tk.S)
 
-            self.textAreaExampleText.insert(1.0,logExample)
+            self._exampleText_.insert(1.0,logExample)
 
-            xscrollbar=tk.Scrollbar(self.exampleTextFrame, orient=tk.HORIZONTAL, command=self.textAreaExampleText.xview)
+            xscrollbar=tk.Scrollbar(self._exampleTextFrame_, orient=tk.HORIZONTAL, command=self._exampleText_.xview)
             xscrollbar.grid(row=1,column=0,sticky=tk.W+tk.E)
-            self.textAreaExampleText["xscrollcommand"]=xscrollbar.set
+            self._exampleText_["xscrollcommand"]=xscrollbar.set
 
-            yscrollbar=tk.Scrollbar(self.exampleTextFrame, orient=tk.VERTICAL, command=self.textAreaExampleText.yview)
+            yscrollbar=tk.Scrollbar(self._exampleTextFrame_, orient=tk.VERTICAL, command=self._exampleText_.yview)
             yscrollbar.grid(row=0,column=1,sticky=tk.N+tk.S)
-            self.textAreaExampleText["yscrollcommand"]=yscrollbar.set
+            self._exampleText_["yscrollcommand"]=yscrollbar.set
 
             ###############
-            # Text Area
+            # Tab: Text Area
 
-            self.textAreaFrame = tk.Frame(self.tabControl,padx=5,pady=5)
-            self.textAreaFrame.grid(row=0,column=0,sticky=tk.N)
-            self.tabControl.add(self.textAreaFrame, text="Text Area")            
-            self.tabList.append(self.GROUP_TEXT_AREA)
+            self._textAreaFrame_ = tk.Frame(self._tabControl_,padx=5,pady=5)
+            self._textAreaFrame_.grid(row=0,column=0,sticky=tk.N)
+            self._tabControl_.add(self._textAreaFrame_, text="Text Area")
+            self._tabList_.append(self.GROUP_TEXT_AREA)
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_TEXT_AREA, Sets.BACKGROUND_COLOR, "Background Color", self.TYPE_COLOR))
@@ -1224,117 +1223,114 @@ class OptionsView:
             setLines.append(self.SetLine(self.GROUP_TEXT_AREA, Sets.FONT_FAMILY, "Font Family", self.TYPE_STRING))
             setLines.append(self.SetLine(self.GROUP_TEXT_AREA, Sets.FONT_SIZE, "Font Size", self.TYPE_INT))
 
-            self.setsDict.update(self.createStandardRows(self.textAreaFrame,setLines,0))
+            self._setsDict_.update(self._createStandardRows_(self._textAreaFrame_,setLines,0))
 
 
             ###############
-            # Search
-            
-            self.searchFrame = tk.Frame(self.tabControl,padx=5,pady=5)
-            self.searchFrame.grid(row=0,column=0,sticky=tk.N)
-            self.tabControl.add(self.searchFrame, text="Search")            
-            self.tabList.append(self.GROUP_SEARCH)
+            # Tab: Search
+
+            self._searchFrame_ = tk.Frame(self._tabControl_,padx=5,pady=5)
+            self._searchFrame_.grid(row=0,column=0,sticky=tk.N)
+            self._tabControl_.add(self._searchFrame_, text="Search")
+            self._tabList_.append(self.GROUP_SEARCH)
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_SEARCH, Sets.SEARCH_MATCH_COLOR, "Search match background color", self.TYPE_COLOR))
             setLines.append(self.SetLine(self.GROUP_SEARCH, Sets.SEARCH_SELECTED_COLOR, "Search selected background color", self.TYPE_COLOR))
             setLines.append(self.SetLine(self.GROUP_SEARCH, Sets.SEARCH_SELECTED_LINE_COLOR, "Search selected line background color", self.TYPE_COLOR))
 
-            self.setsDict.update(self.createStandardRows(self.searchFrame,setLines,0))
+            self._setsDict_.update(self._createStandardRows_(self._searchFrame_,setLines,0))
 
             ###############
-            # Logging
-            
-            self.loggingFrame = tk.Frame(self.tabControl,padx=5,pady=5)
-            self.loggingFrame.grid(row=0,column=0,sticky=tk.N)
-            self.tabControl.add(self.loggingFrame, text="Logging")            
-            self.tabList.append(self.GROUP_LOGGING)
+            # Tab: Logging
+
+            self._loggingFrame_ = tk.Frame(self._tabControl_,padx=5,pady=5)
+            self._loggingFrame_.grid(row=0,column=0,sticky=tk.N)
+            self._tabControl_.add(self._loggingFrame_, text="Logging")
+            self._tabList_.append(self.GROUP_LOGGING)
 
             setLines = list()
             setLines.append(self.SetLine(self.GROUP_LOGGING, Sets.LOG_FILE_PATH, "Log file path", self.TYPE_OTHER))
             setLines.append(self.SetLine(self.GROUP_LOGGING, Sets.LOG_FILE_BASE_NAME, "Log file base name", self.TYPE_OTHER))
             setLines.append(self.SetLine(self.GROUP_LOGGING, Sets.LOG_FILE_TIMESTAMP, "Time stamp", self.TYPE_OTHER))
 
-            self.setsDict.update(self.createStandardRows(self.loggingFrame,setLines,0))
+            self._setsDict_.update(self._createStandardRows_(self._loggingFrame_,setLines,0))
 
 
             ###############
-            # Line Coloring
-            
-            self.lineColoringFrame = tk.Frame(self.tabControl,padx=5,pady=5)
-            self.lineColoringFrame.grid(row=0,column=0,sticky=tk.N)
-            self.tabControl.add(self.lineColoringFrame, text="Line Coloring")            
-            self.tabList.append(self.GROUP_LINE_COLORING)
+            # Tab: Line Coloring
 
-            self.setsDict.update(self.createLineColorRows(self.lineColoringFrame,self.lineColorMap))
+            self._lineColoringFrame_ = tk.Frame(self._tabControl_,padx=5,pady=5)
+            self._lineColoringFrame_.grid(row=0,column=0,sticky=tk.N)
+            self._tabControl_.add(self._lineColoringFrame_, text="Line Coloring")
+            self._tabList_.append(self.GROUP_LINE_COLORING)
 
-            upButton = tk.Button(self.lineColoringFrame,text="UP",command=partial(self.editLineColorRow,self.EDIT_UP))
+            self._setsDict_.update(self._createLineColorRows_(self._lineColoringFrame_,self._lineColorMap_))
+
+            upButton = tk.Button(self._lineColoringFrame_,text="UP",command=partial(self._editLineColorRow_,self.EDIT_UP))
             upButton.grid(row=0,column=2,padx=2)
 
-            downButton = tk.Button(self.lineColoringFrame,text="DOWN",command=partial(self.editLineColorRow,self.EDIT_DOWN))
+            downButton = tk.Button(self._lineColoringFrame_,text="DOWN",command=partial(self._editLineColorRow_,self.EDIT_DOWN))
             downButton.grid(row=1,column=2,padx=2)
 
-            self.deleteButton = tk.Button(self.lineColoringFrame,text="Delete",command=partial(self.editLineColorRow,self.EDIT_DELETE))
-            self.deleteButton.grid(row=2,column=2,padx=2)
-            self.lastFocusInRowId = ""
-            self.lastFocusOutRowId = ""
+            deleteButton = tk.Button(self._lineColoringFrame_,text="Delete",command=partial(self._editLineColorRow_,self.EDIT_DELETE))
+            deleteButton.grid(row=2,column=2,padx=2)
+            self._lastFocusInRowId_ = ""
+            self._lastFocusOutRowId_ = ""
 
-            self.newButtonRow = len(self.lineColorMap)
-            self.newButton  = tk.Button(self.lineColoringFrame,text="New Line",command=partial(self.addNewEmptyLineColor,self.lineColoringFrame))
-            self.newButton.grid(row=self.newButtonRow,column=0,sticky=tk.W,padx=(2,100),pady=2)
+            self._newButtonRow_ = len(self._lineColorMap_)
+            self._newButton_  = tk.Button(self._lineColoringFrame_,text="New Line",command=partial(self._addNewEmptyLineColor_,self._lineColoringFrame_))
+            self._newButton_.grid(row=self._newButtonRow_,column=0,sticky=tk.W,padx=(2,100),pady=2)
 
 
 
 
             ##############################
-            # CONTROL BUTTONS
+            # CONTROL ROW
 
-            self.optionsButtonsFrame = tk.Frame(self.view)
-            self.optionsButtonsFrame.grid(row=1,column=0,padx=(10,10),pady=(0,10),sticky=tk.W+tk.E)
+            self._optionsControlFrame_ = tk.Frame(self._view_)
+            self._optionsControlFrame_.grid(row=1,column=0,padx=(10,10),pady=(0,10),sticky=tk.W+tk.E)
 
-            self.optionsInfoLabel = tk.Label(self.optionsButtonsFrame,text="",justify=tk.LEFT)
-            self.optionsInfoLabel.grid(row=0,column=0,sticky=tk.W)
-            self.optionsButtonsFrame.columnconfigure(0,weight=1)
+            self._optionsInfoLabel_ = tk.Label(self._optionsControlFrame_,text="",justify=tk.LEFT)
+            self._optionsInfoLabel_.grid(row=0,column=0,sticky=tk.W)
+            self._optionsControlFrame_.columnconfigure(0,weight=1)
 
-            self.optionsCancelButton = tk.Button(self.optionsButtonsFrame,text="Cancel",command=self.onClosing)
-            self.optionsCancelButton.grid(row=0,column=1,padx=5,sticky=tk.E)
+            self._optionsCancelButton_ = tk.Button(self._optionsControlFrame_,text="Cancel",command=self._onClosing_)
+            self._optionsCancelButton_.grid(row=0,column=1,padx=5,sticky=tk.E)
 
-            self.optionsSaveButton = tk.Button(self.optionsButtonsFrame,text="Save",command=self.saveSettings)
-            self.optionsSaveButton.grid(row=0,column=2,sticky=tk.E)
-            if self.saving:
-                self.optionsSaveButton.config(state=tk.DISABLED)
+            self._optionsSaveButton_ = tk.Button(self._optionsControlFrame_,text="Save",command=self._saveSettings_)
+            self._optionsSaveButton_.grid(row=0,column=2,sticky=tk.E)
+            if self._saving_:
+                self._optionsSaveButton_.config(state=tk.DISABLED)
             else:
-                self.optionsSaveButton.config(state=tk.NORMAL)
+                self._optionsSaveButton_.config(state=tk.NORMAL)
 
-            # TEST
-            # self.tabControl.select(tabOverview[self.GROUP_LINE_COLORING])
+            self._tabControl_.bind("<<NotebookTabChanged>>",self._tabChanged_)
 
-            self.tabControl.bind("<<NotebookTabChanged>>",self.tabChanged)
+    def _saveSettings_(self):
 
-    def saveSettings(self):
-
-        saveSettingsThread = threading.Thread(target=self.saveSettingsProcess,name="SaveSettings")
+        saveSettingsThread = threading.Thread(target=self._saveSettingsProcess_,name="SaveSettings")
         saveSettingsThread.start()
 
-        self.saving = True
+        self._saving_ = True
 
-    def setSaveButtonState(self,state):
-        if self.showing:
+    def _setSaveButtonState_(self,state):
+        if self._showing_:
             try:
-                self.optionsSaveButton.config(state=state)
+                self._optionsSaveButton_.config(state=state)
             except:
                 # Catch if function is called while save button does not exist
                 traceLog(LogLevel.ERROR,"Error updating save button state")
 
 
-    def saveSettingsProcess(self):
+    def _saveSettingsProcess_(self):
         # Saving will block, so must be done in different thread
 
         # setsDict will be deleted in the onClosing function
-        tempSetsDict = self.setsDict
+        tempSetsDict = self._setsDict_
 
         # Close options view
-        root.after(10,self.onClosing,True)
+        root.after(10,self._onClosing_,True)
 
         # Show saving message
         saveSpinner = Spinner(self.root)
@@ -1359,12 +1355,12 @@ class OptionsView:
                     if Sets.LINE_COLOR_MAP in rowId:
                         tempLineColorMap[rowId][entry] = setting
                     else:
-                        self.settings.setOption(rowId,setting)
+                        self._settings_.setOption(rowId,setting)
 
-        self.settings.setOption(Sets.LINE_COLOR_MAP,tempLineColorMap)
+        self._settings_.setOption(Sets.LINE_COLOR_MAP,tempLineColorMap)
 
         # Once settings have been saved, allow for reopen of options view
-        self.showing = False
+        self._showing_ = False
 
         # Reload main interface
         reloadLineColorMapAndTags()
@@ -1387,35 +1383,35 @@ class OptionsView:
         saveSpinner.close()
 
         # Update save button, if window has been opened again
-        root.after(10,self.setSaveButtonState,tk.NORMAL)
-        self.saving = False
+        root.after(10,self._setSaveButtonState_,tk.NORMAL)
+        self._saving_ = False
 
 
     ####################################
     # View Creation
 
-    def addNewEmptyLineColor(self,parent):
+    def _addNewEmptyLineColor_(self,parent):
         # print("New Button " + str(self.newButtonRow))
 
-        self.newButton.grid(row=self.newButtonRow+1)
+        self._newButton_.grid(row=self._newButtonRow_+1)
 
-        rowId = self.getRowId(self.newButtonRow)
-        self.setsDict[rowId] = self.createSingleLineColorRow(self.lineColoringFrame,self.newButtonRow,rowId,"","white")
+        rowId = self._getRowId_(self._newButtonRow_)
+        self._setsDict_[rowId] = self._createSingleLineColorRow_(self._lineColoringFrame_,self._newButtonRow_,rowId,"","white")
 
-        self.newButtonRow += 1
+        self._newButtonRow_ += 1
 
-    def editLineColorRow(self,edit):
+    def _editLineColorRow_(self,edit):
         # print("Last focus in " + self.lastFocusInRowId)
         # print("Last focus out " + self.lastFocusOutRowId)
 
         # If lastFocusIn is not the same as lastFocusOut,
         # we know that lastFocusIn is currently selected.
-        if self.lastFocusInRowId != self.lastFocusOutRowId:
-            if Sets.LINE_COLOR_MAP in self.lastFocusInRowId:
+        if self._lastFocusInRowId_ != self._lastFocusOutRowId_:
+            if Sets.LINE_COLOR_MAP in self._lastFocusInRowId_:
                 # print("EDIT: " + self.lastFocusInRowId)
 
                 # Get row number
-                rowNum = int(self.lastFocusInRowId.replace(Sets.LINE_COLOR_MAP,""))
+                rowNum = int(self._lastFocusInRowId_.replace(Sets.LINE_COLOR_MAP,""))
 
                 # Find index of rows to edit
                 indexToChange = list()
@@ -1423,22 +1419,22 @@ class OptionsView:
                     if rowNum > 0:
                         indexToChange = [rowNum-1, rowNum]
                 elif edit == self.EDIT_DOWN:
-                    if rowNum < (self.newButtonRow - 1):
+                    if rowNum < (self._newButtonRow_ - 1):
                         indexToChange = [rowNum, rowNum+1]
                 elif edit == self.EDIT_DELETE:
-                    indexToChange = range(rowNum,self.newButtonRow)
+                    indexToChange = range(rowNum,self._newButtonRow_)
 
                 if indexToChange:
 
                     tempTextColorMap = list()
                     for i in indexToChange:
                         # Save regex and color
-                        rowId = self.getRowId(i)
-                        tempTextColorMap.append((self.setsDict[rowId]["regex"]["var"].get(),self.setsDict[rowId]["color"]["var"].get()))
+                        rowId = self._getRowId_(i)
+                        tempTextColorMap.append((self._setsDict_[rowId]["regex"]["var"].get(),self._setsDict_[rowId]["color"]["var"].get()))
 
                         # Remove rows to edit from view
-                        self.setsDict[rowId]["lineFrame"].destroy()
-                        del self.setsDict[rowId]
+                        self._setsDict_[rowId]["lineFrame"].destroy()
+                        del self._setsDict_[rowId]
 
                     # Reorder or delete saved rows
                     newRowNum = -1
@@ -1453,49 +1449,52 @@ class OptionsView:
 
                     # Recreate saved rows
                     for i,(regex,color) in enumerate(tempTextColorMap):
-                        rowId = self.getRowId(indexToChange[i])
-                        self.setsDict[rowId] = self.createSingleLineColorRow(self.lineColoringFrame,indexToChange[i],rowId,regex,color)
+                        rowId = self._getRowId_(indexToChange[i])
+                        self._setsDict_[rowId] = self._createSingleLineColorRow_(self._lineColoringFrame_,indexToChange[i],rowId,regex,color)
 
                     # If move up or down, refocus
                     if newRowNum > -1:
-                        rowId = self.getRowId(newRowNum)
-                        self.focusInSet(rowId)
+                        rowId = self._getRowId_(newRowNum)
+                        self._focusInSet_(rowId)
                     # If delete, update row count and move newButton
                     else:
-                        self.newButtonRow = self.newButtonRow - 1
-                        self.newButton.grid(row=self.newButtonRow)
-                        self.lastFocusInRowId = ""
+                        self._newButtonRow_ = self._newButtonRow_ - 1
+                        self._newButton_.grid(row=self._newButtonRow_)
+                        self._lastFocusInRowId_ = ""
 
 
-    def createLineColorRows(self,parent,lineColorMap):
+                    self._updateExampleText_(self.GROUP_LINE_COLORING)
+
+
+    def _createLineColorRows_(self,parent,lineColorMap):
         setDict = dict()
         for rowId in sorted(lineColorMap.keys()):
             rowNum = int(rowId.replace(Sets.LINE_COLOR_MAP,""))
-            setDict[rowId] = self.createSingleLineColorRow(parent,rowNum,rowId,lineColorMap[rowId]["regex"],lineColorMap[rowId]["color"])
+            setDict[rowId] = self._createSingleLineColorRow_(parent,rowNum,rowId,lineColorMap[rowId]["regex"],lineColorMap[rowId]["color"])
 
         return setDict
 
-    def createSingleLineColorRow(self,parent,row,rowId,regex,color):
+    def _createSingleLineColorRow_(self,parent,row,rowId,regex,color):
         colorLine = dict()
 
         colorLine["lineFrame"] = tk.Frame(parent,highlightcolor=self.ROW_HIGHLIGHT_COLOR,highlightthickness=2)
         colorLine["lineFrame"].grid(row=row,column=0)
-        colorLine["lineFrame"].bind("<Button-1>",partial(self.focusInSet,rowId))
-        colorLine["lineFrame"].bind("<FocusOut>",partial(self.focusOut,rowId))
+        colorLine["lineFrame"].bind("<Button-1>",partial(self._focusInSet_,rowId))
+        colorLine["lineFrame"].bind("<FocusOut>",partial(self._focusOut_,rowId))
 
         regexEntry = dict()
         entryName = "regex"
 
         regexEntry["label"] = tk.Label(colorLine["lineFrame"],text="Regex")
         regexEntry["label"].grid(row=0,column=0)
-        regexEntry["label"].bind("<Button-1>",partial(self.focusInSet,rowId))
+        regexEntry["label"].bind("<Button-1>",partial(self._focusInSet_,rowId))
         regexEntry["var"] = tk.StringVar(colorLine["lineFrame"])
         regexEntry["var"].set(regex)
-        regexEntry["observer"] = regexEntry["var"].trace("w",partial(self.validateInput,rowId,entryName))
+        regexEntry["observer"] = regexEntry["var"].trace("w",partial(self._validateInput_,rowId,entryName))
 
         regexEntry["input"] = tk.Entry(colorLine["lineFrame"],textvariable=regexEntry["var"],width=30,takefocus=False) # Will this work?
         regexEntry["input"].grid(row=0,column=1)
-        regexEntry["input"].bind("<Button-1>",partial(self.focusInLog,rowId))
+        regexEntry["input"].bind("<Button-1>",partial(self._focusInLog_,rowId))
 
         regexEntry["type"] = self.TYPE_REGEX
         regexEntry["group"] = self.GROUP_LINE_COLORING
@@ -1508,18 +1507,18 @@ class OptionsView:
 
         colorEntry["label"] = tk.Label(colorLine["lineFrame"],text="Color")
         colorEntry["label"].grid(row=0,column=2)
-        colorEntry["label"].bind("<Button-1>",partial(self.focusInSet,rowId))
+        colorEntry["label"].bind("<Button-1>",partial(self._focusInSet_,rowId))
 
         colorEntry["var"] = tk.StringVar(colorLine["lineFrame"])
         colorEntry["var"].set(color)
-        colorEntry["observer"] = colorEntry["var"].trace("w",partial(self.validateInput,rowId,entryName))
+        colorEntry["observer"] = colorEntry["var"].trace("w",partial(self._validateInput_,rowId,entryName))
         colorEntry["input"] = tk.Entry(colorLine["lineFrame"],textvariable=colorEntry["var"],width=10,takefocus=False)
         colorEntry["input"].grid(row=0,column=3)
-        colorEntry["input"].bind("<Button-1>",partial(self.focusInLog,rowId))
+        colorEntry["input"].bind("<Button-1>",partial(self._focusInLog_,rowId))
 
-        colorEntry["button"] = tk.Button(colorLine["lineFrame"],bg=color,width=3,command=partial(self.getColor,rowId,entryName,True))
+        colorEntry["button"] = tk.Button(colorLine["lineFrame"],bg=color,width=3,command=partial(self._getColor_,rowId,entryName,True))
         colorEntry["button"].grid(row=0,column=4,padx=4)
-        colorEntry["button"].bind("<Button-1>",partial(self.focusInSet,rowId))
+        colorEntry["button"].bind("<Button-1>",partial(self._focusInSet_,rowId))
 
         colorEntry["type"] = self.TYPE_COLOR
         colorEntry["group"] = self.GROUP_LINE_COLORING
@@ -1528,13 +1527,13 @@ class OptionsView:
 
         return colorLine
 
-    def createStandardRows(self,parent,setLines,startRow):
+    def _createStandardRows_(self,parent,setLines,startRow):
         setDict = dict()
 
         # Find longest entry in settings
         maxLen = 0
         for setLine in setLines:
-            setLen = len(str(self.settings.get(setLine.setId)))
+            setLen = len(str(self._settings_.get(setLine.setId)))
             if setLen > maxLen:
                 maxLen = setLen
 
@@ -1554,14 +1553,14 @@ class OptionsView:
                 entry["var"] = tk.IntVar(parent)
             else:
                 entry["var"] = tk.StringVar(parent)
-            entry["var"].set(self.settings.get(setLine.setId))
+            entry["var"].set(self._settings_.get(setLine.setId))
             # TODO use tkinter validateCommand
-            entry["observer"] = entry["var"].trace("w",partial(self.validateInput,setLine.setId,entryName))
+            entry["observer"] = entry["var"].trace("w",partial(self._validateInput_,setLine.setId,entryName))
             # TODO Find better solution for entry width
             entry["input"] = tk.Entry(parent,textvariable=entry["var"],width=int(maxLen*1.5),takefocus=False)
             entry["input"].grid(row=row,column=1)
             if setLine.setType == self.TYPE_COLOR:
-                entry["button"] = tk.Button(parent,bg=self.settings.get(setLine.setId),width=3,command=partial(self.getColor,setLine.setId,entryName))
+                entry["button"] = tk.Button(parent,bg=self._settings_.get(setLine.setId),width=3,command=partial(self._getColor_,setLine.setId,entryName))
                 entry["button"].grid(row=row,column=2,padx=4)
 
             entry["type"] = setLine.setType
@@ -1578,159 +1577,158 @@ class OptionsView:
     ####################################
     # View Interaction
 
-    def focusOut(self,rowId,event):
-        self.lastFocusOutRowId = rowId
+    def _focusOut_(self,rowId,event):
+        self._lastFocusOutRowId_ = rowId
 
-    def focusInSet(self,rowId,event=0):
-        self.setsDict[rowId]["lineFrame"].focus_set()
-        self.focusInLog(rowId,event)
+    def _focusInSet_(self,rowId,event=0):
+        self._setsDict_[rowId]["lineFrame"].focus_set()
+        self._focusInLog_(rowId,event)
 
-    def focusInLog(self,rowId,event=0):
-        self.lastFocusInRowId = rowId
-        if self.lastFocusOutRowId == rowId:
-            self.lastFocusOutRowId = ""
+    def _focusInLog_(self,rowId,event=0):
+        self._lastFocusInRowId_ = rowId
+        if self._lastFocusOutRowId_ == rowId:
+            self._lastFocusOutRowId_ = ""
 
-    def getColor(self,rowId,entry,highlight=False):
+    def _getColor_(self,rowId,entry,highlight=False):
 
         if highlight:
-            hg = self.setsDict[rowId]["lineFrame"].cget("highlightbackground")
-            self.setsDict[rowId]["lineFrame"].config(highlightbackground=self.ROW_HIGHLIGHT_COLOR)
+            hg = self._setsDict_[rowId]["lineFrame"].cget("highlightbackground")
+            self._setsDict_[rowId]["lineFrame"].config(highlightbackground=self.ROW_HIGHLIGHT_COLOR)
 
-        currentColor = self.setsDict[rowId][entry]["button"].cget("bg")
+        currentColor = self._setsDict_[rowId][entry]["button"].cget("bg")
 
-        if not self.isValidColor(currentColor):
+        if not self._isValidColor_(currentColor):
             currentColor = None
 
-        color = askcolor(initialcolor=currentColor,parent=self.view)
+        color = askcolor(initialcolor=currentColor,parent=self._view_)
 
         if color[1] != None:
-            self.setsDict[rowId][entry]["var"].set(color[1])
-            self.setsDict[rowId][entry]["button"].config(bg=color[1])
+            self._setsDict_[rowId][entry]["var"].set(color[1])
+            self._setsDict_[rowId][entry]["button"].config(bg=color[1])
 
         if highlight:
-            self.setsDict[rowId]["lineFrame"].config(highlightbackground=hg)
-            self.focusInLog(rowId)
+            self._setsDict_[rowId]["lineFrame"].config(highlightbackground=hg)
+            self._focusInLog_(rowId)
 
-    class WidgetSize:
-        def __init__(self,width,height,posx,posy):
-            self.width = width
-            self.height = height
-            self.posx = posx
-            self.posy = posy
+    # class WidgetSize:
+    #     def __init__(self,width,height,posx,posy):
+    #         self.width = width
+    #         self.height = height
+    #         self.posx = posx
+    #         self.posy = posy
 
-    def getWidgetSize(self,widget):
+    # def getWidgetSize(self,widget):
 
-        width = widget.winfo_width()
-        height = widget.winfo_height()
-        posx = widget.winfo_x()
-        posy = widget.winfo_y()
+    #     width = widget.winfo_width()
+    #     height = widget.winfo_height()
+    #     posx = widget.winfo_x()
+    #     posy = widget.winfo_y()
 
-        return self.WidgetSize(width,height,posx,posy)
+    #     return self.WidgetSize(width,height,posx,posy)
 
-    def tabChanged(self,event):                
-        self.updateExampleText(self.tabList[self.tabControl.index("current")])
+    def _tabChanged_(self,event):
+        self._view_.focus_set()
+        self._updateExampleText_(self._tabList_[self._tabControl_.index("current")])
 
-    def updateExampleText(self,group):
-        
+    def _updateExampleText_(self,group):
+
         #####################
         # Setup
 
-        # TODO when to clear?
-
         # Delete all search tags
-        self.textAreaExampleText.tag_delete(Sets.SEARCH_SELECTED_LINE_COLOR)
-        self.textAreaExampleText.tag_delete(Sets.SEARCH_MATCH_COLOR)
-        self.textAreaExampleText.tag_delete(Sets.SEARCH_SELECTED_COLOR)
+        self._exampleText_.tag_delete(Sets.SEARCH_SELECTED_LINE_COLOR)
+        self._exampleText_.tag_delete(Sets.SEARCH_MATCH_COLOR)
+        self._exampleText_.tag_delete(Sets.SEARCH_SELECTED_COLOR)
 
         # Delete all current line color tags
-        tagNames = self.textAreaExampleText.tag_names()
+        tagNames = self._exampleText_.tag_names()
         for tagName in tagNames:
             if Sets.LINE_COLOR_MAP in tagName:
-                self.textAreaExampleText.tag_delete(tagName)
-        
+                self._exampleText_.tag_delete(tagName)
+
         entryName = "entry"
         if group == self.GROUP_TEXT_AREA:
             # General text area
             try:
-                tFont = Font(family=self.setsDict[Sets.FONT_FAMILY][entryName]["var"].get(),\
-                            size=self.setsDict[Sets.FONT_SIZE][entryName]["var"].get())
-                self.textAreaExampleText.config(background=self.setsDict[Sets.BACKGROUND_COLOR][entryName]["var"].get(),\
-                                                selectbackground=self.setsDict[Sets.SELECT_BACKGROUND_COLOR][entryName]["var"].get(),\
-                                                foreground=self.setsDict[Sets.TEXT_COLOR][entryName]["var"].get(),\
+                tFont = Font(family=self._setsDict_[Sets.FONT_FAMILY][entryName]["var"].get(),\
+                            size=self._setsDict_[Sets.FONT_SIZE][entryName]["var"].get())
+                self._exampleText_.config(background=self._setsDict_[Sets.BACKGROUND_COLOR][entryName]["var"].get(),\
+                                                selectbackground=self._setsDict_[Sets.SELECT_BACKGROUND_COLOR][entryName]["var"].get(),\
+                                                foreground=self._setsDict_[Sets.TEXT_COLOR][entryName]["var"].get(),\
                                                 font=tFont)
-            except tk.TclError:                
+            except tk.TclError:
                 pass
-        
+
         elif group == self.GROUP_SEARCH:
-            
+
             searchString = "Main"
 
-            # Create tags
-            self.textAreaExampleText.tag_configure(Sets.SEARCH_SELECTED_LINE_COLOR, background=self.setsDict[Sets.SEARCH_SELECTED_LINE_COLOR][entryName]["var"].get())
-            self.textAreaExampleText.tag_configure(Sets.SEARCH_MATCH_COLOR, background=self.setsDict[Sets.SEARCH_MATCH_COLOR][entryName]["var"].get())
-            self.textAreaExampleText.tag_configure(Sets.SEARCH_SELECTED_COLOR, background=self.setsDict[Sets.SEARCH_SELECTED_COLOR][entryName]["var"].get())
+            # Create search tags
+            self._exampleText_.tag_configure(Sets.SEARCH_SELECTED_LINE_COLOR, background=self._setsDict_[Sets.SEARCH_SELECTED_LINE_COLOR][entryName]["var"].get())
+            self._exampleText_.tag_configure(Sets.SEARCH_MATCH_COLOR, background=self._setsDict_[Sets.SEARCH_MATCH_COLOR][entryName]["var"].get())
+            self._exampleText_.tag_configure(Sets.SEARCH_SELECTED_COLOR, background=self._setsDict_[Sets.SEARCH_SELECTED_COLOR][entryName]["var"].get())
 
             # Do search
             countVar = tk.StringVar()
             results = list()
             start = 1.0
             while True:
-                pos = self.textAreaExampleText.search(searchString,start,stopindex=tk.END,count=countVar,nocase=False,regexp=False)
+                pos = self._exampleText_.search(searchString,start,stopindex=tk.END,count=countVar,nocase=False,regexp=False)
                 if not pos:
                     break
                 else:
-                    results.append((pos,pos + "+" + countVar.get() + "c"))                      
+                    results.append((pos,pos + "+" + countVar.get() + "c"))
                     start = pos + "+1c"
 
-            # Add tags
+            # Add search tags
             first = True
             for result in results:
-                self.textAreaExampleText.tag_add(Sets.SEARCH_MATCH_COLOR, result[0], result[1])
+                self._exampleText_.tag_add(Sets.SEARCH_MATCH_COLOR, result[0], result[1])
                 if first:
                     first = False
-                    self.textAreaExampleText.tag_add(Sets.SEARCH_SELECTED_COLOR, result[0], result[1])
-                    selectLine = result[0].split(".")[0]                    
-                    self.textAreaExampleText.tag_add(Sets.SEARCH_SELECTED_LINE_COLOR, selectLine + ".0", selectLine + ".0+1l")
+                    self._exampleText_.tag_add(Sets.SEARCH_SELECTED_COLOR, result[0], result[1])
+                    selectLine = result[0].split(".")[0]
+                    self._exampleText_.tag_add(Sets.SEARCH_SELECTED_LINE_COLOR, selectLine + ".0", selectLine + ".0+1l")
 
-                    
-            
+
+
         if group == self.GROUP_LINE_COLORING or group == self.GROUP_SEARCH:
 
             # Get line color map from view
             tempLineColorMap = list()
-            for rowId in sorted(self.setsDict.keys()):
+            for rowId in sorted(self._setsDict_.keys()):
                 if Sets.LINE_COLOR_MAP in rowId:
                     lineInfo = dict()
                     lineInfo["rowId"] = rowId
-                    lineInfo["regex"] = self.setsDict[rowId]["regex"]["var"].get()
-                    lineInfo["color"] = self.setsDict[rowId]["color"]["var"].get()
+                    lineInfo["regex"] = self._setsDict_[rowId]["regex"]["var"].get()
+                    lineInfo["color"] = self._setsDict_[rowId]["color"]["var"].get()
                     tempLineColorMap.append(lineInfo)
 
             # Apply new line colors
             for lineInfo in tempLineColorMap:
-                self.textAreaExampleText.tag_configure(lineInfo["rowId"],foreground=lineInfo["color"])
+                self._exampleText_.tag_configure(lineInfo["rowId"],foreground=lineInfo["color"])
 
                 countVar = tk.StringVar()
                 start = 1.0
                 while True:
-                    pos = self.textAreaExampleText.search(lineInfo["regex"],start,stopindex=tk.END,count=countVar,nocase=False,regexp=True)
+                    pos = self._exampleText_.search(lineInfo["regex"],start,stopindex=tk.END,count=countVar,nocase=False,regexp=True)
                     if not pos:
                         break
                     else:
-                        self.textAreaExampleText.tag_add(lineInfo["rowId"],pos,pos + "+" + countVar.get() + "c")                        
+                        self._exampleText_.tag_add(lineInfo["rowId"],pos,pos + "+" + countVar.get() + "c")
                         start = pos + "+1c"
 
-       
+
 
     ####################################
     # Entry Validation
 
-    def validateInput(self,rowId,entryName,*args):
+    def _validateInput_(self,rowId,entryName,*args):
 
         # Get variable
         varIn = None
         try:
-            varIn = self.setsDict[rowId][entryName]["var"].get()
+            varIn = self._setsDict_[rowId][entryName]["var"].get()
             isValid = True
         except tk.TclError:
             # print("Tcl Error")
@@ -1739,59 +1737,59 @@ class OptionsView:
         if isValid:
 
             # Check Colors
-            if self.setsDict[rowId][entryName]["type"] == self.TYPE_COLOR:
+            if self._setsDict_[rowId][entryName]["type"] == self.TYPE_COLOR:
                 color = varIn
-                isValid = self.isValidColor(color)
+                isValid = self._isValidColor_(color)
                 if isValid:
                     # print("Color " + str(color))
-                    self.setsDict[rowId][entryName]["button"].config(background=color)
+                    self._setsDict_[rowId][entryName]["button"].config(background=color)
 
             # Check regex
-            if self.setsDict[rowId][entryName]["type"] == self.TYPE_REGEX:
-                isValid = self.isValidRegex(varIn)
+            if self._setsDict_[rowId][entryName]["type"] == self.TYPE_REGEX:
+                isValid = self._isValidRegex_(varIn)
 
             # Check font family
             if rowId == Sets.FONT_FAMILY:
-                isValid = self.isValidFontFamily(varIn)
+                isValid = self._isValidFontFamily_(varIn)
 
             # Check font size
             if rowId == Sets.FONT_SIZE:
-                isValid = self.isValidFontSize(varIn)
+                isValid = self._isValidFontSize_(varIn)
 
             if isValid:
-                self.updateExampleText(self.setsDict[rowId][entryName]["group"])                
+                self._updateExampleText_(self._setsDict_[rowId][entryName]["group"])
 
         entryId = rowId + "_" + entryName
 
         try:
-            self.notValidEntries.remove(entryId)
+            self._notValidEntries_.remove(entryId)
         except ValueError:
             pass
 
         if isValid:
-            self.setsDict[rowId][entryName]["input"].config(background="white")
+            self._setsDict_[rowId][entryName]["input"].config(background="white")
         else:
-            self.setsDict[rowId][entryName]["input"].config(background="red")
-            self.notValidEntries.append(entryId)
+            self._setsDict_[rowId][entryName]["input"].config(background="red")
+            self._notValidEntries_.append(entryId)
 
         infoText = ""
-        for notValidEntry in self.notValidEntries:
+        for notValidEntry in self._notValidEntries_:
             if infoText:
                 infoText += "\n"
             infoText += notValidEntry + " not valid."
 
         if infoText:
-            self.optionsInfoLabel.config(text=infoText)
+            self._optionsInfoLabel_.config(text=infoText)
         else:
-            self.optionsInfoLabel.config(text="")
+            self._optionsInfoLabel_.config(text="")
 
-        if self.notValidEntries:
-            self.setSaveButtonState(tk.DISABLED)
+        if self._notValidEntries_:
+            self._setSaveButtonState_(tk.DISABLED)
         else:
-            self.setSaveButtonState(tk.NORMAL)
+            self._setSaveButtonState_(tk.NORMAL)
 
 
-    def isValidColor(self,colorString):
+    def _isValidColor_(self,colorString):
         isValid = True
         try:
             tk.Label(None,background=colorString)
@@ -1800,11 +1798,11 @@ class OptionsView:
             isValid = False
         return isValid
 
-    def isValidFontFamily(self,family):
+    def _isValidFontFamily_(self,family):
         fontList = tk.font.families()
         return family in fontList
 
-    def isValidFontSize(self,size):
+    def _isValidFontSize_(self,size):
         isValid = True
         try:
             Font(size=size)
@@ -1818,10 +1816,11 @@ class OptionsView:
 
         return isValid
 
-    def isValidRegex(self,regex):
+    def _isValidRegex_(self,regex):
         isValid = True
         try:
-            re.compile(regex)
+            # re.compile(regex) # Tkinter does not allow all regex, so this cannot be used
+            self._exampleText_.search(regex,1.0,stopindex=tk.END,regexp=True)            
         except:
             isValid = False
         return isValid
@@ -1829,7 +1828,7 @@ class OptionsView:
     ####################################
     # Misc
 
-    def getRowId(self,rowNum):
+    def _getRowId_(self,rowNum):
         return Sets.LINE_COLOR_MAP + "{:02d}".format(rowNum)
 
 
@@ -2162,7 +2161,7 @@ updateGuiJob_ = root.after(50,waitForInput)
 
 search_ = Search(T_,settings_)
 
-# spinner = None
+
 
 def controlDown(e):
     search_.show()
@@ -2171,16 +2170,7 @@ def controlDown(e):
 #     print("DOWN raw: " + str(e))
 #     print("DOWN: " + e.char)
     # if e.char == 'n':
-    #     search = Search(middleFrame_,T_)
-    #     search.show()
-    # elif e.char == 'm':
-    #     global spinner
-    #     spinner = Spinner(root)
-    #     spinner.show()
-    # elif e.char == 'b':
-    #     if spinner:
-    #         spinner.close()
-    #         spinner = None
+        # pass
 
 # def up(e):
 #     print("UP: " + e.char)
@@ -2190,7 +2180,6 @@ root.bind('<Control-f>', controlDown)
 # root.bind('<KeyRelease>', up)
 
 root.bind("<Alt-e>", goToEndButtonCommand)
-# root.bind("<Alt-c>", clearButtonCommand)
 
 traceLog(LogLevel.INFO,"Main loop started")
 
