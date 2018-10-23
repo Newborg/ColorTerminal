@@ -10,6 +10,7 @@ from tkinter import messagebox
 from tkinter.font import Font
 from tkinter.colorchooser import askcolor
 from tkinter.ttk import Notebook
+# from tkinter.ttk import Button
 
 from functools import partial
 
@@ -1173,19 +1174,13 @@ class OptionsView:
 
             self.tabControl = Notebook(self.tabsFrame,padding=10)
 
-            self.tabControl.grid(row=0,column=0,sticky=tk.N)
-            # tabIndex = 0
-
-            # tabOverview = dict()
+            self.tabControl.grid(row=0,column=0,sticky=tk.N)            
             self.tabList = list()
 
             ##############################
             # TEXT EXAMPLE
 
-            logExample = self.loadLogExample()
-            # exampleLineCount = len(logExample.splitlines())
-            # logExampleHeight = exampleLineCount + 1
-            # logExampleWidth = 80
+            logExample = self.loadLogExample()            
             exampleTextFrameHeightMin = 280
             exampleTextFrameWidth = 600
 
@@ -1217,12 +1212,9 @@ class OptionsView:
             ###############
             # Text Area
 
-            # self.textAreaFrame = tk.LabelFrame(self.tabControl,text="Text Area")
             self.textAreaFrame = tk.Frame(self.tabControl,padx=5,pady=5)
             self.textAreaFrame.grid(row=0,column=0,sticky=tk.N)
-            self.tabControl.add(self.textAreaFrame, text="Text Area")
-            # tabOverview[self.GROUP_TEXT_AREA] = tabIndex
-            # tabIndex += 1
+            self.tabControl.add(self.textAreaFrame, text="Text Area")            
             self.tabList.append(self.GROUP_TEXT_AREA)
 
             setLines = list()
@@ -1232,39 +1224,15 @@ class OptionsView:
             setLines.append(self.SetLine(self.GROUP_TEXT_AREA, Sets.FONT_FAMILY, "Font Family", self.TYPE_STRING))
             setLines.append(self.SetLine(self.GROUP_TEXT_AREA, Sets.FONT_SIZE, "Font Size", self.TYPE_INT))
 
-
             self.setsDict.update(self.createStandardRows(self.textAreaFrame,setLines,0))
 
-            # tFont = Font(family=self.settings.get(Sets.FONT_FAMILY), size=self.settings.get(Sets.FONT_SIZE))
-            # self.textAreaExampleText = tk.Text(self.textAreaFrame,height=logExampleHeight, width=logExampleWidth, wrap=tk.NONE,\
-            #                                 background=self.settings.get(Sets.BACKGROUND_COLOR),\
-            #                                 selectbackground=self.settings.get(Sets.SELECT_BACKGROUND_COLOR),\
-            #                                 foreground=self.settings.get(Sets.TEXT_COLOR),\
-            #                                 font=tFont)
-            # self.textAreaExampleText.grid(row=0,column=1)
-
-            # self.textAreaExampleText.insert(1.0,logExample)
-
-            # tFont = Font(family=self.settings.get(Sets.FONT_FAMILY), size=self.settings.get(Sets.FONT_SIZE))
-
-            # self.exampleText = tk.Text(self.textAreaFrame,height=1,width=2,\
-            #                         background=self.settings.get(Sets.BACKGROUND_COLOR),\
-            #                         selectbackground=self.settings.get(Sets.SELECT_BACKGROUND_COLOR),\
-            #                         foreground=self.settings.get(Sets.TEXT_COLOR),\
-            #                         font=tFont)
-
-            # self.exampleText.grid(row=5,column=0,columnspan=3,sticky=tk.W+tk.E)
-            # self.exampleText.insert(1.0,"[12:34:56.789] Main::test")
 
             ###############
             # Search
-
-            # self.searchFrame = tk.LabelFrame(self.tabControl,text="Search")
+            
             self.searchFrame = tk.Frame(self.tabControl,padx=5,pady=5)
             self.searchFrame.grid(row=0,column=0,sticky=tk.N)
-            self.tabControl.add(self.searchFrame, text="Search")
-            # tabOverview[self.GROUP_SEARCH] = tabIndex
-            # tabIndex += 1
+            self.tabControl.add(self.searchFrame, text="Search")            
             self.tabList.append(self.GROUP_SEARCH)
 
             setLines = list()
@@ -1276,13 +1244,10 @@ class OptionsView:
 
             ###############
             # Logging
-
-            # self.loggingFrame = tk.LabelFrame(self.tabControl,text="Logging")
+            
             self.loggingFrame = tk.Frame(self.tabControl,padx=5,pady=5)
             self.loggingFrame.grid(row=0,column=0,sticky=tk.N)
-            self.tabControl.add(self.loggingFrame, text="Logging")
-            # tabOverview[self.GROUP_LOGGING] = tabIndex
-            # tabIndex += 1
+            self.tabControl.add(self.loggingFrame, text="Logging")            
             self.tabList.append(self.GROUP_LOGGING)
 
             setLines = list()
@@ -1295,13 +1260,10 @@ class OptionsView:
 
             ###############
             # Line Coloring
-
-            # self.lineColoringFrame = tk.LabelFrame(self.tabControl,text="Line Coloring")
+            
             self.lineColoringFrame = tk.Frame(self.tabControl,padx=5,pady=5)
             self.lineColoringFrame.grid(row=0,column=0,sticky=tk.N)
-            self.tabControl.add(self.lineColoringFrame, text="Line Coloring")
-            # tabOverview[self.GROUP_LINE_COLORING] = tabIndex
-            # tabIndex += 1
+            self.tabControl.add(self.lineColoringFrame, text="Line Coloring")            
             self.tabList.append(self.GROUP_LINE_COLORING)
 
             self.setsDict.update(self.createLineColorRows(self.lineColoringFrame,self.lineColorMap))
@@ -1665,8 +1627,7 @@ class OptionsView:
 
         return self.WidgetSize(width,height,posx,posy)
 
-    def tabChanged(self,event):        
-        print("Current tab " + self.tabList[self.tabControl.index("current")])
+    def tabChanged(self,event):                
         self.updateExampleText(self.tabList[self.tabControl.index("current")])
 
     def updateExampleText(self,group):
@@ -1699,7 +1660,7 @@ class OptionsView:
                                                 font=tFont)
             except tk.TclError:                
                 pass
-
+        
         elif group == self.GROUP_SEARCH:
             
             searchString = "Main"
@@ -1797,23 +1758,8 @@ class OptionsView:
             if rowId == Sets.FONT_SIZE:
                 isValid = self.isValidFontSize(varIn)
 
-
-
-            # if isValid and self.setsDict[rowId][entryName]["group"] == self.GROUP_TEXT_AREA:
             if isValid:
-
-                self.updateExampleText(self.setsDict[rowId][entryName]["group"])
-                # Update example line
-                # try:
-                #     tFont = Font(family=self.setsDict[Sets.FONT_FAMILY][entryName]["var"].get(),\
-                #                 size=self.setsDict[Sets.FONT_SIZE][entryName]["var"].get())
-                #     self.exampleText.config(background=self.setsDict[Sets.BACKGROUND_COLOR][entryName]["var"].get(),\
-                #                             selectbackground=self.setsDict[Sets.SELECT_BACKGROUND_COLOR][entryName]["var"].get(),\
-                #                             foreground=self.setsDict[Sets.TEXT_COLOR][entryName]["var"].get(),\
-                #                             font=tFont)
-                # except tk.TclError:
-                #     # print("Tcl Error")
-                #     pass
+                self.updateExampleText(self.setsDict[rowId][entryName]["group"])                
 
         entryId = rowId + "_" + entryName
 
@@ -2069,23 +2015,6 @@ class Search:
             self._textField_.tag_configure(self.TAG_SEARCH, background=self._settings_.get(Sets.SEARCH_MATCH_COLOR))
             self._textField_.tag_configure(self.TAG_SEARCH_SELECT, background=self._settings_.get(Sets.SEARCH_SELECTED_COLOR))
 
-            # self.textField.config(state=tk.NORMAL)
-            # loops = 10
-            # self.textField.insert(tk.END,"start\n")
-            # for i in range(loops):
-            #     self.textField.insert(tk.END,"Main::NaOH Pump=>=== Pumping 50.000000 ml, flowSamples=0 ===\n")
-            #     self.textField.insert(tk.END,"TM::TitrationSequence=>Detecting boric color:-0.146 > limit:-0.130\n")
-            #     self.textField.insert(tk.END,"GUI::GUIMasterStateMachine=>Beginning transition onFOSS::Bifrost::T123::MeasureProgress from MeasureMode\n")
-            #     self.textField.insert(tk.END,"GUI::GUIMasterStateMachine=>Measure progress 34\n")
-            #     self.textField.insert(tk.END,"Main::SyncFile=>Registering SyncFile with watchdog manager. Prio: 3\n")
-            #     self.textField.insert(tk.END,"Hello\n")
-            #     self.textField.insert(tk.END,"Hello\n")
-            #     self.textField.insert(tk.END,"Hello\n")
-            #     self.textField.insert(tk.END,"Hello\n")
-            #     self.textField.insert(tk.END,"Hello\n")
-            # self.textField.insert(tk.END,"the end\n")
-            # self.textField.config(state=tk.DISABLED)
-
             self._var_ = tk.StringVar(self._view_)
             self._var_.set("")
             self._var_.trace("w",self.search)
@@ -2236,8 +2165,6 @@ search_ = Search(T_,settings_)
 # spinner = None
 
 def controlDown(e):
-    # print("Ctrl+f")
-
     search_.show()
 
 # def down(e):

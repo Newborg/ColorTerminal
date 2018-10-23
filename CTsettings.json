@@ -9,7 +9,7 @@
     "TextArea_maxLineBuffer": 4000,
     "Search_MatchColor": "#9e6209",
     "Search_SelectedColor": "#06487f",
-    "Search_SelectedLineColor": "#303030",
+    "Search_SelectedLineColor": "#3c3c3c",
     "LogFile_logFilePath": "Logs",
     "LogFile_logFileBaseName": "SerialLog_",
     "LogFile_logFileTimestamp": "%Y.%m.%d_%H.%M.%S",
