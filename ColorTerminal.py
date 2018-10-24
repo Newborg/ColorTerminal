@@ -110,6 +110,16 @@ root.geometry(settings_.get(Sets.DEFAULT_WINDOW_SIZE))
 ################################
 # Status frame
 
+class StatusFrame:
+
+    def __init__(self,settings):
+        self._settings_ = settings
+
+        self._readerWorker_ = None
+        self._processWorker_ = None
+        self._logWriterWorker_ = None
+        
+
 def connectSerial():
 
     traceLog(LogLevel.INFO,"Connect to serial")
