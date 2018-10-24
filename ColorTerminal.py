@@ -210,7 +210,7 @@ NO_SERIAL_PORT_ = "None"
 
 readFlag_ = 1
 processFlag_ = 1
-logFlag_ = 1
+# logFlag_ = 1
 
 # updateGuiFlag_ = 1
 # updateGuiJob_ = None
@@ -222,13 +222,13 @@ closeProgram_ = False
 # endLine_ = 1
 
 processQueue_ = queue.Queue()
-logQueue_ = queue.Queue()
+# logQueue_ = queue.Queue()
 # guiQueue_ = queue.Queue()
 
 # reloadGuiBuffer_ = False
 
-linesInLogFile_ = 0
-lastLogFileInfo_ = ""
+# linesInLogFile_ = 0
+# lastLogFileInfo_ = ""
 
 ################################################################
 ################################################################
@@ -274,19 +274,21 @@ def connectSerial():
     readFlag_ = 1
     global processFlag_
     processFlag_ = 1
-    global logFlag_
-    logFlag_ = 1
+    # global logFlag_
+    # logFlag_ = 1
 
     global readerThread
     readerThread = threading.Thread(target=readerWorker,daemon=True,name="Reader")
     global processThread
     processThread = threading.Thread(target=processWorker,daemon=True,name="Process")
-    global logThread
-    logThread = threading.Thread(target=logWriterWorker,daemon=True,name="Log")
+    # global logThread
+    # logThread = threading.Thread(target=logWriterWorker,daemon=True,name="Log")
 
     readerThread.start()
     processThread.start()
-    logThread.start()
+    # logThread.start()
+
+    logWriterWorker_.startWorker()
 
 
 def disconnectSerial():
@@ -313,18 +315,19 @@ def disconnectSerialProcess():
         processThread.join()
 
     # Empty log queue and stop log writer thread
-    logQueue_.join()
-    global logFlag_
-    logFlag_ = 0
-    if logThread.isAlive():
-        logThread.join()
+    logWriterWorker_.stopWorker()
+    # logQueue_.join()
+    # global logFlag_
+    # logFlag_ = 0
+    # if logThread.isAlive():
+    #     logThread.join()
 
     # Add disconnect line if connected
     if appState_ == ConnectState.CONNECTED:
         timestamp = datetime.datetime.now()
         timeString = Sets.timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + Sets.timeStampBracket[1]
 
-        disconnectLine = timeString + Sets.disconnectLineText + lastLogFileInfo_ + "\n"
+        disconnectLine = timeString + Sets.disconnectLineText + logWriterWorker_.lastLogFileInfo + "\n"
 
         highlightWorker_.highlightQueue.put(disconnectLine)
         # highlightQueue_.put(disconnectLine)
@@ -689,7 +692,7 @@ def processWorker():
 
             # highlightQueue_.put(newLine)
             highlightWorker_.highlightQueue.put(newLine)
-            logQueue_.put(newLine)
+            logWriterWorker_.logQueue.put(newLine)
 
         except queue.Empty:
             pass
@@ -733,27 +736,29 @@ class HighlightWorker():
         self._guiWorker_ = guiWorker
 
     def startWorker(self):
-
-        if not self._highlightFlag_:
-            self._highlightFlag_ = True
-            self._highlightThread_ = threading.Thread(target=self._highlightWorker_,daemon=True,name="Highlight")
-            self._highlightThread_.start()
-            # print("Highlight worker started")
+        
+        if self._guiWorker_ != None:
+            if not self._highlightFlag_:
+                self._highlightFlag_ = True
+                self._highlightThread_ = threading.Thread(target=self._highlightWorker_,daemon=True,name="Highlight")
+                self._highlightThread_.start()
+                # print("Highlight worker started")
+            else:
+                traceLog(LogLevel.ERROR,"Not able to start higlight thread. Thread already enabled")
         else:
-            traceLog(LogLevel.ERROR,"Not able to start higlight thread. Thread already enabled")
+            traceLog(LogLevel.ERROR,"Not able to start higlight thread. Gui worker not defined")
 
     def stopWorker(self,emptyQueue=True):
         "Stop highlight worker. Will block until thread is done"
+        
+        if self._highlightFlag_:
+            if emptyQueue:
+                self.highlightQueue.join()
 
-        # TODO Check if startWorker has been called?
+            self._highlightFlag_ = False
 
-        if emptyQueue:
-            self.highlightQueue.join()
-
-        self._highlightFlag_ = False
-
-        if self._highlightThread_.isAlive():
-            self._highlightThread_.join()
+            if self._highlightThread_.isAlive():
+                self._highlightThread_.join()
 
 
     def getLineColorMap(self):
@@ -917,38 +922,72 @@ class HighlightWorker():
 ################################
 # Log writer worker
 
-def logWriterWorker():
+class LogWriterWorker:
 
-    timestamp = datetime.datetime.now().strftime(settings_.get(Sets.LOG_FILE_TIMESTAMP))
+    def __init__(self,settings):
+        self._settings_ = settings        
+        self._logFlag_ = False
 
-    filename = settings_.get(Sets.LOG_FILE_BASE_NAME) + timestamp + ".txt"
-    fullFilename = os.path.join(settings_.get(Sets.LOG_FILE_PATH),filename)
+        self._logThread_ = None
+        self.logQueue = queue.Queue()
 
-    os.makedirs(os.path.dirname(fullFilename), exist_ok=True)
-
-    # TODO: Do not update UI from this thread
-    statLabel3_.config(text="Saving to log file: " + filename, fg="black")
-
-    global linesInLogFile_
-    linesInLogFile_ = 0
-
-    with open(fullFilename,"a") as file:
-        while logFlag_:
-            try:
-                logLine = logQueue_.get(True,0.2)
-                logQueue_.task_done()
-                file.write(logLine)
-                linesInLogFile_ += 1
-            except queue.Empty:
-                pass
+        self.linesInLogFile = 0
+        self.lastLogFileInfo = ""
 
 
-    filesize = os.path.getsize(fullFilename)
 
-    global lastLogFileInfo_
-    lastLogFileInfo_ = filename + " (Size " + "{:.3f}".format(filesize/1024) + "KB)"
+    def startWorker(self):
+        
+        if not self._logFlag_:
+            self._logFlag_ = True
+            self._logThread_ = threading.Thread(target=self._logWriterWorker_,daemon=True,name="Log")
+            self._logThread_.start()            
+        else:
+            traceLog(LogLevel.ERROR,"Not able to start log thread. Thread already enabled")
+        
 
-    statLabel3_.config(text="Log file saved: " + lastLogFileInfo_, fg="green")
+    def stopWorker(self,emptyQueue=True):
+        "Stop log worker. Will block until thread is done"
+
+        if self._logFlag_:
+
+            if emptyQueue:
+                self.logQueue.join()
+
+            self._logFlag_ = False
+
+            if self._logThread_:
+                if self._logThread_.isAlive():                    
+                    self._logThread_.join()
+
+    def _logWriterWorker_(self):
+
+        timestamp = datetime.datetime.now().strftime(self._settings_.get(Sets.LOG_FILE_TIMESTAMP))
+
+        filename = self._settings_.get(Sets.LOG_FILE_BASE_NAME) + timestamp + ".txt"
+        fullFilename = os.path.join(self._settings_.get(Sets.LOG_FILE_PATH),filename)
+
+        os.makedirs(os.path.dirname(fullFilename), exist_ok=True)
+
+        # TODO: Do not update UI from this thread
+        statLabel3_.config(text="Saving to log file: " + filename, fg="black")
+
+        self.linesInLogFile = 0
+
+        with open(fullFilename,"a") as file:
+            while self._logFlag_:
+                try:
+                    logLine = self.logQueue.get(True,0.2)
+                    self.logQueue.task_done()
+                    file.write(logLine)
+                    self.linesInLogFile += 1
+                except queue.Empty:
+                    pass
+
+        filesize = os.path.getsize(fullFilename)
+        self.lastLogFileInfo = filename + " (Size " + "{:.3f}".format(filesize/1024) + "KB)"
+
+        statLabel3_.config(text="Log file saved: " + self.lastLogFileInfo, fg="green") # TODO
 
 ################################
 # GUI worker
@@ -960,6 +999,7 @@ class GuiWorker:
         self._textArea_ = textArea
         self._search_ = search
         self._highlightWorker_ = None
+        self._logWriterWorker_ = None
         
         self._endLine_ = 1
 
@@ -981,11 +1021,17 @@ class GuiWorker:
     def setHighlightWorker(self,highlightWorker):
         self._highlightWorker_ = highlightWorker
 
+    def setLogWriterWorker(self,logWriterWorker):
+        self._logWriterWorker_ = logWriterWorker
+
     def startWorker(self):
 
-        self._cancelGuiJob_()
-        self._updateGuiFlag_ = True
-        self._updateGuiJob_ = root.after(50,self._waitForInput_)
+        if self._highlightWorker_ != None and self._logWriterWorker_ != None:
+            self._cancelGuiJob_()
+            self._updateGuiFlag_ = True
+            self._updateGuiJob_ = root.after(50,self._waitForInput_)
+        else:
+            traceLog(LogLevel.ERROR,"Gui Worker: highlight or logwriter not set.")
 
 
     def stopWorker(self):
@@ -1070,7 +1116,7 @@ class GuiWorker:
 
             if receivedLines:
                 updateWindowBufferLineCount_(self._endLine_-1) # TODO
-                statLabel2_.config(text="Lines in log file " + str(linesInLogFile_)) # TODO
+                statLabel2_.config(text="Lines in log file " + str(self._logWriterWorker_.linesInLogFile)) # TODO
                 self._search_.search(searchStringUpdated=False)
 
             if reloadInitiated:
@@ -1646,7 +1692,7 @@ class OptionsView:
     #         self.posx = posx
     #         self.posy = posy
 
-    # def getWidgetSize(self,widget):
+    # def _getWidgetSize_(self,widget):
 
     #     width = widget.winfo_width()
     #     height = widget.winfo_height()
@@ -2169,11 +2215,12 @@ class Search:
 
 readerThread = threading.Thread()
 processThread = threading.Thread()
-logThread = threading.Thread()
+# logThread = threading.Thread()
 
 
 search_ = Search(settings_,T_)
 
+logWriterWorker_ = LogWriterWorker(settings_)
 
 highlightWorker_ = HighlightWorker(settings_)
 guiWorker_ = GuiWorker(settings_,T_,search_)
@@ -2181,6 +2228,7 @@ guiWorker_ = GuiWorker(settings_,T_,search_)
 
 highlightWorker_.setGuiWorker(guiWorker_)
 guiWorker_.setHighlightWorker(highlightWorker_)
+guiWorker_.setLogWriterWorker(logWriterWorker_)
 
 highlightWorker_.startWorker()
 guiWorker_.startWorker()
