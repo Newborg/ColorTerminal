@@ -208,7 +208,7 @@ NO_SERIAL_PORT_ = "None"
 ################################
 # Flags, counters and queues
 
-readFlag_ = 1
+# readFlag_ = 1
 # processFlag_ = 1
 # logFlag_ = 1
 
@@ -270,24 +270,25 @@ def connectSerial():
 
     traceLog(LogLevel.INFO,"Connect to serial")
 
-    global readFlag_
-    readFlag_ = 1
-    global processFlag_
-    processFlag_ = 1
+    # global readFlag_
+    # readFlag_ = 1
+    # global processFlag_
+    # processFlag_ = 1
     # global logFlag_
     # logFlag_ = 1
 
-    global readerThread
-    readerThread = threading.Thread(target=readerWorker,daemon=True,name="Reader")
+    # global readerThread
+    # readerThread = threading.Thread(target=readerWorker,daemon=True,name="Reader")
     # global processThread
     # processThread = threading.Thread(target=processWorker,daemon=True,name="Process")
     # global logThread
     # logThread = threading.Thread(target=logWriterWorker,daemon=True,name="Log")
 
-    readerThread.start()
+    # readerThread.start()
     # processThread.start()
     # logThread.start()
 
+    readerWorker_.startWorker()
     processWorker_.startWorker()
     logWriterWorker_.startWorker()
 
@@ -303,10 +304,12 @@ def disconnectSerialProcess():
     global appState_
 
     # Stop serial reader
-    global readFlag_
-    readFlag_ = 0
-    if readerThread.isAlive():
-        readerThread.join()
+    readerWorker_.stopWorker()
+    # global readFlag_
+    # readFlag_ = 0
+    # if readerThread.isAlive():
+    #     readerThread.join()
+    
 
     # Empty process queue and stop process thread
     processWorker_.stopWorker()
@@ -603,37 +606,81 @@ def updateWindowBufferLineCount_(count):
 ################################
 # Reader worker
 
-def readerWorker():
+class ReaderWorker:
 
-    try:
-        with serial.Serial(serialPortVar_.get(), 115200, timeout=2) as ser:
+    def __init__(self,settings,root):
+        self._settings_ = settings
+        self._root_ = root
+        self._readFlag_ = False
 
-            # TODO should be done in GUI thread
-            setStatusLabel("CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
-            global appState_
-            appState_ = ConnectState.CONNECTED
+        self._readerThread_ = None        
 
-            try:
-                while readFlag_:
+        self._processWorker_ = None
+        
 
-                    line = ser.readline()
-                    timestamp = datetime.datetime.now()
+    ##############
+    # Public Interface
 
-                    if line:
-                        inLine = SerialLine(line.decode("utf-8"),timestamp)
-                        processWorker_.processQueue.put(inLine)
+    def startWorker(self):
 
-            except serial.SerialException as e:
-                traceLog(LogLevel.ERROR,"Serial read error: " + str(e))
-                # Change program state to disconnected
-                root.after(10,setAppState,ConnectState.DISCONNECTED)
+        if self._processWorker_:
+            if not self._readFlag_:
+                self._readFlag_ = True
+                self._readerThread_ = threading.Thread(target=self._readerWorker_,daemon=True,name="Reader")
+                self._readerThread_.start()
+            else:
+                traceLog(LogLevel.ERROR,"Not able to start reader thread. Thread already enabled")
+        else:
+            traceLog(LogLevel.ERROR,"Not able to start reader thread. Process worker not set")
 
-    except serial.SerialException as e:
-        traceLog(LogLevel.ERROR,str(e))
-        # In case other threads are still starting up,
-        # wait for 2 sec
-        # Then change program state to disconnected
-        root.after(2000,setAppState,ConnectState.DISCONNECTED)
+
+    def stopWorker(self):
+        "Stop reader worker. Will block until thread is done"
+
+        if self._readFlag_:
+            self._readFlag_ = False
+
+            if self._readerThread_:
+                if self._readerThread_.isAlive():
+                    self._readerThread_.join()
+
+    def setProcessWorker(self,processWorker):
+        self._processWorker_ = processWorker
+
+    ##############
+    # Main Worker
+
+    def _readerWorker_(self):
+
+        try:
+            with serial.Serial(serialPortVar_.get(), 115200, timeout=2) as ser: # TODO
+
+                # TODO should be done in GUI thread
+                setStatusLabel("CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
+                global appState_ # TODO
+                appState_ = ConnectState.CONNECTED # TODO
+
+                try:
+                    while self._readFlag_:
+
+                        line = ser.readline()
+                        timestamp = datetime.datetime.now()
+
+                        if line:
+                            inLine = SerialLine(line.decode("utf-8"),timestamp)
+                            self._processWorker_.processQueue.put(inLine)
+
+                except serial.SerialException as e:
+                    traceLog(LogLevel.ERROR,"Serial read error: " + str(e))
+                    # Change program state to disconnected
+                    self._root_.after(10,setAppState,ConnectState.DISCONNECTED) # TODO
+
+        except serial.SerialException as e:
+            traceLog(LogLevel.ERROR,str(e))
+            # In case other threads are still starting up,
+            # wait for 2 sec
+            # Then change program state to disconnected
+            self._root_.after(2000,setAppState,ConnectState.DISCONNECTED) # TODO
 
 
 
@@ -2262,21 +2309,19 @@ class Search:
 ################################################################
 ################################################################
 
-readerThread = threading.Thread()
+# readerThread = threading.Thread()
 # processThread = threading.Thread()
 # logThread = threading.Thread()
 
-
 search_ = Search(settings_,T_)
 
+readerWorker_ = ReaderWorker(settings_,root)
 processWorker_ = ProcessWorker(settings_)
-
 logWriterWorker_ = LogWriterWorker(settings_)
-
 highlightWorker_ = HighlightWorker(settings_)
 guiWorker_ = GuiWorker(settings_,T_,search_)
 
-
+readerWorker_.setProcessWorker(processWorker_)
 processWorker_.setHighlightWorker(highlightWorker_)
 processWorker_.setLogWriterWorker(logWriterWorker_)
 highlightWorker_.setGuiWorker(guiWorker_)
