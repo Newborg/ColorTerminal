@@ -34,144 +34,6 @@ import spinner
 
 SETTINGS_FILE_NAME_ = "CTsettings.json"
 
-################################
-# Trace
-
-# class LogLevel(Enum):
-#     ERROR = 0
-#     WARNING = 1
-#     INFO = 2
-#     DEBUG = 3
-
-# def traceLog(level,msg):
-#     timestamp = datetime.datetime.now()
-#     micros = int(timestamp.microsecond/1000)
-#     timeString = timestamp.strftime("%H:%M:%S") + "." + '{:03d}'.format(micros)
-
-#     print(timeString + " [" + level.name + "] " + msg)
-
-################################
-# Settings
-
-# class Sets:
-
-#     DEFAULT_WINDOW_SIZE         = "MainWindow_defaultWindowSize"
-#     THEME_COLOR                 = "MainWindow_themeColor"
-
-#     BACKGROUND_COLOR            = "TextArea_backgroundColor"
-#     SELECT_BACKGROUND_COLOR     = "TextArea_selectBackgroundColor"
-#     TEXT_COLOR                  = "TextArea_textColor"
-#     FONT_FAMILY                 = "TextArea_fontFamily"
-#     FONT_SIZE                   = "TextArea_fontSize"
-#     MAX_LINE_BUFFER             = "TextArea_maxLineBuffer"
-
-#     SEARCH_MATCH_COLOR          = "Search_MatchColor"
-#     SEARCH_SELECTED_COLOR       = "Search_SelectedColor"
-#     SEARCH_SELECTED_LINE_COLOR  = "Search_SelectedLineColor"
-
-#     LOG_FILE_PATH               = "LogFile_logFilePath"
-#     LOG_FILE_BASE_NAME          = "LogFile_logFileBaseName"
-#     LOG_FILE_TIMESTAMP          = "LogFile_logFileTimestamp"
-
-#     LINE_COLOR_MAP              = "LineColorMap"
-
-#     def __init__(self,jsonFileName):
-#         self.jsonFileName = jsonFileName
-#         self.settings = dict()
-
-#     def reload(self):
-
-#         settingsJson = dict()
-
-#         try:
-#             with open(self.jsonFileName,"r") as jsonFile:
-#                 settingsJson = json.load(jsonFile)
-#         except FileNotFoundError:
-#             traceLog(LogLevel.WARNING,"Settings file not found. Using default values")
-#             pass
-
-#         # Main Window
-#         self.settings[self.DEFAULT_WINDOW_SIZE]         = settingsJson.get(self.DEFAULT_WINDOW_SIZE,"1100x600")
-#         self.settings[self.THEME_COLOR]                 = settingsJson.get(self.THEME_COLOR,"#42bcf4")
-
-#         # Text Area
-#         self.settings[self.BACKGROUND_COLOR]            = settingsJson.get(self.BACKGROUND_COLOR,"#000000")
-#         self.settings[self.SELECT_BACKGROUND_COLOR]     = settingsJson.get(self.SELECT_BACKGROUND_COLOR,"#303030")
-#         self.settings[self.TEXT_COLOR]                  = settingsJson.get(self.TEXT_COLOR,"#FFFFFF")
-#         self.settings[self.FONT_FAMILY]                 = settingsJson.get(self.FONT_FAMILY,"Consolas")
-#         self.settings[self.FONT_SIZE]                   = settingsJson.get(self.FONT_SIZE,10)
-#         self.settings[self.MAX_LINE_BUFFER]             = settingsJson.get(self.MAX_LINE_BUFFER,4000)
-
-#         # Search
-#         self.settings[self.SEARCH_MATCH_COLOR]          = settingsJson.get(self.SEARCH_MATCH_COLOR,"#9e6209")
-#         self.settings[self.SEARCH_SELECTED_COLOR]       = settingsJson.get(self.SEARCH_SELECTED_COLOR,"#06487f")
-#         self.settings[self.SEARCH_SELECTED_LINE_COLOR]  = settingsJson.get(self.SEARCH_SELECTED_LINE_COLOR,"#303030")
-
-#         # Log File
-#         self.settings[self.LOG_FILE_PATH]               = settingsJson.get(self.LOG_FILE_PATH,"Logs")
-#         self.settings[self.LOG_FILE_BASE_NAME]          = settingsJson.get(self.LOG_FILE_BASE_NAME,"SerialLog_")
-#         self.settings[self.LOG_FILE_TIMESTAMP]          = settingsJson.get(self.LOG_FILE_TIMESTAMP,"%Y.%m.%d_%H.%M.%S")
-
-#         # Line Color Map
-#         self.settings[self.LINE_COLOR_MAP]              = settingsJson.get(self.LINE_COLOR_MAP,{})
-
-#         try:
-#             with open(self.jsonFileName,"w") as jsonFile:
-#                 json.dump(self.settings,jsonFile,indent=4)
-#         except:
-#             traceLog(LogLevel.WARNING,"Error updating settings file")
-#             pass
-
-
-#     def get(self,option):
-#         # No keycheck, should fail if wrong key
-#         return self.settings[option]
-
-#     def setOption(self,option,value):
-
-#         self.settings[option] = value
-
-#         # print("Saving option " + str(option) + " with value " + str(value))
-
-#         try:
-#             with open(self.jsonFileName,"w") as jsonFile:
-#                 json.dump(self.settings,jsonFile,indent=4)
-#         except FileNotFoundError:
-#             traceLog(LogLevel.WARNING,"Settings file not found. Not able to save setting")
-#             pass
-
-#     # Static for now
-
-#     # Time Stamp
-#     timeStampBracket = ["[","]"]
-#     timeDeltaBracket = ["(",")"]
-#     timeStampRegex = "\\" + timeStampBracket[0] + ".{12}\\" + timeStampBracket[1] + " \\" + timeDeltaBracket[0] + ".{6,12}\\" + timeDeltaBracket[1]
-
-#     # Other Colors
-#     STATUS_CONNECT_BACKGROUND_COLOR = "#008800"
-#     STATUS_WORKING_BACKGROUND_COLOR = "gray"
-#     STATUS_DISCONNECT_BACKGROUND_COLOR = "#CC0000"
-#     STATUS_TEXT_COLOR = "white"
-
-#     # Connect Status Lines
-#     CONNECT_LINE_TEXT = " Connected to port\n"
-#     connectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + CONNECT_LINE_TEXT
-#     CONNECT_LINE_BACKGROUND_COLOR = "#008800"
-#     CONNECT_LINE_SELECT_BACKGROUND_COLOR = "#084C08"
-
-#     disconnectLineText = " Disconnected from port. Log file "
-#     disconnectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + disconnectLineText
-#     DISCONNECT_LINE_BACKGROUND_COLOR = "#880000"
-#     DISCONNECT_LINE_SELECT_BACKGROUND_COLOR = "#4C0808"
-
-#     CONNECT_COLOR_TAG = "CONNECT_COLOR_TAG"
-#     DISCONNECT_COLOR_TAG = "DISCONNECT_COLOR_TAG"
-
-#     # Hide line
-#     HIDE_LINE_FONT_COLOR = "#808080"
-#     HIDELINE_COLOR_TAG = "HIDELINE_COLOR_TAG"
-
-
 settings_ = Sets.Settings(SETTINGS_FILE_NAME_)
 
 settings_.reload()
@@ -206,29 +68,11 @@ class PrintLine:
 NO_SERIAL_PORT_ = "None"
 
 ################################
-# Flags, counters and queues
-
-# readFlag_ = 1
-# processFlag_ = 1
-# logFlag_ = 1
-
-# updateGuiFlag_ = 1
-# updateGuiJob_ = None
+# Globals (to be removed)
 
 appState_ = ConnectState.DISCONNECTED
 
 closeProgram_ = False
-
-# endLine_ = 1
-
-# processQueue_ = queue.Queue()
-# logQueue_ = queue.Queue()
-# guiQueue_ = queue.Queue()
-
-# reloadGuiBuffer_ = False
-
-# linesInLogFile_ = 0
-# lastLogFileInfo_ = ""
 
 ################################################################
 ################################################################
@@ -270,24 +114,6 @@ def connectSerial():
 
     traceLog(LogLevel.INFO,"Connect to serial")
 
-    # global readFlag_
-    # readFlag_ = 1
-    # global processFlag_
-    # processFlag_ = 1
-    # global logFlag_
-    # logFlag_ = 1
-
-    # global readerThread
-    # readerThread = threading.Thread(target=readerWorker,daemon=True,name="Reader")
-    # global processThread
-    # processThread = threading.Thread(target=processWorker,daemon=True,name="Process")
-    # global logThread
-    # logThread = threading.Thread(target=logWriterWorker,daemon=True,name="Log")
-
-    # readerThread.start()
-    # processThread.start()
-    # logThread.start()
-
     readerWorker_.startWorker()
     processWorker_.startWorker()
     logWriterWorker_.startWorker()
@@ -305,27 +131,12 @@ def disconnectSerialProcess():
 
     # Stop serial reader
     readerWorker_.stopWorker()
-    # global readFlag_
-    # readFlag_ = 0
-    # if readerThread.isAlive():
-    #     readerThread.join()
-    
 
     # Empty process queue and stop process thread
     processWorker_.stopWorker()
-    # processQueue_.join()
-    # global processFlag_
-    # processFlag_ = 0
-    # if processThread.isAlive():
-    #     processThread.join()
 
     # Empty log queue and stop log writer thread
     logWriterWorker_.stopWorker()
-    # logQueue_.join()
-    # global logFlag_
-    # logFlag_ = 0
-    # if logThread.isAlive():
-    #     logThread.join()
 
     # Add disconnect line if connected
     if appState_ == ConnectState.CONNECTED:
@@ -335,12 +146,11 @@ def disconnectSerialProcess():
         disconnectLine = timeString + Sets.disconnectLineText + logWriterWorker_.lastLogFileInfo + "\n"
 
         highlightWorker_.highlightQueue.put(disconnectLine)
-        # highlightQueue_.put(disconnectLine)
+        
 
     traceLog(LogLevel.INFO,"Main worker threads stopped")
 
     setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
-
     appState_ = ConnectState.DISCONNECTED
 
     if closeProgram_:
@@ -2008,126 +1818,6 @@ class OptionsView:
 #
 #
 #
-# SPINNER
-#
-#
-#
-################################################################
-################################################################
-
-
-# class Spinner:
-
-#     def __init__(self,root):
-#         self.root = root
-#         self.runFlag = True
-
-#     def close(self):
-
-#         self.runFlag = False
-
-#         try:
-#             self.view.after_cancel(self.updateJob)
-#         except AttributeError:
-#             # print("No job to cancel")
-#             pass
-
-#         try:
-#             self.view.destroy()
-#         except AttributeError:
-#             # print("No view")
-#             pass
-
-
-#     def show(self,indicators=True,animate=False,message=""):
-
-#         self.animate = animate
-
-#         bgColor = "black"
-#         borderColor = "#777"
-#         padding = 20
-
-#         self.view = tk.Frame(self.root,bg=bgColor,highlightthickness=2,highlightbackground=borderColor)
-#         self.view.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
-#         ########################
-#         # Indicators
-
-#         if indicators:
-
-#             indicatorBaseFrame = tk.Frame(self.view,bg=bgColor)
-#             indicatorBaseFrame.pack(padx=padding,pady=padding)
-
-#             # Setup
-#             colors = [bgColor,"#222","#444","#777"]
-#             colorSequenceIndexList = [0,0,0,0,0,0,1,2,3,2,1]
-
-#             self.updatePeriod_ms = 100
-#             indicatorX = 20
-#             indicatorY = 20
-#             indicatorSpacing = 10
-#             indicatorCount = 5
-
-#             # Create color list
-#             self.colorSequence = list()
-#             for i in range(len(colorSequenceIndexList)):
-#                 self.colorSequence.append(colors[colorSequenceIndexList[i]])
-
-#             self.colorSequenceIndex = 0
-
-#             self.indicators = list()
-#             for i in range(indicatorCount):
-#                 indicator = tk.Frame(indicatorBaseFrame,bg=bgColor,width=indicatorX,height=indicatorY)
-#                 if i > 0:
-#                     padx = (0,indicatorSpacing)
-#                 else:
-#                     padx = 0
-#                 # Add indicators right to left, to get movement correct
-#                 indicator.pack(side=tk.RIGHT,padx=padx)
-#                 self.indicators.append(indicator)
-
-#             if self.animate:
-#                 self.updateJob = self.view.after(self.updatePeriod_ms,self.updateIndicators)
-
-#         ########################
-#         # Text
-
-#         if indicators:
-#             topPad = 0
-#         else:
-#             topPad = padding
-
-#         if message:
-#             textColor = "white"
-#             font = ("arial",14)
-#             # font = ("courier new",12)
-
-#             indicatorLabel = tk.Label(self.view,text=message,fg=textColor,bg=bgColor,font=font)
-#             indicatorLabel.pack(padx=padding, pady=(topPad,padding))
-
-#     def updateIndicators(self):
-
-#         colorLen = len(self.colorSequence)
-
-#         for index,indicator in enumerate(self.indicators):
-#             indicator.config(bg=self.colorSequence[self._nextIndex_(colorLen,self.colorSequenceIndex+index)])
-
-#         self.colorSequenceIndex = self._nextIndex_(colorLen,self.colorSequenceIndex)
-
-#         if self.animate and self.runFlag:
-#             self.updateJob = self.view.after(self.updatePeriod_ms,self.updateIndicators)
-
-#     def _nextIndex_(self,len,currentIndex):
-#         nextIndex = currentIndex + 1
-#         if nextIndex >= len:
-#             nextIndex = 0
-#         return nextIndex
-
-################################################################
-################################################################
-#
-#
-#
 # SEARCH BAR
 #
 #
@@ -2308,10 +1998,6 @@ class Search:
 #
 ################################################################
 ################################################################
-
-# readerThread = threading.Thread()
-# processThread = threading.Thread()
-# logThread = threading.Thread()
 
 search_ = Search(settings_,T_)
 
