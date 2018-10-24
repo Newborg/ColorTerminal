@@ -209,7 +209,7 @@ NO_SERIAL_PORT_ = "None"
 # Flags, counters and queues
 
 readFlag_ = 1
-processFlag_ = 1
+# processFlag_ = 1
 # logFlag_ = 1
 
 # updateGuiFlag_ = 1
@@ -221,7 +221,7 @@ closeProgram_ = False
 
 # endLine_ = 1
 
-processQueue_ = queue.Queue()
+# processQueue_ = queue.Queue()
 # logQueue_ = queue.Queue()
 # guiQueue_ = queue.Queue()
 
@@ -279,15 +279,16 @@ def connectSerial():
 
     global readerThread
     readerThread = threading.Thread(target=readerWorker,daemon=True,name="Reader")
-    global processThread
-    processThread = threading.Thread(target=processWorker,daemon=True,name="Process")
+    # global processThread
+    # processThread = threading.Thread(target=processWorker,daemon=True,name="Process")
     # global logThread
     # logThread = threading.Thread(target=logWriterWorker,daemon=True,name="Log")
 
     readerThread.start()
-    processThread.start()
+    # processThread.start()
     # logThread.start()
 
+    processWorker_.startWorker()
     logWriterWorker_.startWorker()
 
 
@@ -308,11 +309,12 @@ def disconnectSerialProcess():
         readerThread.join()
 
     # Empty process queue and stop process thread
-    processQueue_.join()
-    global processFlag_
-    processFlag_ = 0
-    if processThread.isAlive():
-        processThread.join()
+    processWorker_.stopWorker()
+    # processQueue_.join()
+    # global processFlag_
+    # processFlag_ = 0
+    # if processThread.isAlive():
+    #     processThread.join()
 
     # Empty log queue and stop log writer thread
     logWriterWorker_.stopWorker()
@@ -619,7 +621,7 @@ def readerWorker():
 
                     if line:
                         inLine = SerialLine(line.decode("utf-8"),timestamp)
-                        processQueue_.put(inLine)
+                        processWorker_.processQueue.put(inLine)
 
             except serial.SerialException as e:
                 traceLog(LogLevel.ERROR,"Serial read error: " + str(e))
@@ -638,64 +640,112 @@ def readerWorker():
 ################################
 # Process worker
 
-def processWorker():
+class ProcessWorker:
 
-    # Create connect line
-    timestamp = datetime.datetime.now()
-    timeString = Sets.timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + Sets.timeStampBracket[1]
-    connectLine = timeString + Sets.CONNECT_LINE_TEXT
-    # highlightQueue_.put(connectLine)
-    highlightWorker_.highlightQueue.put(connectLine)
+    def __init__(self,settings):
+        self._settings_ = settings
+        self._processFlag_ = False
 
-    lastTimestamp = 0
+        self._processThread_ = None
+        self.processQueue = queue.Queue()
 
-    while processFlag_:
-        try:
-            line = processQueue_.get(True,0.2)
-            processQueue_.task_done()
+        self._highlightWorker_ = None
+        self._logWriterWorker_ = None
 
-            # Timestamp
-            micros = int(line.timestamp.microsecond/1000)
-            timeString = Sets.timeStampBracket[0] + line.timestamp.strftime("%H:%M:%S") + "." + '{:03d}'.format(micros) + Sets.timeStampBracket[1]
+    ##############
+    # Public Interface
 
-            # Timedelta
-            if not lastTimestamp:
+    def startWorker(self):
+
+        if self._highlightWorker_ and self._logWriterWorker_:
+            if not self._processFlag_:
+                self._processFlag_ = True
+                self._processThread_ = threading.Thread(target=self._processWorker_,daemon=True,name="Process")
+                self._processThread_.start()
+            else:
+                traceLog(LogLevel.ERROR,"Not able to start process thread. Thread already enabled")
+        else:
+            traceLog(LogLevel.ERROR,"Not able to start process thread. Highlight or logWriter not set")
+
+
+    def stopWorker(self,emptyQueue=True):
+        "Stop process worker. Will block until thread is done"
+
+        if self._processFlag_:
+            if emptyQueue:
+                self.processQueue.join()
+
+            self._processFlag_ = False
+
+            if self._processThread_:
+                if self._processThread_.isAlive():
+                    self._processThread_.join()
+
+    def setHighlightWorker(self,highlightWorker):
+        self._highlightWorker_ = highlightWorker
+
+    def setLogWriterWorker(self,logWriterWorker):
+        self._logWriterWorker_ = logWriterWorker
+
+    ##############
+    # Main Worker
+
+    def _processWorker_(self):
+
+        # Create connect line
+        timestamp = datetime.datetime.now()
+        timeString = Sets.timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + Sets.timeStampBracket[1]
+        connectLine = timeString + Sets.CONNECT_LINE_TEXT        
+        highlightWorker_.highlightQueue.put(connectLine)
+
+        lastTimestamp = 0
+
+        while self._processFlag_:
+            try:
+                line = self.processQueue.get(True,0.2)
+                self.processQueue.task_done()
+
+                # Timestamp
+                micros = int(line.timestamp.microsecond/1000)
+                timeString = Sets.timeStampBracket[0] + line.timestamp.strftime("%H:%M:%S") + "." + '{:03d}'.format(micros) + Sets.timeStampBracket[1]
+
+                # Timedelta
+                if not lastTimestamp:
+                    lastTimestamp = line.timestamp
+
+                timedelta = line.timestamp - lastTimestamp
+
+                hours, remainder = divmod(timedelta.seconds, 3600)
+                minutes, seconds = divmod(remainder, 60)
+
+                hourstring = ""
+                if hours != 0:
+                    hourstring = "{:02d}:".format(hours)
+
+                minutstring = ""
+                if minutes != 0:
+                    minutstring = "{:02d}:".format(minutes)
+
+                if minutstring:
+                    secondstring = "{:02d}.{:03d}".format(seconds, int(timedelta.microseconds/1000))
+                else:
+                    secondstring = "{:2d}.{:03d}".format(seconds, int(timedelta.microseconds/1000))
+
+                timeDeltaString = Sets.timeDeltaBracket[0] + hourstring + minutstring + secondstring + Sets.timeDeltaBracket[1]
+
                 lastTimestamp = line.timestamp
 
-            timedelta = line.timestamp - lastTimestamp
+                # Replace newline
+                newData = line.data.rstrip() + "\n"
 
-            hours, remainder = divmod(timedelta.seconds, 3600)
-            minutes, seconds = divmod(remainder, 60)
+                # Construct newLine string
+                newLine = timeString + " " + timeDeltaString + " " + newData
+                
+                self._highlightWorker_.highlightQueue.put(newLine)
+                self._logWriterWorker_.logQueue.put(newLine)
 
-            hourstring = ""
-            if hours != 0:
-                hourstring = "{:02d}:".format(hours)
-
-            minutstring = ""
-            if minutes != 0:
-                minutstring = "{:02d}:".format(minutes)
-
-            if minutstring:
-                secondstring = "{:02d}.{:03d}".format(seconds, int(timedelta.microseconds/1000))
-            else:
-                secondstring = "{:2d}.{:03d}".format(seconds, int(timedelta.microseconds/1000))
-
-            timeDeltaString = Sets.timeDeltaBracket[0] + hourstring + minutstring + secondstring + Sets.timeDeltaBracket[1]
-
-            lastTimestamp = line.timestamp
-
-            # Replace newline
-            newData = line.data.rstrip() + "\n"
-
-            # Construct newLine string
-            newLine = timeString + " " + timeDeltaString + " " + newData
-
-            # highlightQueue_.put(newLine)
-            highlightWorker_.highlightQueue.put(newLine)
-            logWriterWorker_.logQueue.put(newLine)
-
-        except queue.Empty:
-            pass
+            except queue.Empty:
+                pass
 
 
 
@@ -736,7 +786,7 @@ class HighlightWorker():
         self._guiWorker_ = guiWorker
 
     def startWorker(self):
-        
+
         if self._guiWorker_ != None:
             if not self._highlightFlag_:
                 self._highlightFlag_ = True
@@ -750,7 +800,7 @@ class HighlightWorker():
 
     def stopWorker(self,emptyQueue=True):
         "Stop highlight worker. Will block until thread is done"
-        
+
         if self._highlightFlag_:
             if emptyQueue:
                 self.highlightQueue.join()
@@ -915,9 +965,9 @@ class HighlightWorker():
                     self._guiWorker_.guiReloadEvent.clear()
                     self.isReloadingLineBuffer = False
                     self._guiWorker_.reloadGuiBuffer()
-                    
-                    # Wait for gui to have processed new buffer                    
-                    self._guiWorker_.guiReloadEvent.wait()                    
+
+                    # Wait for gui to have processed new buffer
+                    self._guiWorker_.guiReloadEvent.wait()
 
 ################################
 # Log writer worker
@@ -925,7 +975,7 @@ class HighlightWorker():
 class LogWriterWorker:
 
     def __init__(self,settings):
-        self._settings_ = settings        
+        self._settings_ = settings
         self._logFlag_ = False
 
         self._logThread_ = None
@@ -935,16 +985,15 @@ class LogWriterWorker:
         self.lastLogFileInfo = ""
 
 
-
     def startWorker(self):
-        
+
         if not self._logFlag_:
             self._logFlag_ = True
             self._logThread_ = threading.Thread(target=self._logWriterWorker_,daemon=True,name="Log")
-            self._logThread_.start()            
+            self._logThread_.start()
         else:
             traceLog(LogLevel.ERROR,"Not able to start log thread. Thread already enabled")
-        
+
 
     def stopWorker(self,emptyQueue=True):
         "Stop log worker. Will block until thread is done"
@@ -957,7 +1006,7 @@ class LogWriterWorker:
             self._logFlag_ = False
 
             if self._logThread_:
-                if self._logThread_.isAlive():                    
+                if self._logThread_.isAlive():
                     self._logThread_.join()
 
     def _logWriterWorker_(self):
@@ -995,12 +1044,12 @@ class LogWriterWorker:
 class GuiWorker:
 
     def __init__(self,settings,textArea,search):
-        self._settings_ = settings        
+        self._settings_ = settings
         self._textArea_ = textArea
         self._search_ = search
         self._highlightWorker_ = None
         self._logWriterWorker_ = None
-        
+
         self._endLine_ = 1
 
         self.guiQueue = queue.Queue()
@@ -1038,7 +1087,7 @@ class GuiWorker:
         "Will block until GUI worker is done. GUI queue is always emptied before stop."
 
         self._cancelGuiJob_()
-        
+
         self._updateGuiFlag_ = False
         time.sleep(0.05) # This might not be needed, but is just to be sure that the updateGui function has not started
         self.guiEvent.wait()
@@ -1123,14 +1172,14 @@ class GuiWorker:
                 self.guiReloadEvent.set()
                 traceLog(LogLevel.DEBUG,"Reload GUI buffer done")
 
-   
 
-    def _cancelGuiJob_(self):        
+
+    def _cancelGuiJob_(self):
         if self._updateGuiJob_ is not None:
             root.after_cancel(self._updateGuiJob_)
             self._updateGuiJob_ = None
 
-    def _waitForInput_(self):        
+    def _waitForInput_(self):
         if self._updateGuiFlag_:
             self.guiEvent.clear()
             self._updateGUI_()
@@ -1895,7 +1944,7 @@ class OptionsView:
         isValid = True
         try:
             # re.compile(regex) # Tkinter does not allow all regex, so this cannot be used
-            self._exampleText_.search(regex,1.0,stopindex=tk.END,regexp=True)            
+            self._exampleText_.search(regex,1.0,stopindex=tk.END,regexp=True)
         except:
             isValid = False
         return isValid
@@ -2044,7 +2093,7 @@ class Search:
 
     def __init__(self,settings,textField):
         self._settings_ = settings
-        self._textField_ = textField        
+        self._textField_ = textField
         self._showing_ = False
 
         self._results_ = list()
@@ -2214,11 +2263,13 @@ class Search:
 ################################################################
 
 readerThread = threading.Thread()
-processThread = threading.Thread()
+# processThread = threading.Thread()
 # logThread = threading.Thread()
 
 
 search_ = Search(settings_,T_)
+
+processWorker_ = ProcessWorker(settings_)
 
 logWriterWorker_ = LogWriterWorker(settings_)
 
@@ -2226,6 +2277,8 @@ highlightWorker_ = HighlightWorker(settings_)
 guiWorker_ = GuiWorker(settings_,T_,search_)
 
 
+processWorker_.setHighlightWorker(highlightWorker_)
+processWorker_.setLogWriterWorker(logWriterWorker_)
 highlightWorker_.setGuiWorker(guiWorker_)
 guiWorker_.setHighlightWorker(highlightWorker_)
 guiWorker_.setLogWriterWorker(logWriterWorker_)
