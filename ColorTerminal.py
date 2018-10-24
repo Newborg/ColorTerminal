@@ -30,24 +30,6 @@ import settings as Sets
 import spinner
 
 ################################
-# Constants
-
-SETTINGS_FILE_NAME_ = "CTsettings.json"
-
-settings_ = Sets.Settings(SETTINGS_FILE_NAME_)
-
-settings_.reload()
-
-# Good colors
-# Green: #00E000 (limit use)
-# Red: #FF8080
-# Blue: #00D0D0
-# Yellow: #CCDF32
-# Orange: #EFC090
-# Purple: #79ABFF
-
-
-################################
 # Custom types
 
 class ConnectState(Enum):
@@ -65,14 +47,113 @@ class PrintLine:
         self.lineTags = lineTags
         self.updatePreviousLine = updatePreviousLine
 
-NO_SERIAL_PORT_ = "None"
-
 ################################
-# Globals (to be removed)
+# Connection Controller
 
-appState_ = ConnectState.DISCONNECTED
+class ConnectController:
 
-closeProgram_ = False
+    def __init__(self,settings,rootClass):
+        self._settings_ = settings
+        self._rootClass_ = rootClass
+        self._root_ = rootClass.root
+
+        self._closeProgram_ = False
+
+        self._readerWorker_ = None
+        self._processWorker_ = None
+        self._logWriterWorker_ = None
+        self._highlightWorker_ = None
+        self._guiWorker_ = None
+
+        self._statusFrame_ = None
+
+        self._appState_ = ConnectState.DISCONNECTED
+
+    def linkWorkers(self,workers):
+        self._readerWorker_ = workers.readerWorker
+        self._processWorker_ = workers.processWorker
+        self._logWriterWorker_ = workers.logWriterWorker
+        self._highlightWorker_ = workers.highlightWorker
+        self._guiWorker_ = workers.guiWorker
+    
+    def linkStatusFrame(self,statusFrame):
+        self._statusFrame_ = statusFrame
+
+    def connectSerial(self):
+
+        traceLog(LogLevel.INFO,"Connect to serial")
+
+        if self._readerWorker_:
+            self._readerWorker_.startWorker()
+        
+        if self._processWorker_:
+            self._processWorker_.startWorker()
+
+        if self._logWriterWorker_:
+            self._logWriterWorker_.startWorker()
+
+
+    def disconnectSerial(self,close=False):
+        self._closeProgram_ = close
+        # Disconnect will block, so must be done in different thread
+        disconnectThread = threading.Thread(target=self._disconnectSerialProcess_,name="Disconnect")
+        disconnectThread.start()
+
+    def _disconnectSerialProcess_(self):
+        traceLog(LogLevel.INFO,"Disconnect from serial")
+
+        # Stop serial reader
+        self._readerWorker_.stopWorker()
+
+        # Empty process queue and stop process thread
+        self._processWorker_.stopWorker()
+
+        # Empty log queue and stop log writer thread
+        self._logWriterWorker_.stopWorker()
+
+        # Add disconnect line if connected
+        if self._appState_ == ConnectState.CONNECTED:
+            timestamp = datetime.datetime.now()
+            timeString = Sets.timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + Sets.timeStampBracket[1]
+
+            disconnectLine = timeString + Sets.disconnectLineText + self._logWriterWorker_.lastLogFileInfo + "\n"
+
+            self._highlightWorker_.highlightQueue.put(disconnectLine)
+            
+
+        traceLog(LogLevel.INFO,"Main worker threads stopped")
+
+        self._statusFrame_.setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
+        self._appState_ = ConnectState.DISCONNECTED
+
+        if self._closeProgram_:
+
+            self._highlightWorker_.stopWorker(emptyQueue=False)
+
+            self._guiWorker_.stopWorker()
+
+            # Close tkinter window (close program)            
+            self._root_.after(100,self._rootClass_.destroyWindow)
+
+    def setAppState(self,state):
+        self._appState_ = state
+
+    def getAppState(self):
+        return self._appState_
+
+    def changeAppState(self,state):
+
+        # TODO Maybe change to toggle function
+
+        if state == ConnectState.CONNECTED:            
+            self._statusFrame_.setConnectButtonText("Disconnect")
+            self.connectSerial()
+            self._statusFrame_.setStatusLabel("CONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
+
+        elif state == ConnectState.DISCONNECTED:
+            self._statusFrame_.setConnectButtonText("Connect")            
+            self.disconnectSerial()
+            self._statusFrame_.setStatusLabel("DISCONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
 
 ################################################################
 ################################################################
@@ -86,25 +167,35 @@ closeProgram_ = False
 ################################################################
 ################################################################
 
+
 ################################
 # Root frame
 
-root = tk.Tk()
+class RootClass:
 
-def on_closing():
-    if messagebox.askokcancel("Quit", "Do you want to quit?"):
-        global closeProgram_
-        closeProgram_ = True
-        disconnectSerial()
+    def __init__(self,settings):
+        self._settings_ = settings
 
-def destroyWindow():
-    traceLog(LogLevel.INFO,"Closing main window")
-    root.destroy()
+        self.root = tk.Tk()
 
-root.protocol("WM_DELETE_WINDOW", on_closing)
+        self._connectController_ = None
 
-root.title("Color Terminal")
-root.geometry(settings_.get(Sets.DEFAULT_WINDOW_SIZE))
+        self.root.protocol("WM_DELETE_WINDOW", self._onClosing_)
+
+        self.root.title("Color Terminal")
+        self.root.geometry(self._settings_.get(Sets.DEFAULT_WINDOW_SIZE))
+
+    def linkConnectController(self,connectController):
+        self._connectController_ = connectController
+
+    def destroyWindow(self):
+        traceLog(LogLevel.INFO,"Closing main window")
+        self.root.destroy()
+
+    def _onClosing_(self):
+        if messagebox.askokcancel("Quit", "Do you want to quit?"):        
+            self._connectController_.disconnectSerial(close=True)
+
 
 
 ################################
@@ -112,303 +203,295 @@ root.geometry(settings_.get(Sets.DEFAULT_WINDOW_SIZE))
 
 class StatusFrame:
 
-    def __init__(self,settings):
+    def __init__(self,settings,rootClass,search,optionsView):
         self._settings_ = settings
+        self._root_ = rootClass.root
+        self._textArea_ = None
+        self._bottomFrame_ = None
+        self._search_ = search
+        self._optionsView_ = optionsView
 
-        self._readerWorker_ = None
-        self._processWorker_ = None
-        self._logWriterWorker_ = None
+
+        self._serialPorts_ = dict()
+        self._serialPortList_ = [""]
         
+        self._connectController_ = None
+        self._highlightWorker_ = None
 
-def connectSerial():
+        self._root_.bind("<Alt-e>", self._goToEndButtonCommand_)
 
-    traceLog(LogLevel.INFO,"Connect to serial")
+        # Create widgets
+        self._topFrame_ = tk.Frame(self._root_)
 
-    readerWorker_.startWorker()
-    processWorker_.startWorker()
-    logWriterWorker_.startWorker()
+        self._statusLabel_ = tk.Label(self._topFrame_,text="DISCONNECTED", width=20, anchor=tk.W, fg=Sets.STATUS_TEXT_COLOR, bg=Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
+        self._statusLabel_.pack(side=tk.RIGHT,padx=(0,18))
 
+        self._statusLabelHeader_ = tk.Label(self._topFrame_,text="   Status:", anchor=tk.W, fg=Sets.STATUS_TEXT_COLOR, bg=Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
+        self._statusLabelHeader_.pack(side=tk.RIGHT)
 
-def disconnectSerial():
-    # Disconnect will block, so must be done in different thread
-    disconnectThread = threading.Thread(target=disconnectSerialProcess,name="Disconnect")
-    disconnectThread.start()
+        self._connectButton_ = tk.Button(self._topFrame_,text="Connect", command=self._connectButtonCommand_, width=10)
+        self._connectButton_.pack(side=tk.LEFT)
 
-def disconnectSerialProcess():
-    traceLog(LogLevel.INFO,"Disconnect from serial")
+        self._goToEndButton_ = tk.Button(self._topFrame_,text="Go to end", command=self._goToEndButtonCommand_, width=10, underline=6)
+        self._goToEndButton_.pack(side=tk.LEFT)
 
-    global appState_
+        # reloadBufferButton_ = tk.Button(topFrame_,text="Reload buffer", command=reloadBufferCommand, width=10)
+        # reloadBufferButton_.pack(side=tk.LEFT)
 
-    # Stop serial reader
-    readerWorker_.stopWorker()
+        # hideLinesButton_ = tk.Button(topFrame_,text="Hide Lines", command=hideLinesCommand, width=10)
+        # hideLinesButton_.pack(side=tk.LEFT)
 
-    # Empty process queue and stop process thread
-    processWorker_.stopWorker()
+        self._clearButton_ = tk.Button(self._topFrame_,text="Clear", command=self._clearButtonCommand_, width=10)
+        self._clearButton_.pack(side=tk.LEFT,padx=(0,40))
 
-    # Empty log queue and stop log writer thread
-    logWriterWorker_.stopWorker()
+        self._optionsButton_ = tk.Button(self._topFrame_,text="Options", command=self._showOptionsView_, width=10)
+        self._optionsButton_.pack(side=tk.LEFT,padx=(0,40))
 
-    # Add disconnect line if connected
-    if appState_ == ConnectState.CONNECTED:
-        timestamp = datetime.datetime.now()
-        timeString = Sets.timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + Sets.timeStampBracket[1]
+        self._serialPortReloadButton_ = tk.Button(self._topFrame_,text="Reload ports", command=self._reloadSerialPorts_, width=10)
+        self._serialPortReloadButton_.pack(side=tk.LEFT)
 
-        disconnectLine = timeString + Sets.disconnectLineText + logWriterWorker_.lastLogFileInfo + "\n"
+        self._serialPortVar_ = tk.StringVar(self._topFrame_)        
+        self._serialPortOption_ = tk.OptionMenu(self._topFrame_,self._serialPortVar_,*self._serialPortList_)
+        self._serialPortOption_.pack(side=tk.LEFT)
 
-        highlightWorker_.highlightQueue.put(disconnectLine)
-        
+        self._serialPortLabel_ = tk.Label(self._topFrame_,text="", anchor=tk.W)
+        self._serialPortLabel_.pack(side=tk.LEFT)
 
-    traceLog(LogLevel.INFO,"Main worker threads stopped")
+        self._topFrame_.pack(side=tk.TOP, fill=tk.X)
 
-    setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
-    appState_ = ConnectState.DISCONNECTED
 
-    if closeProgram_:
+        self._reloadSerialPorts_()
 
-        highlightWorker_.stopWorker(emptyQueue=False)
+    NO_SERIAL_PORT = "None"
 
-        guiWorker_.stopWorker()
+    ##############
+    # Public Interface        
+    
+    def linkConnectController(self,connectController):
+        self._connectController_ = connectController
 
-        # Close tkinter window (close program)
-        # TODO not a very nice way to do this :/
-        root.after(100,destroyWindow)
+    def linkWorkers(self,workers):
+        self._highlightWorker_ = workers.highlightWorker
 
-def scanSerialPorts():
+    def linkTextArea(self,textArea):
+        self._textArea_ = textArea
+    
+    def linkBottomFrame(self,bottomFrame):
+        self._bottomFrame_ = bottomFrame
 
-    serialPortDict = dict()
+    def setConnectButtonText(self,text):
+        self._connectButton_.config(text=text)
 
-    comPorts = serial.tools.list_ports.comports()
+    def setStatusLabel(self,labelText, bgColor):
+        self._statusLabel_.config(text=labelText, bg=bgColor)
+        self._statusLabelHeader_.config(bg=bgColor)
 
-    for comPort in comPorts:
-        try:
-            with serial.Serial(comPort.device, 115200, timeout=2):
-                serialPortDict[comPort.device] = comPort.description
-        except serial.SerialException:
-            traceLog(LogLevel.DEBUG,"scanSerialPorts: " + comPort.device + " already open")
+    def getSerialPortVar(self):
+        return self._serialPortVar_.get()
 
-    return serialPortDict
+    ##############
+    # Internal  
 
-def reloadSerialPorts():
+    def _connectButtonCommand_(self):
 
-    global serialPorts_
-    serialPorts_ = scanSerialPorts()
+        appState = self._connectController_.getAppState()
 
-    if serialPorts_:
-        serialPortList_.clear()
-        serialPortList_.extend(sorted(list(serialPorts_.keys())))
-        serialPortVar_.set(serialPortList_[0])
-        serialPortVar_.trace("w",updateSerialPortSelect)
+        if appState == ConnectState.DISCONNECTED:
+            # Connect to serial
+            self._connectController_.changeAppState(ConnectState.CONNECTED)
 
-        # Delete options
-        serialPortOption_["menu"].delete(0,"end")
+        elif appState == ConnectState.CONNECTED:
+            # Close down reader
+            self._connectController_.changeAppState(ConnectState.DISCONNECTED)
 
-        # Add new options
-        for port in serialPortList_:
-            serialPortOption_["menu"].add_command(label=port, command=tk._setit(serialPortVar_,port))
+    def _goToEndButtonCommand_(self,*args):
+        self._textArea_.see(tk.END)
 
-        serialPortOption_.config(state=tk.NORMAL)
-        serialPortLabel_.config(text=serialPorts_[serialPortVar_.get()])
+    def _clearButtonCommand_(self,*args):
 
-        connectButton_.config(state=tk.NORMAL)
+        self._search_.close()
 
-    else:
-        serialPortVar_.set(NO_SERIAL_PORT_)
-        serialPortLabel_.config(text="No serial port found")
-        serialPortOption_.config(state=tk.DISABLED)
-        connectButton_.config(state=tk.DISABLED)
+        self._highlightWorker_.clearLineBuffer()
 
+        self._textArea_.config(state=tk.NORMAL)
+        self._textArea_.delete(1.0,tk.END)
+        self._textArea_.config(state=tk.DISABLED)
 
+        self._bottomFrame_.updateWindowBufferLineCount_(0)
 
-def setAppState(state):
+    def _reloadBufferCommand_(self):
+        self._highlightWorker_.reloadLineBuffer()
 
-    if state == ConnectState.CONNECTED:
-        connectButton_.config(text="Disconnect")
-        connectSerial()
-        setStatusLabel("CONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
+    def _hideLinesCommand_(self):
+        self._highlightWorker_.toggleHideLines()
+        self._reloadBufferCommand_()
 
-    elif state == ConnectState.DISCONNECTED:
-        connectButton_.config(text="Connect")
-        disconnectSerial()
-        setStatusLabel("DISCONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
+    def _showOptionsView_(self):
+        self._search_.close()
+        self._optionsView_.show(self._highlightWorker_.getLineColorMap())
 
-# Button Commands
+    def _scanSerialPorts_(self):    
 
-def connectButtonCommand():
+        serialPortDict = dict()
 
-    if appState_ == ConnectState.DISCONNECTED:
-        # Connect to serial
-        setAppState(ConnectState.CONNECTED)
+        comPorts = serial.tools.list_ports.comports()
 
-    elif appState_ == ConnectState.CONNECTED:
-        # Close down reader
-        setAppState(ConnectState.DISCONNECTED)
+        for comPort in comPorts:
+            try:
+                with serial.Serial(comPort.device, 115200, timeout=2):
+                    serialPortDict[comPort.device] = comPort.description
+            except serial.SerialException:
+                traceLog(LogLevel.DEBUG,"scanSerialPorts: " + comPort.device + " already open")
 
+        return serialPortDict
 
-def goToEndButtonCommand(*args):
-    T_.see(tk.END)
+    def _reloadSerialPorts_(self):
 
-def clearButtonCommand(*args):
+        self._serialPorts_ = self._scanSerialPorts_()
 
-    search_.close()
+        if self._serialPorts_:
+            self._serialPortList_.clear()
+            self._serialPortList_.extend(sorted(list(self._serialPorts_.keys())))
+            self._serialPortVar_.set(self._serialPortList_[0])
+            self._serialPortVar_.trace("w",self._updateSerialPortSelect_)
 
-    highlightWorker_.clearLineBuffer()
+            # Delete options
+            self._serialPortOption_["menu"].delete(0,"end")
 
-    T_.config(state=tk.NORMAL)
-    T_.delete(1.0,tk.END)
-    T_.config(state=tk.DISABLED)
+            # Add new options
+            for port in self._serialPortList_:
+                self._serialPortOption_["menu"].add_command(label=port, command=tk._setit(self._serialPortVar_,port))
 
-    updateWindowBufferLineCount_(0)
+            self._serialPortOption_.config(state=tk.NORMAL)
+            self._serialPortLabel_.config(text=self._serialPorts_[self._serialPortVar_.get()])
 
-def updateSerialPortSelect(*args):
-    if serialPortVar_.get() == NO_SERIAL_PORT_:
-        serialPortLabel_.config(text=NO_SERIAL_PORT_)
-    else:
-        serialPortLabel_.config(text=serialPorts_[serialPortVar_.get()])
+            self._connectButton_.config(state=tk.NORMAL)
 
-def reloadBufferCommand():
-    highlightWorker_.reloadLineBuffer()
+        else:
+            self._serialPortVar_.set(self.NO_SERIAL_PORT)
+            self._serialPortLabel_.config(text="No serial port found")
+            self._serialPortOption_.config(state=tk.DISABLED)
+            self._connectButton_.config(state=tk.DISABLED)
 
-def hideLinesCommand():
-    highlightWorker_.toggleHideLines()
-    reloadBufferCommand()
+    def _updateSerialPortSelect_(self,*args):
+        if self._serialPortVar_.get() == self.NO_SERIAL_PORT:
+            self._serialPortLabel_.config(text=self.NO_SERIAL_PORT)
+        else:
+            self._serialPortLabel_.config(text=self._serialPorts_[self._serialPortVar_.get()])
 
-def showOptionsView():
-    search_.close()
-    optionsView_.show(highlightWorker_.getLineColorMap())
-
-def setStatusLabel(labelText, bgColor):
-    statusLabel_.config(text=labelText, bg=bgColor)
-    statusLabelHeader_.config(bg=bgColor)
-
-topFrame_ = tk.Frame(root)
-
-statusLabel_ = tk.Label(topFrame_,text="DISCONNECTED", width=20, anchor=tk.W, fg=Sets.STATUS_TEXT_COLOR, bg=Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
-statusLabel_.pack(side=tk.RIGHT,padx=(0,18))
-
-statusLabelHeader_ = tk.Label(topFrame_,text="   Status:", anchor=tk.W, fg=Sets.STATUS_TEXT_COLOR, bg=Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
-statusLabelHeader_.pack(side=tk.RIGHT)
-
-connectButton_ = tk.Button(topFrame_,text="Connect", command=connectButtonCommand, width=10)
-connectButton_.pack(side=tk.LEFT)
-
-goToEndButton_ = tk.Button(topFrame_,text="Go to end", command=goToEndButtonCommand, width=10, underline=6)
-goToEndButton_.pack(side=tk.LEFT)
-
-# reloadBufferButton_ = tk.Button(topFrame_,text="Reload buffer", command=reloadBufferCommand, width=10)
-# reloadBufferButton_.pack(side=tk.LEFT)
-
-# hideLinesButton_ = tk.Button(topFrame_,text="Hide Lines", command=hideLinesCommand, width=10)
-# hideLinesButton_.pack(side=tk.LEFT)
-
-clearButton_ = tk.Button(topFrame_,text="Clear", command=clearButtonCommand, width=10)
-clearButton_.pack(side=tk.LEFT,padx=(0,40))
-
-optionsButton_ = tk.Button(topFrame_,text="Options", command=showOptionsView, width=10)
-optionsButton_.pack(side=tk.LEFT,padx=(0,40))
-
-serialPortReloadButton_ = tk.Button(topFrame_,text="Reload ports", command=reloadSerialPorts, width=10)
-serialPortReloadButton_.pack(side=tk.LEFT)
-
-serialPortVar_ = tk.StringVar(topFrame_)
-serialPortList_ = [""]
-serialPortOption_ = tk.OptionMenu(topFrame_,serialPortVar_,*serialPortList_)
-serialPortOption_.pack(side=tk.LEFT)
-
-serialPortLabel_ = tk.Label(topFrame_,text="", anchor=tk.W)
-serialPortLabel_.pack(side=tk.LEFT)
-
-topFrame_.pack(side=tk.TOP, fill=tk.X)
-
-serialPorts_ = dict()
-reloadSerialPorts()
 
 ################################
-# Text frame (main window)
+# Text frame
 
-def textFrameClearTags(tagNames):
-    # clear existing tags
-    for tagName in tagNames:
-        T_.tag_delete(tagName)
+class TextFrame:
 
+    def __init__(self,settings,rootClass):
+        self._settings_ = settings
+        self._root_ = rootClass.root
 
+        self._highlightWorker_ = None
 
-def createTextFrameLineColorTag():
-    lineColorMap = highlightWorker_.getLineColorMap()
+        self._textFrame_ = tk.Frame(self._root_)
 
-    for key in sorted(lineColorMap.keys()):
-        T_.tag_configure(key, foreground=lineColorMap[key]["color"])
+        fontList_ = tk.font.families()
+        if not self._settings_.get(Sets.FONT_FAMILY) in fontList_:
+            traceLog(LogLevel.WARNING,"Font \"" + self._settings_.get(Sets.FONT_FAMILY) + "\" not found in system")
 
-def reloadLineColorMapAndTags():
+        tFont_ = Font(family=self._settings_.get(Sets.FONT_FAMILY), size=self._settings_.get(Sets.FONT_SIZE))
 
-    lineColorMapKeys = highlightWorker_.getLineColorMap().keys()
-    textFrameClearTags(lineColorMapKeys)
+        self.textArea = tk.Text(self._textFrame_, height=1, width=1, background=self._settings_.get(Sets.BACKGROUND_COLOR),\
+                                selectbackground=self._settings_.get(Sets.SELECT_BACKGROUND_COLOR),\
+                                foreground=self._settings_.get(Sets.TEXT_COLOR), font=tFont_)
 
-    highlightWorker_.reloadLineColorMap()
+        self.textArea.config(state=tk.DISABLED)
 
-    createTextFrameLineColorTag()
-
-
-def reloadTextFrame():
-
-    traceLog(LogLevel.DEBUG,"Reload text frame")
-
-    tFont = Font(family=settings_.get(Sets.FONT_FAMILY), size=settings_.get(Sets.FONT_SIZE))
-
-    T_.config(background=settings_.get(Sets.BACKGROUND_COLOR),\
-             selectbackground=settings_.get(Sets.SELECT_BACKGROUND_COLOR),\
-             foreground=settings_.get(Sets.TEXT_COLOR), font=tFont)
+        # Set up scroll bar
+        yscrollbar_=tk.Scrollbar(self._textFrame_, orient=tk.VERTICAL, command=self.textArea.yview)
+        yscrollbar_.pack(side=tk.RIGHT, fill=tk.Y)
+        self.textArea["yscrollcommand"]=yscrollbar_.set
+        self.textArea.pack(side=tk.LEFT, fill=tk.BOTH, expand = tk.YES)
 
 
-middleFrame_ = tk.Frame(root)
+        self.textArea.tag_configure(Sets.CONNECT_COLOR_TAG, background=Sets.CONNECT_LINE_BACKGROUND_COLOR, selectbackground=Sets.CONNECT_LINE_SELECT_BACKGROUND_COLOR)
+        self.textArea.tag_configure(Sets.DISCONNECT_COLOR_TAG, background=Sets.DISCONNECT_LINE_BACKGROUND_COLOR, selectbackground=Sets.DISCONNECT_LINE_SELECT_BACKGROUND_COLOR)
+        self.textArea.tag_configure(Sets.HIDELINE_COLOR_TAG, foreground=Sets.HIDE_LINE_FONT_COLOR)
 
-fontList_ = tk.font.families()
-if not settings_.get(Sets.FONT_FAMILY) in fontList_:
-    traceLog(LogLevel.WARNING,"Font \"" + settings_.get(Sets.FONT_FAMILY) + "\" not found in system")
-
-tFont_ = Font(family=settings_.get(Sets.FONT_FAMILY), size=settings_.get(Sets.FONT_SIZE))
-
-T_ = tk.Text(middleFrame_, height=1, width=1, background=settings_.get(Sets.BACKGROUND_COLOR),\
-            selectbackground=settings_.get(Sets.SELECT_BACKGROUND_COLOR),\
-            foreground=settings_.get(Sets.TEXT_COLOR), font=tFont_)
-
-T_.config(state=tk.DISABLED)
-
-# Set up scroll bar
-yscrollbar_=tk.Scrollbar(middleFrame_, orient=tk.VERTICAL, command=T_.yview)
-yscrollbar_.pack(side=tk.RIGHT, fill=tk.Y)
-T_["yscrollcommand"]=yscrollbar_.set
-T_.pack(side=tk.LEFT, fill=tk.BOTH, expand = tk.YES)
+        self._textFrame_.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
 
 
-T_.tag_configure(Sets.CONNECT_COLOR_TAG, background=Sets.CONNECT_LINE_BACKGROUND_COLOR, selectbackground=Sets.CONNECT_LINE_SELECT_BACKGROUND_COLOR)
-T_.tag_configure(Sets.DISCONNECT_COLOR_TAG, background=Sets.DISCONNECT_LINE_BACKGROUND_COLOR, selectbackground=Sets.DISCONNECT_LINE_SELECT_BACKGROUND_COLOR)
-T_.tag_configure(Sets.HIDELINE_COLOR_TAG, foreground=Sets.HIDE_LINE_FONT_COLOR)
+    def linkWorkers(self,workers):
+        self._highlightWorker_ = workers.highlightWorker
 
-middleFrame_.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
+    def createTextFrameLineColorTag(self):
+        lineColorMap = self._highlightWorker_.getLineColorMap()
+
+        for key in sorted(lineColorMap.keys()):
+             self.textArea.tag_configure(key, foreground=lineColorMap[key]["color"])
+
+    def reloadLineColorMapAndTags(self):
+
+        lineColorMapKeys = self._highlightWorker_.getLineColorMap().keys()
+        self._textFrameClearTags_(lineColorMapKeys)
+
+        self._highlightWorker_.reloadLineColorMap()
+
+        self.createTextFrameLineColorTag()
+
+    def reloadTextFrame(self):
+
+        traceLog(LogLevel.DEBUG,"Reload text frame")
+
+        tFont = Font(family=self._settings_.get(Sets.FONT_FAMILY), size=self._settings_.get(Sets.FONT_SIZE))
+
+        self.textArea.config(background=self._settings_.get(Sets.BACKGROUND_COLOR),\
+                            selectbackground=self._settings_.get(Sets.SELECT_BACKGROUND_COLOR),\
+                            foreground=self._settings_.get(Sets.TEXT_COLOR), font=tFont)
+
+    def _textFrameClearTags_(self,tagNames):
+        # clear existing tags
+        for tagName in tagNames:
+            self.textArea.tag_delete(tagName)
 
 
 
 ################################
 # Bottom frame
 
-bottomFrame_ = tk.Frame(root)
+class BottomFrame:
 
-statLabel1_ = tk.Label(bottomFrame_,text="Lines in window buffer 0/" + str(settings_.get(Sets.MAX_LINE_BUFFER)), width=30, anchor=tk.W)
-statLabel1_.pack(side=tk.LEFT)
+    def __init__(self,settings,rootClass):
+        self._settings_ = settings
+        self._root_ = rootClass.root
 
-statLabel2_ = tk.Label(bottomFrame_,text="", width=30, anchor=tk.W)
-statLabel2_.pack(side=tk.LEFT)
+        self._bottomFrame_ = tk.Frame(self._root_)
 
-statLabel3_ = tk.Label(bottomFrame_,text="", width=60, anchor=tk.E)
-statLabel3_.pack(side=tk.RIGHT,padx=(0,18))
+        self._statLabel1_ = tk.Label(self._bottomFrame_,text="Lines in window buffer 0/" + str(self._settings_.get(Sets.MAX_LINE_BUFFER)), width=30, anchor=tk.W)
+        self._statLabel1_.pack(side=tk.LEFT)
 
-bottomFrame_.pack(side=tk.BOTTOM, fill=tk.X)
+        self._statLabel2_ = tk.Label(self._bottomFrame_,text="", width=30, anchor=tk.W)
+        self._statLabel2_.pack(side=tk.LEFT)
 
-def updateWindowBufferLineCount_(count):
+        self._statLabel3_ = tk.Label(self._bottomFrame_,text="", width=60, anchor=tk.E)
+        self._statLabel3_.pack(side=tk.RIGHT,padx=(0,18))
 
-    statLabel1_.config(text="Lines in window buffer " + str(count) + "/" + str(settings_.get(Sets.MAX_LINE_BUFFER)))
+        self._bottomFrame_.pack(side=tk.BOTTOM, fill=tk.X)
 
+    def updateWindowBufferLineCount(self,count):        
+        self._statLabel1_.config(text="Lines in window buffer " + str(count) + "/" + str(self._settings_.get(Sets.MAX_LINE_BUFFER)))
 
+    def updateLogFileLineCount(self,count):
+        self._statLabel2_.config(text="Lines in log file " + str(count))
+
+    def updateLogFileInfo(self,info,color,useRootAfter=False):
+
+        if useRootAfter:
+            self._root_.after(10,self._updateLogFileInfo_,info,color)
+        else:
+            self._updateLogFileInfo_(info,color)
+
+    def _updateLogFileInfo_(self,info,color):
+        self._statLabel3_.config(text=info,fg=color)
+    
 
 
 ################################################################
@@ -428,12 +511,16 @@ def updateWindowBufferLineCount_(count):
 
 class ReaderWorker:
 
-    def __init__(self,settings,root):
+    def __init__(self,settings,rootClass,statusFrame):
         self._settings_ = settings
-        self._root_ = root
+        self._root_ = rootClass.root
+        self._statusFrame_ = statusFrame
+
         self._readFlag_ = False
 
         self._readerThread_ = None        
+
+        self._connectController_ = None
 
         self._processWorker_ = None
         
@@ -464,8 +551,12 @@ class ReaderWorker:
                 if self._readerThread_.isAlive():
                     self._readerThread_.join()
 
-    def setProcessWorker(self,processWorker):
-        self._processWorker_ = processWorker
+    def linkConnectController(self,connectController):
+        self._connectController_ = connectController
+
+    def linkWorkers(self,workers):
+        self._processWorker_ = workers.processWorker
+
 
     ##############
     # Main Worker
@@ -473,12 +564,11 @@ class ReaderWorker:
     def _readerWorker_(self):
 
         try:
-            with serial.Serial(serialPortVar_.get(), 115200, timeout=2) as ser: # TODO
+            with serial.Serial(self._statusFrame_.getSerialPortVar(), 115200, timeout=2) as ser:
 
                 # TODO should be done in GUI thread
-                setStatusLabel("CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
-                global appState_ # TODO
-                appState_ = ConnectState.CONNECTED # TODO
+                self._statusFrame_.setStatusLabel("CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
+                self._connectController_.setAppState(ConnectState.CONNECTED)                
 
                 try:
                     while self._readFlag_:
@@ -493,14 +583,14 @@ class ReaderWorker:
                 except serial.SerialException as e:
                     traceLog(LogLevel.ERROR,"Serial read error: " + str(e))
                     # Change program state to disconnected
-                    self._root_.after(10,setAppState,ConnectState.DISCONNECTED) # TODO
+                    self._root_.after(10,self._connectController_.changeAppState,ConnectState.DISCONNECTED)
 
         except serial.SerialException as e:
             traceLog(LogLevel.ERROR,str(e))
             # In case other threads are still starting up,
             # wait for 2 sec
             # Then change program state to disconnected
-            self._root_.after(2000,setAppState,ConnectState.DISCONNECTED) # TODO
+            self._root_.after(2000,self._connectController_.changeAppState,ConnectState.DISCONNECTED)
 
 
 
@@ -548,11 +638,9 @@ class ProcessWorker:
                 if self._processThread_.isAlive():
                     self._processThread_.join()
 
-    def setHighlightWorker(self,highlightWorker):
-        self._highlightWorker_ = highlightWorker
-
-    def setLogWriterWorker(self,logWriterWorker):
-        self._logWriterWorker_ = logWriterWorker
+    def linkWorkers(self,workers):
+        self._highlightWorker_ = workers.highlightWorker
+        self._logWriterWorker_ = workers.logWriterWorker
 
     ##############
     # Main Worker
@@ -563,7 +651,7 @@ class ProcessWorker:
         timestamp = datetime.datetime.now()
         timeString = Sets.timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + Sets.timeStampBracket[1]
         connectLine = timeString + Sets.CONNECT_LINE_TEXT        
-        highlightWorker_.highlightQueue.put(connectLine)
+        self._highlightWorker_.highlightQueue.put(connectLine)
 
         lastTimestamp = 0
 
@@ -649,8 +737,8 @@ class HighlightWorker():
     ##############
     # Public Interface
 
-    def setGuiWorker(self,guiWorker):
-        self._guiWorker_ = guiWorker
+    def linkWorkers(self,workers):
+        self._guiWorker_ = workers.guiWorker
 
     def startWorker(self):
 
@@ -845,12 +933,16 @@ class LogWriterWorker:
         self._settings_ = settings
         self._logFlag_ = False
 
+        self._bottomFrame_ = None
+
         self._logThread_ = None
         self.logQueue = queue.Queue()
 
         self.linesInLogFile = 0
         self.lastLogFileInfo = ""
 
+    def linkBottomFrame(self,bottomFrame):
+        self._bottomFrame_ = bottomFrame
 
     def startWorker(self):
 
@@ -885,8 +977,7 @@ class LogWriterWorker:
 
         os.makedirs(os.path.dirname(fullFilename), exist_ok=True)
 
-        # TODO: Do not update UI from this thread
-        statLabel3_.config(text="Saving to log file: " + filename, fg="black")
+        self._bottomFrame_.updateLogFileInfo("Saving to log file: " + filename,"black",useRootAfter=True)
 
         self.linesInLogFile = 0
 
@@ -903,16 +994,18 @@ class LogWriterWorker:
         filesize = os.path.getsize(fullFilename)
         self.lastLogFileInfo = filename + " (Size " + "{:.3f}".format(filesize/1024) + "KB)"
 
-        statLabel3_.config(text="Log file saved: " + self.lastLogFileInfo, fg="green") # TODO
+        self._bottomFrame_.updateLogFileInfo("Log file saved: " + self.lastLogFileInfo,"green",useRootAfter=True)        
 
 ################################
 # GUI worker
 
 class GuiWorker:
 
-    def __init__(self,settings,textArea,search):
+    def __init__(self,settings,rootClass,search):
         self._settings_ = settings
-        self._textArea_ = textArea
+        self._root_ = rootClass.root
+        self._textArea_ = None
+        self._bottomFrame_ = None
         self._search_ = search
         self._highlightWorker_ = None
         self._logWriterWorker_ = None
@@ -934,18 +1027,22 @@ class GuiWorker:
     ##############
     # Public Interface
 
-    def setHighlightWorker(self,highlightWorker):
-        self._highlightWorker_ = highlightWorker
+    def linkWorkers(self,workers):
+        self._highlightWorker_ = workers.highlightWorker
+        self._logWriterWorker_ = workers.logWriterWorker
+    
+    def linkTextArea(self,textArea):
+        self._textArea_ = textArea
 
-    def setLogWriterWorker(self,logWriterWorker):
-        self._logWriterWorker_ = logWriterWorker
+    def linkBottomFrame(self,bottomFrame):
+        self._bottomFrame_ = bottomFrame
 
     def startWorker(self):
 
         if self._highlightWorker_ != None and self._logWriterWorker_ != None:
             self._cancelGuiJob_()
             self._updateGuiFlag_ = True
-            self._updateGuiJob_ = root.after(50,self._waitForInput_)
+            self._updateGuiJob_ = self._root_.after(50,self._waitForInput_)
         else:
             traceLog(LogLevel.ERROR,"Gui Worker: highlight or logwriter not set.")
 
@@ -1031,8 +1128,9 @@ class GuiWorker:
                 self._textArea_.config(state=tk.DISABLED)
 
             if receivedLines:
-                updateWindowBufferLineCount_(self._endLine_-1) # TODO
-                statLabel2_.config(text="Lines in log file " + str(self._logWriterWorker_.linesInLogFile)) # TODO
+                self._bottomFrame_.updateWindowBufferLineCount(self._endLine_-1)
+                self._bottomFrame_.updateLogFileLineCount("Lines in log file " + str(self._logWriterWorker_.linesInLogFile))                
+                
                 self._search_.search(searchStringUpdated=False)
 
             if reloadInitiated:
@@ -1043,7 +1141,7 @@ class GuiWorker:
 
     def _cancelGuiJob_(self):
         if self._updateGuiJob_ is not None:
-            root.after_cancel(self._updateGuiJob_)
+            self._root_.after_cancel(self._updateGuiJob_)
             self._updateGuiJob_ = None
 
     def _waitForInput_(self):
@@ -1051,11 +1149,17 @@ class GuiWorker:
             self.guiEvent.clear()
             self._updateGUI_()
             self.guiEvent.set()
-            self._updateGuiJob_ = root.after(100,self._waitForInput_)
+            self._updateGuiJob_ = self._root_.after(100,self._waitForInput_)
 
 
+class Workers:
 
-
+    def __init__(self,readerWorker,processWorker,logWriterWorker,highlightWorker,guiWorker):
+        self.readerWorker = readerWorker
+        self.processWorker = processWorker
+        self.logWriterWorker = logWriterWorker
+        self.highlightWorker = highlightWorker        
+        self.guiWorker = guiWorker
 
 
 ################################################################
@@ -1073,14 +1177,23 @@ class GuiWorker:
 
 class OptionsView:
 
-    def __init__(self,root,settings,highlightWorker,guiWorker):
-        self.root = root
+    def __init__(self,settings,rootClass):        
         self._settings_ = settings
-        self._highlightWorker_ = highlightWorker
-        self._guiWorker_ = guiWorker
+        self._root_ = rootClass.root
+        self._highlightWorker_ = None
+        self._guiWorker_ = None
 
         self._showing_ = False
         self._saving_ = False
+
+        self._textFrame_ = None
+
+    def linkWorkers(self,workers):
+        self._highlightWorker_ = workers.highlightWorker
+        self._guiWorker_ = workers.guiWorker
+
+    def linkTextFrame(self,textFrame):
+        self._textFrame_ = textFrame
 
     def _onClosing_(self,savingSettings=False):
 
@@ -1148,7 +1261,7 @@ class OptionsView:
 
             self._lineColorMap_ = lineColorMap
 
-            self._view_ = tk.Toplevel(self.root)
+            self._view_ = tk.Toplevel(self._root_)
             self._view_.title("Options")
             self._view_.protocol("WM_DELETE_WINDOW", self._onClosing_)
 
@@ -1321,10 +1434,10 @@ class OptionsView:
         tempSetsDict = self._setsDict_
 
         # Close options view
-        root.after(10,self._onClosing_,True)
+        self._root_.after(10,self._onClosing_,True)
 
         # Show saving message
-        saveSpinner = spinner.Spinner(self.root)
+        saveSpinner = spinner.Spinner(self._root_)
         saveSpinner.show(indicators=False,message="Reloading View")
 
         # Stop workers using the settings
@@ -1354,14 +1467,14 @@ class OptionsView:
         self._showing_ = False
 
         # Reload main interface
-        reloadLineColorMapAndTags()
-        reloadTextFrame()
+        self._textFrame_.reloadLineColorMapAndTags()
+        self._textFrame_.reloadTextFrame()
 
         # Start highlightworker to prepare buffer reload
         self._highlightWorker_.startWorker()
 
         # Reload line/gui buffer
-        reloadBufferCommand()
+        self._highlightWorker_.reloadLineBuffer()
         self._guiWorker_.guiReloadEvent.clear()
 
         # Start gui worker to process new buffer
@@ -1374,7 +1487,7 @@ class OptionsView:
         saveSpinner.close()
 
         # Update save button, if window has been opened again
-        root.after(10,self._setSaveButtonState_,tk.NORMAL)
+        self._root_.after(10,self._setSaveButtonState_,tk.NORMAL)
         self._saving_ = False
 
 
@@ -1838,13 +1951,16 @@ class OptionsView:
 
 class Search:
 
-    def __init__(self,settings,textField):
+    def __init__(self,settings):
         self._settings_ = settings
-        self._textField_ = textField
+        self._textField_ = None
         self._showing_ = False
 
         self._results_ = list()
         self._selectedResult_ = -1
+    
+    def linkTextArea(self,textArea):
+        self._textField_ = textArea
 
     def close(self,*event):
 
@@ -1872,7 +1988,7 @@ class Search:
 
     NO_RESULT_STRING = "No result"
 
-    def show(self):
+    def show(self,*args):
 
         if not self._showing_:
 
@@ -2009,33 +2125,72 @@ class Search:
 ################################################################
 ################################################################
 
-search_ = Search(settings_,T_)
+# Settings
+SETTINGS_FILE_NAME_ = "CTsettings.json"
+settings_ = Sets.Settings(SETTINGS_FILE_NAME_)
+settings_.reload()
 
-readerWorker_ = ReaderWorker(settings_,root)
+# Root
+rootClass_ = RootClass(settings_)
+
+# Main Controllers
+connectController_ = ConnectController(settings_,rootClass_)
+
+# Views
+search_ = Search(settings_)
+optionsView_ = OptionsView(settings_,rootClass_)
+statusFrame_ = StatusFrame(settings_,rootClass_,search_,optionsView_)
+textFrame_ = TextFrame(settings_,rootClass_)
+bottomFrame_ = BottomFrame(settings_,rootClass_)
+
+# Workers
+readerWorker_ = ReaderWorker(settings_,rootClass_,statusFrame_)
 processWorker_ = ProcessWorker(settings_)
 logWriterWorker_ = LogWriterWorker(settings_)
 highlightWorker_ = HighlightWorker(settings_)
-guiWorker_ = GuiWorker(settings_,T_,search_)
+guiWorker_ = GuiWorker(settings_,rootClass_,search_)
 
-readerWorker_.setProcessWorker(processWorker_)
-processWorker_.setHighlightWorker(highlightWorker_)
-processWorker_.setLogWriterWorker(logWriterWorker_)
-highlightWorker_.setGuiWorker(guiWorker_)
-guiWorker_.setHighlightWorker(highlightWorker_)
-guiWorker_.setLogWriterWorker(logWriterWorker_)
+# Common class with link to all workers
+workers_ = Workers(readerWorker_,processWorker_,logWriterWorker_,highlightWorker_,guiWorker_)
 
+
+# Link modules
+rootClass_.linkConnectController(connectController_)
+
+search_.linkTextArea(textFrame_.textArea)
+
+optionsView_.linkTextFrame(textFrame_)
+optionsView_.linkWorkers(workers_)
+
+statusFrame_.linkTextArea(textFrame_.textArea)
+statusFrame_.linkBottomFrame(bottomFrame_)
+statusFrame_.linkConnectController(connectController_)
+statusFrame_.linkWorkers(workers_)
+
+textFrame_.linkWorkers(workers_)
+
+connectController_.linkStatusFrame(statusFrame_)
+connectController_.linkWorkers(workers_)
+
+readerWorker_.linkConnectController(connectController_)
+readerWorker_.linkWorkers(workers_)
+
+processWorker_.linkWorkers(workers_)
+
+logWriterWorker_.linkBottomFrame(bottomFrame_)
+
+highlightWorker_.linkWorkers(workers_)
+
+guiWorker_.linkTextArea(textFrame_.textArea)
+guiWorker_.linkBottomFrame(bottomFrame_)
+guiWorker_.linkWorkers(workers_)
+
+
+# Start
 highlightWorker_.startWorker()
 guiWorker_.startWorker()
 
-optionsView_ = OptionsView(root,settings_,highlightWorker_,guiWorker_)
-
-
-createTextFrameLineColorTag()
-
-
-
-def controlDown(e):
-    search_.show()
+textFrame_.createTextFrameLineColorTag()
 
 # def down(e):
 #     print("DOWN raw: " + str(e))
@@ -2046,14 +2201,14 @@ def controlDown(e):
 # def up(e):
 #     print("UP: " + e.char)
 
-root.bind('<Control-f>', controlDown)
+rootClass_.root.bind('<Control-f>', search_.show)
 # root.bind('<KeyPress>', down)
 # root.bind('<KeyRelease>', up)
 
-root.bind("<Alt-e>", goToEndButtonCommand)
+
 
 traceLog(LogLevel.INFO,"Main loop started")
 
-root.mainloop()
+rootClass_.root.mainloop()
 
 traceLog(LogLevel.INFO,"Main loop done")
