@@ -63,9 +63,8 @@ class ReaderWorker:
 
         try:
             with serial.Serial(self._controlFrame_.getSerialPortVar(), 115200, timeout=2) as ser:
-
-                # TODO should be done in GUI thread
-                self._controlFrame_.setStatusLabel("CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
+                
+                self._root_.after(10,self._controlFrame_.setStatusLabel,"CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)                
                 self._connectController_.setAppState(ConnectState.CONNECTED)
 
                 try:
