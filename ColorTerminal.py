@@ -13,7 +13,7 @@ from tkinter.ttk import Notebook
 
 from functools import partial
 
-import serial
+# import serial
 import serial.tools.list_ports
 
 import time
@@ -27,27 +27,31 @@ import re
 # ColorTerminal
 from traceLog import traceLog,LogLevel
 import settings as Sets
+from customTypes import ConnectState, PrintLine
 import spinner
 import optionsView
 import search
 
+# from workers import *
+from workers import readerWorker
+
 ################################
 # Custom types
 
-class ConnectState(Enum):
-    CONNECTED = 1
-    DISCONNECTED = 0
+# class ConnectState(Enum):
+#     CONNECTED = 1
+#     DISCONNECTED = 0
 
-class SerialLine:
-    def __init__(self, data, timestamp):
-        self.data = data
-        self.timestamp = timestamp
+# class SerialLine:
+#     def __init__(self, data, timestamp):
+#         self.data = data
+#         self.timestamp = timestamp
 
-class PrintLine:
-    def __init__(self, line, lineTags, updatePreviousLine = False):
-        self.line = line
-        self.lineTags = lineTags
-        self.updatePreviousLine = updatePreviousLine
+# class PrintLine:
+#     def __init__(self, line, lineTags, updatePreviousLine = False):
+#         self.line = line
+#         self.lineTags = lineTags
+#         self.updatePreviousLine = updatePreviousLine
 
 ################################
 # Connection Controller
@@ -511,88 +515,88 @@ class BottomFrame:
 ################################
 # Reader worker
 
-class ReaderWorker:
+# class ReaderWorker:
 
-    def __init__(self,settings,rootClass,statusFrame):
-        self._settings_ = settings
-        self._root_ = rootClass.root
-        self._statusFrame_ = statusFrame
+#     def __init__(self,settings,rootClass,statusFrame):
+#         self._settings_ = settings
+#         self._root_ = rootClass.root
+#         self._statusFrame_ = statusFrame
 
-        self._readFlag_ = False
+#         self._readFlag_ = False
 
-        self._readerThread_ = None
+#         self._readerThread_ = None
 
-        self._connectController_ = None
+#         self._connectController_ = None
 
-        self._processWorker_ = None
-
-
-    ##############
-    # Public Interface
-
-    def startWorker(self):
-
-        if self._processWorker_:
-            if not self._readFlag_:
-                self._readFlag_ = True
-                self._readerThread_ = threading.Thread(target=self._readerWorker_,daemon=True,name="Reader")
-                self._readerThread_.start()
-            else:
-                traceLog(LogLevel.ERROR,"Not able to start reader thread. Thread already enabled")
-        else:
-            traceLog(LogLevel.ERROR,"Not able to start reader thread. Process worker not set")
+#         self._processWorker_ = None
 
 
-    def stopWorker(self):
-        "Stop reader worker. Will block until thread is done"
+#     ##############
+#     # Public Interface
 
-        if self._readFlag_:
-            self._readFlag_ = False
+#     def startWorker(self):
 
-            if self._readerThread_:
-                if self._readerThread_.isAlive():
-                    self._readerThread_.join()
+#         if self._processWorker_:
+#             if not self._readFlag_:
+#                 self._readFlag_ = True
+#                 self._readerThread_ = threading.Thread(target=self._readerWorker_,daemon=True,name="Reader")
+#                 self._readerThread_.start()
+#             else:
+#                 traceLog(LogLevel.ERROR,"Not able to start reader thread. Thread already enabled")
+#         else:
+#             traceLog(LogLevel.ERROR,"Not able to start reader thread. Process worker not set")
 
-    def linkConnectController(self,connectController):
-        self._connectController_ = connectController
 
-    def linkWorkers(self,workers):
-        self._processWorker_ = workers.processWorker
+#     def stopWorker(self):
+#         "Stop reader worker. Will block until thread is done"
+
+#         if self._readFlag_:
+#             self._readFlag_ = False
+
+#             if self._readerThread_:
+#                 if self._readerThread_.isAlive():
+#                     self._readerThread_.join()
+
+#     def linkConnectController(self,connectController):
+#         self._connectController_ = connectController
+
+#     def linkWorkers(self,workers):
+#         self._processWorker_ = workers.processWorker
 
 
-    ##############
-    # Main Worker
+#     ##############
+#     # Main Worker
 
-    def _readerWorker_(self):
+#     def _readerWorker_(self):
 
-        try:
-            with serial.Serial(self._statusFrame_.getSerialPortVar(), 115200, timeout=2) as ser:
+#         try:
+#             with serial.Serial(self._statusFrame_.getSerialPortVar(), 115200, timeout=2) as ser:
 
-                # TODO should be done in GUI thread
-                self._statusFrame_.setStatusLabel("CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
-                self._connectController_.setAppState(ConnectState.CONNECTED)
+#                 # TODO should be done in GUI thread
+#                 self._statusFrame_.setStatusLabel("CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
+#                 self._connectController_.setAppState(ConnectState.CONNECTED)
 
-                try:
-                    while self._readFlag_:
+#                 try:
+#                     while self._readFlag_:
 
-                        line = ser.readline()
-                        timestamp = datetime.datetime.now()
+#                         line = ser.readline()
+#                         timestamp = datetime.datetime.now()
 
-                        if line:
-                            inLine = SerialLine(line.decode("utf-8"),timestamp)
-                            self._processWorker_.processQueue.put(inLine)
+#                         if line:
+#                             inLine = SerialLine(line.decode("utf-8"),timestamp)
+#                             self._processWorker_.processQueue.put(inLine)
 
-                except serial.SerialException as e:
-                    traceLog(LogLevel.ERROR,"Serial read error: " + str(e))
-                    # Change program state to disconnected
-                    self._root_.after(10,self._connectController_.changeAppState,ConnectState.DISCONNECTED)
+#                 except serial.SerialException as e:
+#                     traceLog(LogLevel.ERROR,"Serial read error: " + str(e))
+#                     # Change program state to disconnected
+#                     self._root_.after(10,self._connectController_.changeAppState,ConnectState.DISCONNECTED)
 
-        except serial.SerialException as e:
-            traceLog(LogLevel.ERROR,str(e))
-            # In case other threads are still starting up,
-            # wait for 2 sec
-            # Then change program state to disconnected
-            self._root_.after(2000,self._connectController_.changeAppState,ConnectState.DISCONNECTED)
+#         except serial.SerialException as e:
+#             traceLog(LogLevel.ERROR,str(e))
+#             # In case other threads are still starting up,
+#             # wait for 2 sec
+#             # Then change program state to disconnected
+#             self._root_.after(2000,self._connectController_.changeAppState,ConnectState.DISCONNECTED)
 
 
 
@@ -1194,7 +1198,7 @@ textFrame_ = TextFrame(settings_,rootClass_)
 bottomFrame_ = BottomFrame(settings_,rootClass_)
 
 # Workers
-readerWorker_ = ReaderWorker(settings_,rootClass_,statusFrame_)
+readerWorker_ = readerWorker.ReaderWorker(settings_,rootClass_,statusFrame_)
 processWorker_ = ProcessWorker(settings_)
 logWriterWorker_ = LogWriterWorker(settings_)
 highlightWorker_ = HighlightWorker(settings_)
