@@ -123,7 +123,7 @@ class ControlFrame:
         self._textArea_.delete(1.0,tk.END)
         self._textArea_.config(state=tk.DISABLED)
 
-        self._bottomFrame_.updateWindowBufferLineCount_(0)
+        self._bottomFrame_.updateWindowBufferLineCount(0)
 
     def _reloadBufferCommand_(self):
         self._highlightWorker_.reloadLineBuffer()
