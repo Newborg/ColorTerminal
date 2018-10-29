@@ -21,8 +21,6 @@ class GuiWorker:
         self._highlightWorker_ = None
         self._logWriterWorker_ = None
 
-        self._endLine_ = 1
-
         self.guiQueue = queue.Queue()
 
         self.guiEvent = threading.Event()
@@ -77,16 +75,14 @@ class GuiWorker:
 
         # Control window scolling
         bottomVisibleLine = int(self._textArea_.index("@0,%d" % self._textArea_.winfo_height()).split(".")[0])
-        self._endLine_ = int(self._textArea_.index(tk.END).split(".")[0])
+        endLine = int(self._textArea_.index(tk.END).split(".")[0])
 
-        print("Preinsert Endline: " + str(self._endLine_))
-
-        self._textArea_.insert(tk.END, str(self._endLine_) + ":" + newLine)
-        if (bottomVisibleLine >= (self._endLine_-1)):
+        self._textArea_.insert(tk.END, newLine)
+        if (bottomVisibleLine >= (endLine-1)):
             self._textArea_.see(tk.END)
 
         # Limit number of lines in window
-        if self._endLine_ > self._settings_.get(Sets.MAX_LINE_BUFFER):
+        if (endLine-1) > self._settings_.get(Sets.MAX_LINE_BUFFER):
             self._textArea_.delete(1.0,2.0)
 
     def _updateLastLine_(self,newLine):
@@ -105,6 +101,8 @@ class GuiWorker:
         receivedLines = list()
 
         if not self._highlightWorker_.isReloadingLineBuffer:
+            
+            lastline = 0
 
             try:
                 # We have to make sure that the queue is empty before continuing
@@ -136,21 +134,20 @@ class GuiWorker:
                     # Highlight/color text
                     lastline = self._textArea_.index("end-2c").split(".")[0]
                     for lineTag in msg.lineTags:
+                        print(lineTag[0])
                         self._textArea_.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
 
                     # Update search
                     self._search_.searchNewLine(lastline)
-                    
+
 
                 # Disable text widget edit
                 self._textArea_.config(state=tk.DISABLED)
 
             if receivedLines:
-                self._bottomFrame_.updateWindowBufferLineCount(self._endLine_-1)
+                self._bottomFrame_.updateWindowBufferLineCount(lastline)
                 self._bottomFrame_.updateLogFileLineCount("Lines in log file " + str(self._logWriterWorker_.linesInLogFile))
 
-                # self._search_.search(searchStringUpdated=False)
-                
 
             if reloadInitiated:
                 self.guiReloadEvent.set()

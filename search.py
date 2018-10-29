@@ -46,6 +46,11 @@ class Search:
 
         if not self._showing_:
 
+            #####
+            self._textField_.tag_configure("TESTING", background="red")
+            self._textField_.tag_add("TESTING", 1.0, 1.5)
+            ####
+
             self._showing_ = True
 
             self._view_ = tk.Frame(self._textField_,highlightthickness=2,highlightcolor=self._settings_.get(Sets.THEME_COLOR))
@@ -121,7 +126,7 @@ class Search:
             # print("Max -1: " + str(self._settings_.get(Sets.MAX_LINE_BUFFER) - 1))
 
 
-            if int(lineNumber) >= (self._settings_.get(Sets.MAX_LINE_BUFFER) - 1):
+            if int(lineNumber) >= self._settings_.get(Sets.MAX_LINE_BUFFER):
                 print("End line reached, " + string)
 
             # Check compare/check tk.END. Search will always be on lsat line when using this setup
@@ -134,9 +139,9 @@ class Search:
             print("Poststart: " + self._start_)
 
             # We must delete old results when max has been reached
+            print("Number of results: " + str(len(self._results_)))
 
-
-            # self.searchNew(string)
+            self.searchNew(string)
 
             # lastline = self._textField_.index("end-2c").split(".")[0]
             # self._textField_.delete(lastline + ".0",lastline +".0+1l")
@@ -160,10 +165,17 @@ class Search:
                 if not pos:
                     break
                 else:
-                    self._results_.append((pos,pos + "+" + countVar.get() + "c"))
+                    split = pos.split(".")
+                    line = int(split[0])
+                    start = int(split[1])
+                    self._results_.append((line,start,int(countVar.get())))
                     self._start_ = pos + "+1c"
 
             for result in self._results_:
+                    # startIndex = result
+                    # Either edit all indexes when buffer is full or create variable with index modifier
+                    # If a line with a search tag is deleted, rerun search
+                    # Keep a record of lowest line number with search tag
                     self._textField_.tag_add(self.TAG_SEARCH, result[0], result[1])
 
         
