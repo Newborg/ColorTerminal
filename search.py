@@ -92,6 +92,64 @@ class Search:
             self._entry_.focus_set()
 
 
+    def reloadSearch(self):
+
+        if self._showing_:
+
+            string = self._var_.get()
+
+            self._textField_.tag_remove(self.TAG_SEARCH,1.0,tk.END)
+            self._textField_.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
+            self._textField_.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
+            self._start_ = "1.0"
+            self._results_ = list()
+
+            self.searchNew(string)
+
+            self._selectedResult_ = -1
+            self._selectNextResult_()
+
+            self._updateResultInfo_()
+
+    def searchNewLine(self):
+        
+        if self._showing_:
+
+            string = self._var_.get()
+
+            print("Start: " + str(int(self._start_.split(".")[0])))
+            print("Max -1: " + str(self._settings_.get(Sets.MAX_LINE_BUFFER) - 1))
+
+            # The following will not work.
+            if int(self._start_.split(".")[0]) >= (self._settings_.get(Sets.MAX_LINE_BUFFER) - 1):
+                print("End line reached, " + string)
+
+            # Check compare/check tk.END. Search will always be on lsat line when using this setup
+
+
+    def searchNew(self,string,*args):
+
+        if string:
+            
+            print("Start: " + str(self._start_))
+
+            nocase = True if self._caseVar_.get() == self.STRING_TRUE else False
+            regexp = True if self._regexVar_.get() == self.STRING_TRUE else False
+
+            countVar = tk.StringVar()
+            while True:
+                pos = self._textField_.search(string,self._start_,stopindex=tk.END,count=countVar,nocase=nocase,regexp=regexp)
+                if not pos:
+                    break
+                else:
+                    self._results_.append((pos,pos + "+" + countVar.get() + "c"))
+                    self._start_ = pos + "+1c"
+
+            for result in self._results_:
+                    self._textField_.tag_add(self.TAG_SEARCH, result[0], result[1])
+
+        
+
 
     def search(self,searchStringUpdated=True,*args):
 
@@ -106,10 +164,12 @@ class Search:
                 self._textField_.tag_remove(self.TAG_SEARCH,1.0,tk.END)
                 self._textField_.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
                 self._textField_.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
-                self._start_ = 1.0
+                self._start_ = "1.0"
                 self._results_ = list()
 
             if string:
+                
+                print("Start: " + str(self._start_))
 
                 nocase = True if self._caseVar_.get() == self.STRING_TRUE else False
                 regexp = True if self._regexVar_.get() == self.STRING_TRUE else False

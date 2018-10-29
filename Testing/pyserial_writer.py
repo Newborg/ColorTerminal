@@ -27,7 +27,7 @@ def writer():
                     i = i + 1
                     if i == len(lines):
                         i = 0
-                    time.sleep(0.1)
+                    time.sleep(0.2)
                 except serial.SerialTimeoutException:
                     pass
 

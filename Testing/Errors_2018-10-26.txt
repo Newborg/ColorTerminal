@@ -1,0 +1,26 @@
+C:\tools\Terminals\ColorTerminal>python ColorTerminal.py
+09:54:36.073 [DEBUG] HighligthWorker, reload line color map done
+09:54:36.073 [INFO] Main loop started
+09:54:43.041 [INFO] Connect to serial
+10:11:35.437 [INFO] Disconnect from serial
+10:11:37.739 [INFO] Main worker threads stopped
+10:11:38.489 [INFO] Connect to serial
+Exception in Tkinter callback
+Traceback (most recent call last):
+  File "C:\Users\knn\AppData\Local\Programs\Python\Python37\lib\tkinter\__init__.py", line 1702, in __call__
+    return self.func(*args)
+  File "C:\tools\Terminals\ColorTerminal\views\controlFrame.py", line 126, in _clearButtonCommand_
+    self._bottomFrame_.updateWindowBufferLineCount_(0)
+AttributeError: 'BottomFrame' object has no attribute 'updateWindowBufferLineCount_'
+10:50:40.217 [INFO] Disconnect from serial
+10:50:42.103 [INFO] Main worker threads stopped
+10:51:48.842 [INFO] Connect to serial
+Exception in thread Reader:
+Traceback (most recent call last):
+  File "C:\Users\knn\AppData\Local\Programs\Python\Python37\lib\threading.py", line 917, in _bootstrap_inner
+    self.run()
+  File "C:\Users\knn\AppData\Local\Programs\Python\Python37\lib\threading.py", line 865, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\tools\Terminals\ColorTerminal\workers\readerWorker.py", line 77, in _readerWorker_
+    inLine = SerialLine(line.decode("utf-8"),timestamp)
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xbd in position 2: invalid start byte

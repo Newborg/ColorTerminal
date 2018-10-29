@@ -139,7 +139,8 @@ class GuiWorker:
                 self._bottomFrame_.updateWindowBufferLineCount(self._endLine_-1)
                 self._bottomFrame_.updateLogFileLineCount("Lines in log file " + str(self._logWriterWorker_.linesInLogFile))
 
-                self._search_.search(searchStringUpdated=False)
+                # self._search_.search(searchStringUpdated=False)
+                self._search_.searchNewLine()
 
             if reloadInitiated:
                 self.guiReloadEvent.set()
