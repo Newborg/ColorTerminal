@@ -7,6 +7,9 @@ import tkinter as tk
 from traceLog import traceLog,LogLevel
 import settings as Sets
 
+# Link import
+from search import Search
+
 class GuiWorker:
 
     def __init__(self,settings,rootClass,search):
@@ -14,7 +17,7 @@ class GuiWorker:
         self._root_ = rootClass.root
         self._textArea_ = None
         self._bottomFrame_ = None
-        self._search_ = search
+        self._search_:Search = search
         self._highlightWorker_ = None
         self._logWriterWorker_ = None
 
@@ -75,7 +78,10 @@ class GuiWorker:
         # Control window scolling
         bottomVisibleLine = int(self._textArea_.index("@0,%d" % self._textArea_.winfo_height()).split(".")[0])
         self._endLine_ = int(self._textArea_.index(tk.END).split(".")[0])
-        self._textArea_.insert(tk.END, newLine)
+
+        print("Preinsert Endline: " + str(self._endLine_))
+
+        self._textArea_.insert(tk.END, str(self._endLine_) + ":" + newLine)
         if (bottomVisibleLine >= (self._endLine_-1)):
             self._textArea_.see(tk.END)
 
@@ -132,6 +138,10 @@ class GuiWorker:
                     for lineTag in msg.lineTags:
                         self._textArea_.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
 
+                    # Update search
+                    self._search_.searchNewLine(lastline)
+                    
+
                 # Disable text widget edit
                 self._textArea_.config(state=tk.DISABLED)
 
@@ -140,7 +150,7 @@ class GuiWorker:
                 self._bottomFrame_.updateLogFileLineCount("Lines in log file " + str(self._logWriterWorker_.linesInLogFile))
 
                 # self._search_.search(searchStringUpdated=False)
-                self._search_.searchNewLine()
+                
 
             if reloadInitiated:
                 self.guiReloadEvent.set()

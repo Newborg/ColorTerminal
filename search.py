@@ -57,7 +57,7 @@ class Search:
 
             self._var_ = tk.StringVar(self._view_)
             self._var_.set("")
-            self._var_.trace("w",self.search)
+            self._var_.trace("w",self.reloadSearch)
 
             self._entry_ = tk.Entry(self._view_,textvariable=self._var_)
             self._entry_.pack(side=tk.LEFT,padx=(4,2))
@@ -69,13 +69,13 @@ class Search:
             self._label_.pack(side=tk.LEFT,anchor=tk.E)
 
             self._caseVar_ = tk.StringVar(self._view_)
-            self._caseVar_.trace("w",self.search)
+            self._caseVar_.trace("w",self.reloadSearch)
             self._caseButton_ = tk.Checkbutton(self._view_,text="Aa",variable=self._caseVar_,cursor="arrow",onvalue=self.STRING_FALSE,offvalue=self.STRING_TRUE)
             self._caseButton_.pack(side=tk.LEFT)
             self._caseButton_.deselect()
 
             self._regexVar_ = tk.StringVar(self._view_)
-            self._regexVar_.trace("w",self.search)
+            self._regexVar_.trace("w",self.reloadSearch)
             self._regexButton_ = tk.Checkbutton(self._view_,text=".*",variable=self._regexVar_,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)
             self._regexButton_.pack(side=tk.LEFT)
             self._regexButton_.deselect()
@@ -92,7 +92,7 @@ class Search:
             self._entry_.focus_set()
 
 
-    def reloadSearch(self):
+    def reloadSearch(self,*args):
 
         if self._showing_:
 
@@ -111,23 +111,41 @@ class Search:
 
             self._updateResultInfo_()
 
-    def searchNewLine(self):
+    def searchNewLine(self,lineNumber):
         
         if self._showing_:
 
             string = self._var_.get()
 
-            print("Start: " + str(int(self._start_.split(".")[0])))
-            print("Max -1: " + str(self._settings_.get(Sets.MAX_LINE_BUFFER) - 1))
+            # print("Start: " + str(int(self._start_.split(".")[0])))
+            # print("Max -1: " + str(self._settings_.get(Sets.MAX_LINE_BUFFER) - 1))
 
-            # The following will not work.
-            if int(self._start_.split(".")[0]) >= (self._settings_.get(Sets.MAX_LINE_BUFFER) - 1):
+
+            if int(lineNumber) >= (self._settings_.get(Sets.MAX_LINE_BUFFER) - 1):
                 print("End line reached, " + string)
 
             # Check compare/check tk.END. Search will always be on lsat line when using this setup
 
+            if self._start_:
+                print("Prestart: " + self._start_)
 
-    def searchNew(self,string,*args):
+            self._start_ = lineNumber + ".0"
+
+            print("Poststart: " + self._start_)
+
+            # We must delete old results when max has been reached
+
+
+            # self.searchNew(string)
+
+            # lastline = self._textField_.index("end-2c").split(".")[0]
+            # self._textField_.delete(lastline + ".0",lastline +".0+1l")
+            # self._textField_.insert(lastline + ".0", newLine)
+
+
+
+
+    def searchNew(self,string):
 
         if string:
             
@@ -151,7 +169,7 @@ class Search:
         
 
 
-    def search(self,searchStringUpdated=True,*args):
+    def searchxxx(self,searchStringUpdated=True,*args):
 
         if self._showing_:
 
