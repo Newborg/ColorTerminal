@@ -137,17 +137,13 @@ class GuiWorker:
                         print(lineTag[0])
                         self._textArea_.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
 
-                    # Update search
-                    self._search_.searchNewLine(lastline)
-
-
                 # Disable text widget edit
                 self._textArea_.config(state=tk.DISABLED)
 
             if receivedLines:
                 self._bottomFrame_.updateWindowBufferLineCount(lastline)
                 self._bottomFrame_.updateLogFileLineCount("Lines in log file " + str(self._logWriterWorker_.linesInLogFile))
-
+                self._search_.search(searchStringUpdated=False)
 
             if reloadInitiated:
                 self.guiReloadEvent.set()
