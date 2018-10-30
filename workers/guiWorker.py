@@ -133,8 +133,7 @@ class GuiWorker:
 
                     # Highlight/color text
                     lastline = self._textArea_.index("end-2c").split(".")[0]
-                    for lineTag in msg.lineTags:
-                        print(lineTag[0])
+                    for lineTag in msg.lineTags:                        
                         self._textArea_.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
 
                 # Disable text widget edit

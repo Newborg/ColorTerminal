@@ -57,7 +57,7 @@ class Search:
 
             self._var_ = tk.StringVar(self._view_)
             self._var_.set("")
-            self._var_.trace("w",self.searchxxx)
+            self._var_.trace("w",self.search)
 
             self._entry_ = tk.Entry(self._view_,textvariable=self._var_)
             self._entry_.pack(side=tk.LEFT,padx=(4,2))
@@ -69,13 +69,13 @@ class Search:
             self._label_.pack(side=tk.LEFT,anchor=tk.E)
 
             self._caseVar_ = tk.StringVar(self._view_)
-            self._caseVar_.trace("w",self.searchxxx)
+            self._caseVar_.trace("w",self.search)
             self._caseButton_ = tk.Checkbutton(self._view_,text="Aa",variable=self._caseVar_,cursor="arrow",onvalue=self.STRING_FALSE,offvalue=self.STRING_TRUE)
             self._caseButton_.pack(side=tk.LEFT)
             self._caseButton_.deselect()
 
             self._regexVar_ = tk.StringVar(self._view_)
-            self._regexVar_.trace("w",self.searchxxx)
+            self._regexVar_.trace("w",self.search)
             self._regexButton_ = tk.Checkbutton(self._view_,text=".*",variable=self._regexVar_,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)
             self._regexButton_.pack(side=tk.LEFT)
             self._regexButton_.deselect()
@@ -175,7 +175,7 @@ class Search:
         
 
 
-    def searchxxx(self,searchStringUpdated=True,*args):
+    def search(self,searchStringUpdated=True,*args):
 
         if self._showing_:
 
