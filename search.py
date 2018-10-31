@@ -12,7 +12,7 @@ class Search:
 
         self._results_ = list()
         self._selectedResultIndex_ = -1
-        self._selectedResultLineNumber_ = -1
+        
 
         # TESTING
         self._debugCounter_ = 0
@@ -180,10 +180,38 @@ class Search:
     def searchLinesAdded(self,numberOfLinesDeleted):
         
         if self._showing_:
+            
+            reloadSelectedResult = False
+            resultFound = False
+            resultsDeleted = 0
 
-            # self._selectedResultLineNumber_ = self.
+            if numberOfLinesDeleted > 0:
 
-            pass
+                for idx, result in enumerate(self._results_):
+                    if result[2] <= numberOfLinesDeleted:
+                        del self._results_[idx]
+                        resultsDeleted += 1
+                        print("del result index " + str(idx))
+                    else:
+                        print("keep result index " + str(idx))
+                        resultFound = True
+                        break
+
+                if resultFound:
+                    for _ in range(resultsDeleted):
+                        self._incrementResultIndex_()
+
+
+            # if self._selectedResultIndex_ > -1 and self._selectedResultIndex_ < len(self._results_):
+
+            #     selectedResultLineNumber = self._results_[self._selectedResultIndex_][2]
+
+            #     if selectedResultLineNumber <= numberOfLinesDeleted:
+            #         print("Move result")
+            #         reloadSelectedResult = True
+
+            self.search(searchStringUpdated=reloadSelectedResult)
+            
 
     def search(self,searchStringUpdated=True,*args):
 
@@ -237,7 +265,7 @@ class Search:
 
     def _selectNextResult_(self,*args):
         self._incrementResultIndex_()
-        if self._selectedResultIndex_ > -1:
+        if self._selectedResultIndex_ > -1 and self._selectedResultIndex_ < len(self._results_):
             
             # TODO what to do with SelectedResult when line buffer is full
 
