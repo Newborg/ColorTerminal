@@ -104,6 +104,9 @@ class GuiWorker:
             
             lastline = 0
 
+            lastLineAtStart = int(self._textArea_.index("end-2c").split(".")[0])
+            linesInserted = 0
+
             try:
                 # We have to make sure that the queue is empty before continuing
                 while True:
@@ -112,7 +115,7 @@ class GuiWorker:
 
 
             except queue.Empty:
-
+                
                 # Open text widget for editing
                 self._textArea_.config(state=tk.NORMAL)
 
@@ -130,6 +133,7 @@ class GuiWorker:
                         self._updateLastLine_(msg.line)
                     else:
                         self._insertLine_(msg.line)
+                        linesInserted += 1
 
                     # Highlight/color text
                     lastline = self._textArea_.index("end-2c").split(".")[0]
@@ -139,9 +143,18 @@ class GuiWorker:
                 # Disable text widget edit
                 self._textArea_.config(state=tk.DISABLED)
 
+            lastLineAtEnd = int(self._textArea_.index("end-2c").split(".")[0])
+
             if receivedLines:
                 self._bottomFrame_.updateWindowBufferLineCount(lastline)
                 self._bottomFrame_.updateLogFileLineCount("Lines in log file " + str(self._logWriterWorker_.linesInLogFile))
+
+                print("***************")
+                print("Last line at start: " + str(lastLineAtStart))
+                print("Last line at end: " + str(lastLineAtEnd))
+                print("Lines inserted: " + str(linesInserted))
+                print("Lines deleted: " + str(linesInserted - (lastLineAtEnd - lastLineAtStart)))
+
                 self._search_.search(searchStringUpdated=False)
 
             if reloadInitiated:
@@ -161,3 +174,4 @@ class GuiWorker:
             self._updateGUI_()
             self.guiEvent.set()
             self._updateGuiJob_ = self._root_.after(100,self._waitForInput_)
+            

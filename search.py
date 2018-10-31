@@ -11,7 +11,11 @@ class Search:
         self._showing_ = False
 
         self._results_ = list()
-        self._selectedResult_ = -1
+        self._selectedResultIndex_ = -1
+        self._selectedResultLineNumber_ = -1
+
+        # TESTING
+        self._debugCounter_ = 0
 
     def linkTextFrame(self,textFrame):
         self._textField_ = textFrame.textArea
@@ -173,7 +177,13 @@ class Search:
     #                 self._textField_.tag_add(self.TAG_SEARCH, result[0], result[1])
 
         
+    def searchLinesAdded(self,numberOfLinesDeleted):
+        
+        if self._showing_:
 
+            # self._selectedResultLineNumber_ = self.
+
+            pass
 
     def search(self,searchStringUpdated=True,*args):
 
@@ -181,9 +191,20 @@ class Search:
 
             string = self._var_.get()
             
-            self._textField_.tag_remove(self.TAG_SEARCH,1.0,tk.END)
-            self._textField_.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
-            self._textField_.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
+            # Check if selected tag is currently shown
+            # selected = self._textField_.tag_ranges(self.TAG_SEARCH_SELECT)
+            # if not selected:
+            #     # If nothing is selected, selected line could have been removed.
+            #     # I this case, reselect first result.
+            #     searchStringUpdated = True
+            #     print("Nothing selected " + str(self._debugCounter_))
+            #     self._debugCounter_ += 1
+
+            if searchStringUpdated:
+                self._textField_.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
+                self._textField_.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
+
+            self._textField_.tag_remove(self.TAG_SEARCH,1.0,tk.END)            
             self._start_ = "1.0"
             self._results_ = list()
 
@@ -197,22 +218,26 @@ class Search:
                     pos = self._textField_.search(string,self._start_,stopindex=tk.END,count=countVar,nocase=nocase,regexp=regexp)
                     if not pos:
                         break
-                    else:
-                        self._results_.append((pos,pos + "+" + countVar.get() + "c"))
+                    else:                        
+                        line = int(pos.split(".")[0])                        
+                        # self._results_.append((pos,pos + "+" + countVar.get() + "c"))
+                        self._results_.append((pos,pos + "+" + countVar.get() + "c",line))
                         self._start_ = pos + "+1c"
 
-                for result in self._results_:
-                        self._textField_.tag_add(self.TAG_SEARCH, result[0], result[1])
+                for result in self._results_:                    
+                    self._textField_.tag_add(self.TAG_SEARCH, result[0], result[1])
+
+                
 
                 if searchStringUpdated:
-                    self._selectedResult_ = -1
+                    self._selectedResultIndex_ = -1
                     self._selectNextResult_()
 
             self._updateResultInfo_()
 
     def _selectNextResult_(self,*args):
         self._incrementResultIndex_()
-        if self._selectedResult_ > -1:
+        if self._selectedResultIndex_ > -1:
             
             # TODO what to do with SelectedResult when line buffer is full
 
@@ -220,28 +245,28 @@ class Search:
             selected = self._textField_.tag_ranges(self.TAG_SEARCH_SELECT)
             if selected:
                 self._textField_.tag_remove(self.TAG_SEARCH_SELECT,selected[0],selected[1])
-            self._textField_.tag_add(self.TAG_SEARCH_SELECT, self._results_[self._selectedResult_][0], self._results_[self._selectedResult_][1])
+            self._textField_.tag_add(self.TAG_SEARCH_SELECT, self._results_[self._selectedResultIndex_][0], self._results_[self._selectedResultIndex_][1])
 
             # Background of selected line
             selectedBg = self._textField_.tag_ranges(self.TAG_SEARCH_SELECT_BG)
             if selectedBg:
                 self._textField_.tag_remove(self.TAG_SEARCH_SELECT_BG,selectedBg[0],selectedBg[1])
-            selectLine = self._results_[self._selectedResult_][0].split(".")[0]
+            selectLine = self._results_[self._selectedResultIndex_][0].split(".")[0]
             self._textField_.tag_add(self.TAG_SEARCH_SELECT_BG, selectLine + ".0", selectLine + ".0+1l")
 
-            self._textField_.see(self._results_[self._selectedResult_][0])
+            self._textField_.see(self._results_[self._selectedResultIndex_][0])
 
             self._updateResultInfo_()
 
     def _incrementResultIndex_(self):
         if self._results_:
-            self._selectedResult_ += 1
-            if self._selectedResult_ >= len(self._results_):
-                self._selectedResult_ = 0
+            self._selectedResultIndex_ += 1
+            if self._selectedResultIndex_ >= len(self._results_):
+                self._selectedResultIndex_ = 0
 
     def _updateResultInfo_(self):
 
         if not self._results_:
             self._label_.config(text=self.NO_RESULT_STRING)
         else:
-            self._label_.config(text=str(self._selectedResult_+1) + " of " + str(len(self._results_)))
+            self._label_.config(text=str(self._selectedResultIndex_+1) + " of " + str(len(self._results_)))
