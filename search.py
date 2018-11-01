@@ -12,7 +12,7 @@ class Search:
 
         self._results_ = list()
         self._selectedResultIndex_ = -1
-        
+
 
         # TESTING
         self._debugCounter_ = 0
@@ -61,7 +61,7 @@ class Search:
 
             self._var_ = tk.StringVar(self._view_)
             self._var_.set("")
-            self._var_.trace("w",self.search)
+            self._var_.trace("w",self._search_)
 
             self._entry_ = tk.Entry(self._view_,textvariable=self._var_)
             self._entry_.pack(side=tk.LEFT,padx=(4,2))
@@ -73,13 +73,13 @@ class Search:
             self._label_.pack(side=tk.LEFT,anchor=tk.E)
 
             self._caseVar_ = tk.StringVar(self._view_)
-            self._caseVar_.trace("w",self.search)
+            self._caseVar_.trace("w",self._search_)
             self._caseButton_ = tk.Checkbutton(self._view_,text="Aa",variable=self._caseVar_,cursor="arrow",onvalue=self.STRING_FALSE,offvalue=self.STRING_TRUE)
             self._caseButton_.pack(side=tk.LEFT)
             self._caseButton_.deselect()
 
             self._regexVar_ = tk.StringVar(self._view_)
-            self._regexVar_.trace("w",self.search)
+            self._regexVar_.trace("w",self._search_)
             self._regexButton_ = tk.Checkbutton(self._view_,text=".*",variable=self._regexVar_,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)
             self._regexButton_.pack(side=tk.LEFT)
             self._regexButton_.deselect()
@@ -95,149 +95,60 @@ class Search:
 
             self._entry_.focus_set()
 
-
-    # def reloadSearch(self,*args):
-
-    #     if self._showing_:
-
-    #         string = self._var_.get()
-
-    #         self._textField_.tag_remove(self.TAG_SEARCH,1.0,tk.END)
-    #         self._textField_.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
-    #         self._textField_.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
-    #         self._start_ = "1.0"
-    #         self._results_ = list()
-
-    #         self.searchNew(string)
-
-    #         self._selectedResult_ = -1
-    #         self._selectNextResult_()
-
-    #         self._updateResultInfo_()
-
-    # def searchNewLine(self,lineNumber):
-        
-    #     if self._showing_:
-
-    #         string = self._var_.get()
-
-    #         # print("Start: " + str(int(self._start_.split(".")[0])))
-    #         # print("Max -1: " + str(self._settings_.get(Sets.MAX_LINE_BUFFER) - 1))
-
-
-    #         if int(lineNumber) >= self._settings_.get(Sets.MAX_LINE_BUFFER):
-    #             print("End line reached, " + string)
-
-    #         # Check compare/check tk.END. Search will always be on lsat line when using this setup
-
-    #         if self._start_:
-    #             print("Prestart: " + self._start_)
-
-    #         self._start_ = lineNumber + ".0"
-
-    #         print("Poststart: " + self._start_)
-
-    #         # We must delete old results when max has been reached
-    #         print("Number of results: " + str(len(self._results_)))
-
-    #         self.searchNew(string)
-
-    #         # lastline = self._textField_.index("end-2c").split(".")[0]
-    #         # self._textField_.delete(lastline + ".0",lastline +".0+1l")
-    #         # self._textField_.insert(lastline + ".0", newLine)
-
-
-
-
-    # def searchNew(self,string):
-
-    #     if string:
-            
-    #         nocase = True if self._caseVar_.get() == self.STRING_TRUE else False
-    #         regexp = True if self._regexVar_.get() == self.STRING_TRUE else False
-
-    #         countVar = tk.StringVar()
-    #         while True:
-    #             pos = self._textField_.search(string,self._start_,stopindex=tk.END,count=countVar,nocase=nocase,regexp=regexp)
-    #             if not pos:
-    #                 break
-    #             else:
-    #                 # split = pos.split(".")
-    #                 # line = int(split[0])
-    #                 # start = int(split[1])
-    #                 # self._results_.append((line,start,int(countVar.get())))
-    #                 self._results_.append((pos,pos + "+" + countVar.get() + "c"))
-    #                 self._start_ = pos + "+1c"
-
-    #         for result in self._results_:
-    #                 # startIndex = result
-    #                 # Either edit all indexes when buffer is full or create variable with index modifier
-    #                 # If a line with a search tag is deleted, rerun search
-    #                 # Keep a record of lowest line number with search tag
-    #                 self._textField_.tag_add(self.TAG_SEARCH, result[0], result[1])
-
-        
     def searchLinesAdded(self,numberOfLinesDeleted):
-        
-        if self._showing_:
-            
-            reloadSelectedResult = False
-            resultFound = False
-            resultsDeleted = 0
 
+        if self._showing_:
+
+            reloadSelectedResult = False
+
+            # If lines have been deleted from the window line buffer, search must be updated
             if numberOfLinesDeleted > 0:
 
-                for idx, result in enumerate(self._results_):
-                    if result[2] <= numberOfLinesDeleted:
-                        del self._results_[idx]
-                        resultsDeleted += 1
-                        print("del result index " + str(idx))
+                # Check if selectedResultIndex is currently pointing to a valid search result
+                if self._selectedResultIndex_ > -1 and self._selectedResultIndex_ < len(self._results_):
+
+                    # Get current (old, as lines have been deleted) line number of selected search result
+                    selectedResultLineNumber = self._results_[self._selectedResultIndex_][2]
+
+                    # Check if line with selected result has been deleted.
+                    # In that case, select the next result in the window
+                    if selectedResultLineNumber <= numberOfLinesDeleted:
+                        reloadSelectedResult = True
+
                     else:
-                        print("keep result index " + str(idx))
-                        resultFound = True
-                        break
+                        # Check if a line with a result has been deleted.
+                        # In that case, update index of selected result accordingly.
+                        # No need to update results list, as this is reloaded on every call                       
+                        
+                        resultsDeleted = 0                        
+                        for result in self._results_:
+                            if result[2] <= numberOfLinesDeleted:
+                                resultsDeleted += 1
+                            else:                         
+                                break
+                        
+                        self._selectedResultIndex_ = self._selectedResultIndex_ - resultsDeleted
 
-                if resultFound:
-                    for _ in range(resultsDeleted):
-                        self._incrementResultIndex_()
+
+            self._search_(searchStringUpdated=reloadSelectedResult)
 
 
-            # if self._selectedResultIndex_ > -1 and self._selectedResultIndex_ < len(self._results_):
-
-            #     selectedResultLineNumber = self._results_[self._selectedResultIndex_][2]
-
-            #     if selectedResultLineNumber <= numberOfLinesDeleted:
-            #         print("Move result")
-            #         reloadSelectedResult = True
-
-            self.search(searchStringUpdated=reloadSelectedResult)
-            
-
-    def search(self,searchStringUpdated=True,*args):
+    def _search_(self,searchStringUpdated=True,*args):
 
         if self._showing_:
 
             string = self._var_.get()
-            
-            # Check if selected tag is currently shown
-            # selected = self._textField_.tag_ranges(self.TAG_SEARCH_SELECT)
-            # if not selected:
-            #     # If nothing is selected, selected line could have been removed.
-            #     # I this case, reselect first result.
-            #     searchStringUpdated = True
-            #     print("Nothing selected " + str(self._debugCounter_))
-            #     self._debugCounter_ += 1
 
             if searchStringUpdated:
                 self._textField_.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
                 self._textField_.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
 
-            self._textField_.tag_remove(self.TAG_SEARCH,1.0,tk.END)            
+            self._textField_.tag_remove(self.TAG_SEARCH,1.0,tk.END)
             self._start_ = "1.0"
             self._results_ = list()
 
             if string:
-                
+
                 nocase = True if self._caseVar_.get() == self.STRING_TRUE else False
                 regexp = True if self._regexVar_.get() == self.STRING_TRUE else False
 
@@ -246,16 +157,13 @@ class Search:
                     pos = self._textField_.search(string,self._start_,stopindex=tk.END,count=countVar,nocase=nocase,regexp=regexp)
                     if not pos:
                         break
-                    else:                        
+                    else:
                         line = int(pos.split(".")[0])                        
-                        # self._results_.append((pos,pos + "+" + countVar.get() + "c"))
                         self._results_.append((pos,pos + "+" + countVar.get() + "c",line))
                         self._start_ = pos + "+1c"
 
-                for result in self._results_:                    
+                for result in self._results_:
                     self._textField_.tag_add(self.TAG_SEARCH, result[0], result[1])
-
-                
 
                 if searchStringUpdated:
                     self._selectedResultIndex_ = -1
@@ -266,8 +174,6 @@ class Search:
     def _selectNextResult_(self,*args):
         self._incrementResultIndex_()
         if self._selectedResultIndex_ > -1 and self._selectedResultIndex_ < len(self._results_):
-            
-            # TODO what to do with SelectedResult when line buffer is full
 
             # Selected result tag
             selected = self._textField_.tag_ranges(self.TAG_SEARCH_SELECT)

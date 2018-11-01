@@ -149,15 +149,8 @@ class GuiWorker:
                 self._bottomFrame_.updateWindowBufferLineCount(lastline)
                 self._bottomFrame_.updateLogFileLineCount("Lines in log file " + str(self._logWriterWorker_.linesInLogFile))
 
-                # print("***************")
-                # print("Last line at start: " + str(lastLineAtStart))
-                # print("Last line at end: " + str(lastLineAtEnd))
-                # print("Lines inserted: " + str(linesInserted))
                 numberOfLinesDeleted = linesInserted - (lastLineAtEnd - lastLineAtStart)
-                # print("Lines deleted: " + str(numberOfLinesDeleted))
-
                 self._search_.searchLinesAdded(numberOfLinesDeleted=numberOfLinesDeleted)
-                # self._search_.search(searchStringUpdated=False)
 
             if reloadInitiated:
                 self.guiReloadEvent.set()

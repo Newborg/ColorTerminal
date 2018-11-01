@@ -1,4 +1,16 @@
 #####################################
+# Delete from list
+
+listA = ["A","B","C"]
+index = [0,1]
+
+del listA[index]
+
+print(listA)
+
+exit()
+
+#####################################
 # Dict stuff
 
 DictA = {"A":"AAAA"}
