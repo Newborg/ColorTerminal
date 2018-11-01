@@ -53,27 +53,11 @@ DISCONNECT_COLOR_TAG = "DISCONNECT_COLOR_TAG"
 HIDE_LINE_FONT_COLOR = "#808080"
 HIDELINE_COLOR_TAG = "HIDELINE_COLOR_TAG"
 
+# Log file
+LOG_FILE_TYPE = ".txt"
+LOG_FILE_LINK_TAG = "LOG_FILE_LINK_TAG"
+
 class Settings:
-
-    # DEFAULT_WINDOW_SIZE         = "MainWindow_defaultWindowSize"
-    # THEME_COLOR                 = "MainWindow_themeColor"
-
-    # BACKGROUND_COLOR            = "TextArea_backgroundColor"
-    # SELECT_BACKGROUND_COLOR     = "TextArea_selectBackgroundColor"
-    # TEXT_COLOR                  = "TextArea_textColor"
-    # FONT_FAMILY                 = "TextArea_fontFamily"
-    # FONT_SIZE                   = "TextArea_fontSize"
-    # MAX_LINE_BUFFER             = "TextArea_maxLineBuffer"
-
-    # SEARCH_MATCH_COLOR          = "Search_MatchColor"
-    # SEARCH_SELECTED_COLOR       = "Search_SelectedColor"
-    # SEARCH_SELECTED_LINE_COLOR  = "Search_SelectedLineColor"
-
-    # LOG_FILE_PATH               = "LogFile_logFilePath"
-    # LOG_FILE_BASE_NAME          = "LogFile_logFileBaseName"
-    # LOG_FILE_TIMESTAMP          = "LogFile_logFileTimestamp"
-
-    # LINE_COLOR_MAP              = "LineColorMap"
 
     def __init__(self,jsonFileName):
         self.jsonFileName = jsonFileName

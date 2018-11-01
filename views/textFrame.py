@@ -38,6 +38,7 @@ class TextFrame:
         self.textArea.tag_configure(Sets.CONNECT_COLOR_TAG, background=Sets.CONNECT_LINE_BACKGROUND_COLOR, selectbackground=Sets.CONNECT_LINE_SELECT_BACKGROUND_COLOR)
         self.textArea.tag_configure(Sets.DISCONNECT_COLOR_TAG, background=Sets.DISCONNECT_LINE_BACKGROUND_COLOR, selectbackground=Sets.DISCONNECT_LINE_SELECT_BACKGROUND_COLOR)
         self.textArea.tag_configure(Sets.HIDELINE_COLOR_TAG, foreground=Sets.HIDE_LINE_FONT_COLOR)
+        # TODO hyberlink tag http://effbot.org/zone/tkinter-text-hyperlink.htm 
 
         self._textFrame_.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
 

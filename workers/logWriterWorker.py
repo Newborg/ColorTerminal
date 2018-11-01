@@ -55,7 +55,7 @@ class LogWriterWorker:
 
         timestamp = datetime.datetime.now().strftime(self._settings_.get(Sets.LOG_FILE_TIMESTAMP))
 
-        filename = self._settings_.get(Sets.LOG_FILE_BASE_NAME) + timestamp + ".txt"
+        filename = self._settings_.get(Sets.LOG_FILE_BASE_NAME) + timestamp + Sets.LOG_FILE_TYPE
         fullFilename = os.path.join(self._settings_.get(Sets.LOG_FILE_PATH),filename)
 
         os.makedirs(os.path.dirname(fullFilename), exist_ok=True)
