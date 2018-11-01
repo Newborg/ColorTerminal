@@ -13,10 +13,6 @@ class Search:
         self._results_ = list()
         self._selectedResultIndex_ = -1
 
-
-        # TESTING
-        self._debugCounter_ = 0
-
     def linkTextFrame(self,textFrame):
         self._textField_ = textFrame.textArea
 
@@ -130,6 +126,9 @@ class Search:
                         self._selectedResultIndex_ = self._selectedResultIndex_ - resultsDeleted
 
 
+            # We are currently searching through all lines every time a new line is added.
+            # This can likely be updated to just search the new line added,
+            # but will require some rework of the result list, including updating all line numbers
             self._search_(searchStringUpdated=reloadSelectedResult)
 
 
@@ -149,8 +148,8 @@ class Search:
 
             if string:
 
-                nocase = True if self._caseVar_.get() == self.STRING_TRUE else False
-                regexp = True if self._regexVar_.get() == self.STRING_TRUE else False
+                nocase = self._caseVar_.get() == self.STRING_TRUE
+                regexp = self._regexVar_.get() == self.STRING_TRUE
 
                 countVar = tk.StringVar()
                 while True:

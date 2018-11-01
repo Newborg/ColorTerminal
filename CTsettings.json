@@ -6,7 +6,7 @@
     "TextArea_textColor": "#FFFFFF",
     "TextArea_fontFamily": "Consolas",
     "TextArea_fontSize": 10,
-    "TextArea_maxLineBuffer": 20,
+    "TextArea_maxLineBuffer": 4000,
     "Search_MatchColor": "#9e6209",
     "Search_SelectedColor": "#06487f",
     "Search_SelectedLineColor": "#3c3c3c",
