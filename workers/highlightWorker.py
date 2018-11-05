@@ -13,6 +13,8 @@ class HighlightWorker():
     def __init__(self,settings):
         self._settings_ = settings
 
+        self._logFileBaseName_ = self._settings_.get(Sets.LOG_FILE_BASE_NAME)
+
         self._lineColorMap_ = dict()
 
         self._lineBuffer_ = list()
@@ -32,6 +34,8 @@ class HighlightWorker():
         self._reloadLineBuffer_ = False
         self.isReloadingLineBuffer = False
 
+        self._replaceLineBufferString_ = False
+
         self.reloadLineColorMap()
 
     ##############
@@ -44,6 +48,7 @@ class HighlightWorker():
 
         if self._guiWorker_ != None:
             if not self._highlightFlag_:
+
                 self._highlightFlag_ = True
                 self._highlightThread_ = threading.Thread(target=self._highlightWorker_,daemon=True,name="Highlight")
                 self._highlightThread_.start()
@@ -92,6 +97,17 @@ class HighlightWorker():
         else:
             self._hideLinesFlag_ = True
 
+    def replaceLineBufferString(self,oldString,newString,replaceAll=False):
+
+        if not self._replaceLineBufferString_:
+
+            self._stringReplaceOld_ = oldString
+            self._stringReplaceNew_ = newString
+            self._replaceAllInstances_ = replaceAll
+
+            self._replaceLineBufferString_ = True
+                
+
     ##############
     # Internal
 
@@ -110,6 +126,13 @@ class HighlightWorker():
         match = re.search(Sets.disconnectLineRegex,line)
         if match:
             highlights.append((Sets.DISCONNECT_COLOR_TAG,"0","0+1l"))
+            
+            fileNameRegex = self._settings_.get(Sets.LOG_FILE_BASE_NAME) + ".*" + Sets.LOG_FILE_TYPE
+            fileNameMatch = re.search(fileNameRegex,line)
+            if fileNameMatch:
+                # print("File name: " + fileNameMatch.group(0))
+                highlights.append((Sets.LOG_FILE_LINK_TAG,fileNameMatch.start(),fileNameMatch.end()))
+
 
         return highlights
 
@@ -165,8 +188,9 @@ class HighlightWorker():
 
         while self._highlightFlag_:
 
+            ######
+            # Get new line from queue
             newLine = ""
-
             try:
                 newLine = self.highlightQueue.get(True,0.2)
                 self.highlightQueue.task_done()
@@ -174,6 +198,8 @@ class HighlightWorker():
             except queue.Empty:
                 pass
 
+            ######
+            # Process new line or process a buffer reload
             if newLine or self._reloadLineBuffer_:
 
                 if newLine:
@@ -223,3 +249,17 @@ class HighlightWorker():
 
                     # Wait for gui to have processed new buffer
                     self._guiWorker_.guiReloadEvent.wait()
+
+            ######
+            # Check if a line has to be updated in the buffer
+            if self._replaceLineBufferString_:
+                                
+                for idx,line in enumerate(self._lineBuffer_):                
+                    if line.find(self._stringReplaceOld_) != -1:
+                        self._lineBuffer_[idx] = line.replace(self._stringReplaceOld_,self._stringReplaceNew_)
+                        if not self._replaceAllInstances_:
+                            break
+
+                self._replaceLineBufferString_ = False
+                
+

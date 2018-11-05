@@ -237,19 +237,25 @@ textFrame_.createTextFrameLineColorTag() # TODO do this somewhere else? highligh
 
 rootClass_.root.bind('<Control-f>', search_.show)
 
+
+import renameFileView
+
+
 # TESTING
 # def down(e):
 #     print("DOWN raw: " + str(e))
 #     print("DOWN: " + e.char)
-    # if e.char == 'n':
-        # pass
+#     if e.char == 'n':
+        
+        
+#         pass
 
 # def up(e):
 #     print("UP: " + e.char)
 
 
-# root.bind('<KeyPress>', down)
-# root.bind('<KeyRelease>', up)
+# rootClass_.root.bind('<KeyPress>', down)
+# rootClass_.root.bind('<KeyRelease>', up)
 
 
 

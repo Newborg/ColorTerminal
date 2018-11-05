@@ -1,4 +1,19 @@
 #####################################
+# Replace string in list
+
+listA = ["Hello maam", "testing", "your things", "your test"]
+
+for idx,line in enumerate(listA):
+    if line.find("test") != -1:
+        listA[idx] = line.replace("test","BAM")
+        break
+
+print(listA)
+
+exit()
+
+
+#####################################
 # Delete from list
 
 listA = ["A","B","C"]
