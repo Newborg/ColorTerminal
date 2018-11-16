@@ -9,11 +9,17 @@ import renameFileView
 # Import for intellisense 
 from workers.highlightWorker import HighlightWorker
 
+
+def createLineColorTagName(regex):
+    return Sets.LINE_COLOR_MAP + "_" + regex.replace(" ","__")
+
 class TextFrame:
 
     def __init__(self,settings,rootClass):
         self._settings_ = settings
         self._root_ = rootClass.root
+
+        self._lineColorMap_ = dict()
 
         self._highlightWorker_:HighlightWorker = None
 
@@ -49,24 +55,36 @@ class TextFrame:
 
         self._textFrame_.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
 
+        self.reloadLineColorMap()
+        self.createAllTextFrameLineColorTag()
+
 
     def linkWorkers(self,workers):
         self._highlightWorker_ = workers.highlightWorker
 
-    def createTextFrameLineColorTag(self):
-        lineColorMap = self._highlightWorker_.getLineColorMap()
+    def reloadLineColorMap(self):
+        
+        self._lineColorMap_.clear()
+        self._lineColorMap_ = self._settings_.get(Sets.LINE_COLOR_MAP)
+        # Add tag names to line color map
+        for lineColorRowId in self._lineColorMap_.keys():
+            self._lineColorMap_[lineColorRowId]["tagName"] = createLineColorTagName(self._lineColorMap_[lineColorRowId]["regex"])
 
-        for key in sorted(lineColorMap.keys()):
-             self.textArea.tag_configure(key, foreground=lineColorMap[key]["color"])
+    def getLineColorMap(self):
+        return self._lineColorMap_
 
-    def reloadLineColorMapAndTags(self):
+    def createAllTextFrameLineColorTag(self):        
+        for key in sorted(self._lineColorMap_.keys()):            
+             self.createTextFrameLineColorTag(self._lineColorMap_[key]["tagName"], self._lineColorMap_[key]["color"])
 
-        lineColorMapKeys = self._highlightWorker_.getLineColorMap().keys()
-        self._textFrameClearTags_(lineColorMapKeys)
+    def createTextFrameLineColorTag(self,tagName,color):
+        self.textArea.tag_configure(tagName, foreground=color)
 
-        self._highlightWorker_.reloadLineColorMap()
+    def updateTagColor(self,tagName,color): # TODO the same as the above function?
+        self.textArea.tag_config(tagName,foreground=color)   
 
-        self.createTextFrameLineColorTag()
+    def deleteTextTag(self,tagName):
+        self.textArea.tag_delete(tagName)
 
     def reloadTextFrame(self):
 
@@ -78,10 +96,25 @@ class TextFrame:
                             selectbackground=self._settings_.get(Sets.SELECT_BACKGROUND_COLOR),\
                             foreground=self._settings_.get(Sets.TEXT_COLOR), font=tFont)
 
-    def _textFrameClearTags_(self,tagNames):
-        # clear existing tags
-        for tagName in tagNames:
-            self.textArea.tag_delete(tagName)
+    def addLineColorTagToText(self,regex,tagName):
+
+        lastline = int(self.textArea.index("end-2c").split(".")[0])
+
+        for lineNumber in range(1,lastline+1):
+            start = str(lineNumber) + ".0"
+            end = start + "+1l"
+            countVar = tk.StringVar()
+            pos = self.textArea.search(regex,start,stopindex=end,count=countVar,nocase=False,regexp=True)
+            if pos:
+                self.textArea.tag_add(tagName,pos,pos + "+" + countVar.get() + "c")
+
+    def createAndAddLineColorTag(self,regex,color):
+
+        tagName = createLineColorTagName(regex)
+        self.createTextFrameLineColorTag(tagName,color)
+
+        self.addLineColorTagToText(regex,tagName)
+
 
     # Hyberlink
 
@@ -93,11 +126,8 @@ class TextFrame:
 
     def _click_(self, event):
 
-        # print(str(event))
-
         index = self.textArea.index("@" + str(event.x) + "," + str(event.y))
-        # print(str(index))
-
+        
         lineNumber = index.split(".")[0]
 
         fileNameRegex = self._settings_.get(Sets.LOG_FILE_BASE_NAME) + ".*" + Sets.LOG_FILE_TYPE

@@ -223,6 +223,7 @@ processWorker_.linkWorkers(workers_)
 logWriterWorker_.linkBottomFrame(bottomFrame_)
 
 highlightWorker_.linkWorkers(workers_)
+highlightWorker_.linkTextFrame(textFrame_)
 
 guiWorker_.linkTextFrame(textFrame_)
 guiWorker_.linkBottomFrame(bottomFrame_)
@@ -232,8 +233,6 @@ guiWorker_.linkWorkers(workers_)
 # Start
 highlightWorker_.startWorker()
 guiWorker_.startWorker()
-
-textFrame_.createTextFrameLineColorTag() # TODO do this somewhere else? highlight worker must be fully init before
 
 rootClass_.root.bind('<Control-f>', search_.show)
 
@@ -246,17 +245,43 @@ import renameFileView
 #     print("DOWN raw: " + str(e))
 #     print("DOWN: " + e.char)
 #     if e.char == 'n':
-        
-        
+#         addDataToProcessQueue()
 #         pass
 
 # def up(e):
 #     print("UP: " + e.char)
 
-
 # rootClass_.root.bind('<KeyPress>', down)
 # rootClass_.root.bind('<KeyRelease>', up)
 
+
+
+
+# BULK DATA LOAD FOR DEBUG
+
+# _logFile = r"_testing\log_example_small.txt"
+
+# from customTypes import SerialLine
+
+# def addDataToProcessQueue(*args):
+#     with open(_logFile,"r") as file:
+#         lines = file.readlines()
+
+#     print("Debug, lines loaded: " + str(len(lines)))
+
+#     linesToAdd = 3500
+
+#     loops = int(linesToAdd / len(lines))
+
+#     for _ in range(loops):
+#         for line in lines:
+#             timestamp = datetime.datetime.now()
+#             inLine = SerialLine(line,timestamp)
+#             processWorker_.processQueue.put(inLine)
+
+#     print("Debug, lines added to view: " + str(loops*len(lines)))
+
+# rootClass_.root.bind('<Control-n>', addDataToProcessQueue)
 
 
 traceLog(LogLevel.INFO,"Main loop started")

@@ -1,0 +1,45 @@
+Changes
+Moved - Update tag order
+Added - regex update, update order
+Deleted - Remove tag
+Color changed - Update tag
+Regex updated 
+
+Do check in validation function
+
+Change rowId/Tag name to contain regex, this to be able to rearrange without rescanning all
+Maybe add another field with tag name, but keep rowId to save tag order in settings
+
+Check that regex is not used twice
+
+
+
+Save all settings to file
+
+Loop changed regex
+	Mark old regex (tagName) as delete (save old regex on entry)
+
+Delete any
+  Save tag name in delete list
+Add any
+	flag in line
+Update color
+      Subflag
+Rescan changed/added regex
+Reorder
+      Reorder global flag -> reorder all
+	  
+******************
+
+Delete any
+  Save tag name in delete list
+	  
+Loop changed regex
+	Mark old regex (tagName) as delete (save old regex on entry)
+	Add any
+	
+Update color
+	Subflag
+Rescan changed/added regex
+Reorder
+	Reorder global flag -> reorder all

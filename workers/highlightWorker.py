@@ -8,6 +8,8 @@ from traceLog import traceLog,LogLevel
 import settings as Sets
 from customTypes import PrintLine
 
+from views import textFrame
+
 class HighlightWorker():
 
     def __init__(self,settings):
@@ -20,6 +22,8 @@ class HighlightWorker():
         self._lineBuffer_ = list()
 
         self._guiWorker_ = None
+
+        self._textFrame_:textFrame.TextFrame = None
 
         self._consecutiveLinesHidden_ = 0
         self._hideLineMap_ = list()
@@ -36,18 +40,21 @@ class HighlightWorker():
 
         self._replaceLineBufferString_ = False
 
-        self.reloadLineColorMap()
-
     ##############
     # Public Interface
 
     def linkWorkers(self,workers):
         self._guiWorker_ = workers.guiWorker
+    
+    def linkTextFrame(self,textFrame):
+        self._textFrame_ = textFrame
 
     def startWorker(self):
 
-        if self._guiWorker_ != None:
+        if self._guiWorker_ != None and self._textFrame_ != None:
             if not self._highlightFlag_:
+
+                self._reloadLineColorMap_()
 
                 self._highlightFlag_ = True
                 self._highlightThread_ = threading.Thread(target=self._highlightWorker_,daemon=True,name="Highlight")
@@ -70,18 +77,6 @@ class HighlightWorker():
             if self._highlightThread_.isAlive():
                 self._highlightThread_.join()
 
-
-    def getLineColorMap(self):
-        return self._lineColorMap_
-
-    def reloadLineColorMap(self):
-
-        if not self._highlightFlag_:
-            self._lineColorMap_.clear()
-            self._lineColorMap_ = self._settings_.get(Sets.LINE_COLOR_MAP)
-            traceLog(LogLevel.DEBUG,"HighligthWorker, reload line color map done")
-        else:
-            traceLog(LogLevel.ERROR,"HighligthWorker active. Not able to reload color map")
 
     def reloadLineBuffer(self):
         self._reloadLineBuffer_ = True
@@ -111,13 +106,16 @@ class HighlightWorker():
     ##############
     # Internal
 
+    def _reloadLineColorMap_(self):
+        self._lineColorMap_ = self._textFrame_.getLineColorMap()
+
     def _locateLineTags_(self,line):
         # Locate highlights
         highlights = list()
-        for tagName in self._lineColorMap_.keys():
-            match = re.search(self._lineColorMap_[tagName]["regex"],line)
+        for lineColorRowId in self._lineColorMap_.keys():            
+            match = re.search(self._lineColorMap_[lineColorRowId]["regex"],line)
             if match:
-                highlights.append((tagName,match.start(),match.end()))
+                highlights.append((self._lineColorMap_[lineColorRowId]["tagName"],match.start(),match.end()))
 
         match = re.search(Sets.connectLineRegex,line)
         if match:

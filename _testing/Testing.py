@@ -1,4 +1,52 @@
 #####################################
+# Exception
+
+class TestClass:
+    def __init__(self):
+        self.aVar = "Test"
+
+testVar = TestClass()
+
+print(testVar.aVar)
+
+try:
+    testVar.aVar.get()
+except AttributeError:
+    print("var not there")
+
+
+
+
+exit()
+
+
+#####################################
+# Get data from tuple
+
+tupleA = (1,2,3,4)
+
+print(tupleA[3])
+
+exit()
+
+#####################################
+# Adding variables to classes
+
+class TestClass:
+    def __init__(self):
+        self.aVar = "Test"
+
+testVar = TestClass()
+
+print(testVar.aVar)
+
+testVar.bVar = "Test2"
+
+print(testVar.bVar)
+
+exit()
+
+#####################################
 # Replace string in list
 
 listA = ["Hello maam", "testing", "your things", "your test"]

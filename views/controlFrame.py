@@ -134,7 +134,7 @@ class ControlFrame:
 
     def _showOptionsView_(self):
         self._search_.close()
-        self._optionsView_.show(self._highlightWorker_.getLineColorMap())
+        self._optionsView_.show()
 
     def _scanSerialPorts_(self):
 
