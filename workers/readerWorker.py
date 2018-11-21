@@ -63,8 +63,9 @@ class ReaderWorker:
 
         try:
             with serial.Serial(self._controlFrame_.getSerialPortVar(), 115200, timeout=2) as ser:
-                
-                self._root_.after(10,self._controlFrame_.setStatusLabel,"CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)                
+
+                self._root_.after(10,self._controlFrame_.setStatusLabel,"CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
+                self._root_.after(15,self._controlFrame_.disablePortButtons)
                 self._connectController_.setAppState(ConnectState.CONNECTED)
 
                 try:
@@ -74,7 +75,7 @@ class ReaderWorker:
                         timestamp = datetime.datetime.now()
 
                         if line:
-                            inLine = SerialLine(line.decode(encoding="utf-8",errors="backslashreplace"),timestamp)                            
+                            inLine = SerialLine(line.decode(encoding="utf-8",errors="backslashreplace"),timestamp)
                             self._processWorker_.processQueue.put(inLine)
 
                 except serial.SerialException as e:

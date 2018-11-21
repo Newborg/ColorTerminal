@@ -95,6 +95,14 @@ class ControlFrame:
     def getSerialPortVar(self):
         return self._serialPortVar_.get()
 
+    def enablePortButtons(self):
+        self._serialPortReloadButton_.config(state=tk.NORMAL)
+        self._serialPortOption_.config(state=tk.NORMAL)
+
+    def disablePortButtons(self):
+        self._serialPortReloadButton_.config(state=tk.DISABLED)
+        self._serialPortOption_.config(state=tk.DISABLED)
+
     ##############
     # Internal
 

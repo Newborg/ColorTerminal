@@ -94,6 +94,7 @@ class ConnectController:
         traceLog(LogLevel.INFO,"Main worker threads stopped")
 
         self._controlFrame_.setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
+        self._controlFrame_.enablePortButtons()
         self._appState_ = ConnectState.DISCONNECTED
 
         if self._closeProgram_:
@@ -119,11 +120,13 @@ class ConnectController:
             self._controlFrame_.setConnectButtonText("Disconnect")
             self.connectSerial()
             self._controlFrame_.setStatusLabel("CONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
+            self._controlFrame_.disablePortButtons()
 
         elif state == ConnectState.DISCONNECTED:
             self._controlFrame_.setConnectButtonText("Connect")
             self.disconnectSerial()
             self._controlFrame_.setStatusLabel("DISCONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
+            self._controlFrame_.disablePortButtons()
 
 ################################
 # Root frame
