@@ -17,17 +17,21 @@ def writer():
     i = 0
 
     with serial.Serial('COM2', 115200, timeout=2, write_timeout=2) as ser:
-        
+
         print(ser)
 
         try:
             while keepWriting:
-                try:                
-                    ser.write(str.encode(lines[i],encoding="utf-8"))                
+                try:
+                    ser.write(str.encode(lines[i],encoding="utf-8"))
                     i = i + 1
                     if i == len(lines):
                         i = 0
+                        time.sleep(0.2)
+                        ser.write(b"\x41\x42\x43\xFE\x41\x42\x43\xFE\x41\x42\x43")
+                        ser.write(str.encode("\n",encoding="utf-8"))
                     time.sleep(0.2)
+
                 except serial.SerialTimeoutException:
                     pass
 
@@ -48,12 +52,11 @@ while True:
     if pressedKey == 'q':
         keepWriting = 0
         break
-    time.sleep(0.5)    
+    time.sleep(0.5)
 
 print("Quitting...")
 
-if writerThread.isAlive(): 
+if writerThread.isAlive():
     writerThread.join()
-   
+
 print("Done writing")
-        

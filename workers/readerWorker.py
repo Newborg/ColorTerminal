@@ -74,7 +74,7 @@ class ReaderWorker:
                         timestamp = datetime.datetime.now()
 
                         if line:
-                            inLine = SerialLine(line.decode("utf-8"),timestamp)
+                            inLine = SerialLine(line.decode(encoding="utf-8",errors="backslashreplace"),timestamp)                            
                             self._processWorker_.processQueue.put(inLine)
 
                 except serial.SerialException as e:

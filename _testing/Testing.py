@@ -1,4 +1,21 @@
 #####################################
+# UTF-8 encode decode
+
+line = b"\x41\x42\x43\xFE\x41\x42\x43\xFE\x41\x42\x43"
+
+# lineEncoded = line.encode(encoding="utf-8")
+# 
+# print(lineEncoded)
+# testing = "test"
+testing = str(line).encode(encoding="utf-8")
+
+lineDecoded = line.decode(encoding="utf-8",errors="replace")
+
+print(lineDecoded)
+
+exit()
+
+#####################################
 # Exception
 
 class TestClass:
