@@ -13,52 +13,52 @@ from views import textFrame
 class HighlightWorker():
 
     def __init__(self,settings):
-        self._settings_ = settings
+        self._settings = settings
 
-        self._logFileBaseName_ = self._settings_.get(Sets.LOG_FILE_BASE_NAME)
+        self._logFileBaseName = self._settings.get(Sets.LOG_FILE_BASE_NAME)
 
-        self._lineColorMap_ = dict()
+        self._lineColorMap = dict()
 
-        self._lineBuffer_ = list()
+        self._lineBuffer = list()
 
-        self._guiWorker_ = None
+        self._guiWorker = None
 
-        self._textFrame_:textFrame.TextFrame = None
+        self._textFrame:textFrame.TextFrame = None
 
-        self._consecutiveLinesHidden_ = 0
-        self._hideLineMap_ = list()
-        self._hideLineMap_.append("GUI::.*")
-        self._hideLineMap_.append("Main::.*")
-        self._hideLinesFlag_ = False
+        self._consecutiveLinesHidden = 0
+        self._hideLineMap = list()
+        self._hideLineMap.append("GUI::.*")
+        self._hideLineMap.append("Main::.*")
+        self._hideLinesFlag = False
 
-        self._highlightFlag_ = False
+        self._highlightFlag = False
 
         self.highlightQueue = queue.Queue()
 
-        self._reloadLineBuffer_ = False
+        self._reloadLineBuffer = False
         self.isReloadingLineBuffer = False
 
-        self._replaceLineBufferString_ = False
+        self._replaceLineBufferString = False
 
     ##############
     # Public Interface
 
     def linkWorkers(self,workers):
-        self._guiWorker_ = workers.guiWorker
+        self._guiWorker = workers.guiWorker
     
     def linkTextFrame(self,textFrame):
-        self._textFrame_ = textFrame
+        self._textFrame = textFrame
 
     def startWorker(self):
 
-        if self._guiWorker_ != None and self._textFrame_ != None:
-            if not self._highlightFlag_:
+        if self._guiWorker != None and self._textFrame != None:
+            if not self._highlightFlag:
 
-                self._reloadLineColorMap_()
+                self._reloadLineColorMap()
 
-                self._highlightFlag_ = True
-                self._highlightThread_ = threading.Thread(target=self._highlightWorker_,daemon=True,name="Highlight")
-                self._highlightThread_.start()
+                self._highlightFlag = True
+                self._highlightThread = threading.Thread(target=self._highlightWorker,daemon=True,name="Highlight")
+                self._highlightThread.start()
                 # print("Highlight worker started")
             else:
                 traceLog(LogLevel.ERROR,"Not able to start higlight thread. Thread already enabled")
@@ -68,54 +68,54 @@ class HighlightWorker():
     def stopWorker(self,emptyQueue=True):
         "Stop highlight worker. Will block until thread is done"
 
-        if self._highlightFlag_:
+        if self._highlightFlag:
             if emptyQueue:
                 self.highlightQueue.join()
 
-            self._highlightFlag_ = False
+            self._highlightFlag = False
 
-            if self._highlightThread_.isAlive():
-                self._highlightThread_.join()
+            if self._highlightThread.isAlive():
+                self._highlightThread.join()
 
 
     def reloadLineBuffer(self):
-        self._reloadLineBuffer_ = True
+        self._reloadLineBuffer = True
         # print("Highlight reloadLineBuffer")
 
     def clearLineBuffer(self):
         # print("Clear line buffer")
-        self._lineBuffer_.clear()
+        self._lineBuffer.clear()
 
     def toggleHideLines(self):
-        if self._hideLinesFlag_:
-            self._hideLinesFlag_ = False
+        if self._hideLinesFlag:
+            self._hideLinesFlag = False
         else:
-            self._hideLinesFlag_ = True
+            self._hideLinesFlag = True
 
     def replaceLineBufferString(self,oldString,newString,replaceAll=False):
 
-        if not self._replaceLineBufferString_:
+        if not self._replaceLineBufferString:
 
-            self._stringReplaceOld_ = oldString
-            self._stringReplaceNew_ = newString
-            self._replaceAllInstances_ = replaceAll
+            self._stringReplaceOld = oldString
+            self._stringReplaceNew = newString
+            self._replaceAllInstances = replaceAll
 
-            self._replaceLineBufferString_ = True
+            self._replaceLineBufferString = True
                 
 
     ##############
     # Internal
 
-    def _reloadLineColorMap_(self):
-        self._lineColorMap_ = self._textFrame_.getLineColorMap()
+    def _reloadLineColorMap(self):
+        self._lineColorMap = self._textFrame.getLineColorMap()
 
-    def _locateLineTags_(self,line):
+    def _locateLineTags(self,line):
         # Locate highlights
         highlights = list()
-        for lineColorRowId in self._lineColorMap_.keys():            
-            match = re.search(self._lineColorMap_[lineColorRowId]["regex"],line)
+        for lineColorRowId in self._lineColorMap.keys():            
+            match = re.search(self._lineColorMap[lineColorRowId]["regex"],line)
             if match:
-                highlights.append((self._lineColorMap_[lineColorRowId]["tagName"],match.start(),match.end()))
+                highlights.append((self._lineColorMap[lineColorRowId]["tagName"],match.start(),match.end()))
 
         match = re.search(Sets.connectLineRegex,line)
         if match:
@@ -125,7 +125,7 @@ class HighlightWorker():
         if match:
             highlights.append((Sets.DISCONNECT_COLOR_TAG,"0","0+1l"))
             
-            fileNameRegex = self._settings_.get(Sets.LOG_FILE_BASE_NAME) + ".*" + Sets.LOG_FILE_TYPE
+            fileNameRegex = self._settings.get(Sets.LOG_FILE_BASE_NAME) + ".*" + Sets.LOG_FILE_TYPE
             fileNameMatch = re.search(fileNameRegex,line)
             if fileNameMatch:
                 # print("File name: " + fileNameMatch.group(0))
@@ -134,41 +134,41 @@ class HighlightWorker():
 
         return highlights
 
-    def _getHideLineColorTags_(self):
+    def _getHideLineColorTags(self):
         highlights = list()
         highlights.append((Sets.HIDELINE_COLOR_TAG,"0","0+1l"))
         return highlights
 
-    def _addToLineBuffer_(self,rawline):
+    def _addToLineBuffer(self,rawline):
 
-        lineBufferSize = len(self._lineBuffer_)
+        lineBufferSize = len(self._lineBuffer)
 
-        self._lineBuffer_.append(rawline)
+        self._lineBuffer.append(rawline)
 
-        if lineBufferSize > self._settings_.get(Sets.MAX_LINE_BUFFER):
-            del self._lineBuffer_[0]
+        if lineBufferSize > self._settings.get(Sets.MAX_LINE_BUFFER):
+            del self._lineBuffer[0]
 
-    def _hideLines_(self,line):
+    def _hideLines(self,line):
 
-        if self._hideLinesFlag_:
+        if self._hideLinesFlag:
             tempConsecutiveLinesHidden = 0
 
-            for keys in self._hideLineMap_:
+            for keys in self._hideLineMap:
                 match = re.search(keys,line)
                 if match:
                     tempConsecutiveLinesHidden = 1
                     break
 
             if tempConsecutiveLinesHidden == 1:
-                self._consecutiveLinesHidden_ += 1
+                self._consecutiveLinesHidden += 1
             else:
-                self._consecutiveLinesHidden_ = 0
+                self._consecutiveLinesHidden = 0
         else:
-            self._consecutiveLinesHidden_ = 0
+            self._consecutiveLinesHidden = 0
 
-        return self._consecutiveLinesHidden_
+        return self._consecutiveLinesHidden
 
-    def _getTimeStamp_(self,line):
+    def _getTimeStamp(self,line):
 
         # This is based on the settings of ColorTerminal
         # If you load a log file from another program, this might not work
@@ -182,9 +182,9 @@ class HighlightWorker():
     ##############
     # Main Worker
 
-    def _highlightWorker_(self):
+    def _highlightWorker(self):
 
-        while self._highlightFlag_:
+        while self._highlightFlag:
 
             ######
             # Get new line from queue
@@ -198,22 +198,22 @@ class HighlightWorker():
 
             ######
             # Process new line or process a buffer reload
-            if newLine or self._reloadLineBuffer_:
+            if newLine or self._reloadLineBuffer:
 
                 if newLine:
-                    self._addToLineBuffer_(newLine)
+                    self._addToLineBuffer(newLine)
 
                 linesToProcess = list()
 
-                if self._reloadLineBuffer_:
-                    self._reloadLineBuffer_ = False
+                if self._reloadLineBuffer:
+                    self._reloadLineBuffer = False
 
-                    linesToProcess = self._lineBuffer_
+                    linesToProcess = self._lineBuffer
 
                     # Wait for GUI queue to be empty and gui update to be done,
                     # otherwise some lines can be lost, when GUI is cleared
-                    self._guiWorker_.guiQueue.join()
-                    self._guiWorker_.guiEvent.wait()
+                    self._guiWorker.guiQueue.join()
+                    self._guiWorker.guiEvent.wait()
 
                     self.isReloadingLineBuffer = True
 
@@ -225,39 +225,39 @@ class HighlightWorker():
 
                 for line in linesToProcess:
 
-                    consecutiveLinesHidden = self._hideLines_(line)
+                    consecutiveLinesHidden = self._hideLines(line)
                     if consecutiveLinesHidden == 0:
-                        lineTags = self._locateLineTags_(line)
+                        lineTags = self._locateLineTags(line)
                         pLine = PrintLine(line,lineTags)
                     else:
-                        hideInfoLine = self._getTimeStamp_(line) + " Lines hidden: " + str(consecutiveLinesHidden) + "\n"
-                        lineTags = self._getHideLineColorTags_()
+                        hideInfoLine = self._getTimeStamp(line) + " Lines hidden: " + str(consecutiveLinesHidden) + "\n"
+                        lineTags = self._getHideLineColorTags()
                         if consecutiveLinesHidden > 1:
                             pLine = PrintLine(hideInfoLine,lineTags,True)
                         else:
                             pLine = PrintLine(hideInfoLine,lineTags,False)
 
-                    self._guiWorker_.guiQueue.put(pLine)
+                    self._guiWorker.guiQueue.put(pLine)
 
                 if self.isReloadingLineBuffer:
 
-                    self._guiWorker_.guiReloadEvent.clear()
+                    self._guiWorker.guiReloadEvent.clear()
                     self.isReloadingLineBuffer = False
-                    self._guiWorker_.reloadGuiBuffer()
+                    self._guiWorker.reloadGuiBuffer()
 
                     # Wait for gui to have processed new buffer
-                    self._guiWorker_.guiReloadEvent.wait()
+                    self._guiWorker.guiReloadEvent.wait()
 
             ######
             # Check if a line has to be updated in the buffer
-            if self._replaceLineBufferString_:
+            if self._replaceLineBufferString:
                                 
-                for idx,line in enumerate(self._lineBuffer_):                
-                    if line.find(self._stringReplaceOld_) != -1:
-                        self._lineBuffer_[idx] = line.replace(self._stringReplaceOld_,self._stringReplaceNew_)
-                        if not self._replaceAllInstances_:
+                for idx,line in enumerate(self._lineBuffer):                
+                    if line.find(self._stringReplaceOld) != -1:
+                        self._lineBuffer[idx] = line.replace(self._stringReplaceOld,self._stringReplaceNew)
+                        if not self._replaceAllInstances:
                             break
 
-                self._replaceLineBufferString_ = False
+                self._replaceLineBufferString = False
                 
 

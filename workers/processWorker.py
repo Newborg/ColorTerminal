@@ -10,25 +10,25 @@ import settings as Sets
 class ProcessWorker:
 
     def __init__(self,settings):
-        self._settings_ = settings
-        self._processFlag_ = False
+        self._settings = settings
+        self._processFlag = False
 
-        self._processThread_ = None
+        self._processThread = None
         self.processQueue = queue.Queue()
 
-        self._highlightWorker_ = None
-        self._logWriterWorker_ = None
+        self._highlightWorker = None
+        self._logWriterWorker = None
 
     ##############
     # Public Interface
 
     def startWorker(self):
 
-        if self._highlightWorker_ and self._logWriterWorker_:
-            if not self._processFlag_:
-                self._processFlag_ = True
-                self._processThread_ = threading.Thread(target=self._processWorker_,daemon=True,name="Process")
-                self._processThread_.start()
+        if self._highlightWorker and self._logWriterWorker:
+            if not self._processFlag:
+                self._processFlag = True
+                self._processThread = threading.Thread(target=self._processWorker,daemon=True,name="Process")
+                self._processThread.start()
             else:
                 traceLog(LogLevel.ERROR,"Not able to start process thread. Thread already enabled")
         else:
@@ -38,34 +38,34 @@ class ProcessWorker:
     def stopWorker(self,emptyQueue=True):
         "Stop process worker. Will block until thread is done"
 
-        if self._processFlag_:
+        if self._processFlag:
             if emptyQueue:
                 self.processQueue.join()
 
-            self._processFlag_ = False
+            self._processFlag = False
 
-            if self._processThread_:
-                if self._processThread_.isAlive():
-                    self._processThread_.join()
+            if self._processThread:
+                if self._processThread.isAlive():
+                    self._processThread.join()
 
     def linkWorkers(self,workers):
-        self._highlightWorker_ = workers.highlightWorker
-        self._logWriterWorker_ = workers.logWriterWorker
+        self._highlightWorker = workers.highlightWorker
+        self._logWriterWorker = workers.logWriterWorker
 
     ##############
     # Main Worker
 
-    def _processWorker_(self):
+    def _processWorker(self):
 
         # Create connect line
         timestamp = datetime.datetime.now()
         timeString = Sets.timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + Sets.timeStampBracket[1]
         connectLine = timeString + Sets.CONNECT_LINE_TEXT
-        self._highlightWorker_.highlightQueue.put(connectLine)
+        self._highlightWorker.highlightQueue.put(connectLine)
 
         lastTimestamp = 0
 
-        while self._processFlag_:
+        while self._processFlag:
             try:
                 line = self.processQueue.get(True,0.2)
                 self.processQueue.task_done()
@@ -106,8 +106,8 @@ class ProcessWorker:
                 # Construct newLine string
                 newLine = timeString + " " + timeDeltaString + " " + newData
 
-                self._highlightWorker_.highlightQueue.put(newLine)
-                self._logWriterWorker_.logQueue.put(newLine)
+                self._highlightWorker.highlightQueue.put(newLine)
+                self._logWriterWorker.logQueue.put(newLine)
 
             except queue.Empty:
                 pass

@@ -6,34 +6,34 @@ import settings as Sets
 class BottomFrame:
 
     def __init__(self,settings,rootClass):
-        self._settings_ = settings
-        self._root_ = rootClass.root
+        self._settings = settings
+        self._root = rootClass.root
 
-        self._bottomFrame_ = tk.Frame(self._root_)
+        self._bottomFrame = tk.Frame(self._root)
 
-        self._statLabel1_ = tk.Label(self._bottomFrame_,text="Lines in window buffer 0/" + str(self._settings_.get(Sets.MAX_LINE_BUFFER)), width=30, anchor=tk.W)
-        self._statLabel1_.pack(side=tk.LEFT)
+        self._statLabel1 = tk.Label(self._bottomFrame,text="Lines in window buffer 0/" + str(self._settings.get(Sets.MAX_LINE_BUFFER)), width=30, anchor=tk.W)
+        self._statLabel1.pack(side=tk.LEFT)
 
-        self._statLabel2_ = tk.Label(self._bottomFrame_,text="", width=30, anchor=tk.W)
-        self._statLabel2_.pack(side=tk.LEFT)
+        self._statLabel2 = tk.Label(self._bottomFrame,text="", width=30, anchor=tk.W)
+        self._statLabel2.pack(side=tk.LEFT)
 
-        self._statLabel3_ = tk.Label(self._bottomFrame_,text="", width=60, anchor=tk.E)
-        self._statLabel3_.pack(side=tk.RIGHT,padx=(0,18))
+        self._statLabel3 = tk.Label(self._bottomFrame,text="", width=60, anchor=tk.E)
+        self._statLabel3.pack(side=tk.RIGHT,padx=(0,18))
 
-        self._bottomFrame_.pack(side=tk.BOTTOM, fill=tk.X)
+        self._bottomFrame.pack(side=tk.BOTTOM, fill=tk.X)
 
     def updateWindowBufferLineCount(self,count):
-        self._statLabel1_.config(text="Lines in window buffer " + str(count) + "/" + str(self._settings_.get(Sets.MAX_LINE_BUFFER)))
+        self._statLabel1.config(text="Lines in window buffer " + str(count) + "/" + str(self._settings.get(Sets.MAX_LINE_BUFFER)))
 
     def updateLogFileLineCount(self,count):
-        self._statLabel2_.config(text="Lines in log file " + str(count))
+        self._statLabel2.config(text="Lines in log file " + str(count))
 
     def updateLogFileInfo(self,info,color,useRootAfter=False):
 
         if useRootAfter:
-            self._root_.after(10,self._updateLogFileInfo_,info,color)
+            self._root.after(10,self._updateLogFileInfo,info,color)
         else:
-            self._updateLogFileInfo_(info,color)
+            self._updateLogFileInfo(info,color)
 
-    def _updateLogFileInfo_(self,info,color):
-        self._statLabel3_.config(text=info,fg=color)
+    def _updateLogFileInfo(self,info,color):
+        self._statLabel3.config(text=info,fg=color)

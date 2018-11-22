@@ -16,31 +16,31 @@ def createLineColorTagName(regex):
 class TextFrame:
 
     def __init__(self,settings,rootClass):
-        self._settings_ = settings
-        self._root_ = rootClass.root
+        self._settings = settings
+        self._root = rootClass.root
 
-        self._lineColorMap_ = dict()
+        self._lineColorMap = dict()
 
-        self._highlightWorker_:HighlightWorker = None
+        self._highlightWorker:HighlightWorker = None
 
-        self._textFrame_ = tk.Frame(self._root_)
+        self._textFrame = tk.Frame(self._root)
 
-        fontList_ = tk.font.families()
-        if not self._settings_.get(Sets.FONT_FAMILY) in fontList_:
-            traceLog(LogLevel.WARNING,"Font \"" + self._settings_.get(Sets.FONT_FAMILY) + "\" not found in system")
+        fontList = tk.font.families()        
+        if not self._settings.get(Sets.FONT_FAMILY) in fontList:
+            traceLog(LogLevel.WARNING,"Font \"" + self._settings.get(Sets.FONT_FAMILY) + "\" not found in system")
 
-        tFont_ = Font(family=self._settings_.get(Sets.FONT_FAMILY), size=self._settings_.get(Sets.FONT_SIZE))
+        tFont = Font(family=self._settings.get(Sets.FONT_FAMILY), size=self._settings.get(Sets.FONT_SIZE))
 
-        self.textArea = tk.Text(self._textFrame_, height=1, width=1, background=self._settings_.get(Sets.BACKGROUND_COLOR),\
-                                selectbackground=self._settings_.get(Sets.SELECT_BACKGROUND_COLOR),\
-                                foreground=self._settings_.get(Sets.TEXT_COLOR), font=tFont_)
+        self.textArea = tk.Text(self._textFrame, height=1, width=1, background=self._settings.get(Sets.BACKGROUND_COLOR),\
+                                selectbackground=self._settings.get(Sets.SELECT_BACKGROUND_COLOR),\
+                                foreground=self._settings.get(Sets.TEXT_COLOR), font=tFont)
 
         self.textArea.config(state=tk.DISABLED)
 
         # Set up scroll bar
-        yscrollbar_=tk.Scrollbar(self._textFrame_, orient=tk.VERTICAL, command=self.textArea.yview)
-        yscrollbar_.pack(side=tk.RIGHT, fill=tk.Y)
-        self.textArea["yscrollcommand"]=yscrollbar_.set
+        yscrollbar=tk.Scrollbar(self._textFrame, orient=tk.VERTICAL, command=self.textArea.yview)
+        yscrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.textArea["yscrollcommand"]=yscrollbar.set
         self.textArea.pack(side=tk.LEFT, fill=tk.BOTH, expand = tk.YES)
 
 
@@ -53,29 +53,29 @@ class TextFrame:
         self.textArea.tag_bind(Sets.LOG_FILE_LINK_TAG, "<Leave>", self._leave_)
         self.textArea.tag_bind(Sets.LOG_FILE_LINK_TAG, "<Button-1>", self._click_)        
 
-        self._textFrame_.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
+        self._textFrame.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
 
         self.reloadLineColorMap()
         self.createAllTextFrameLineColorTag()
 
 
     def linkWorkers(self,workers):
-        self._highlightWorker_ = workers.highlightWorker
+        self._highlightWorker = workers.highlightWorker
 
     def reloadLineColorMap(self):
         
-        self._lineColorMap_.clear()
-        self._lineColorMap_ = self._settings_.get(Sets.LINE_COLOR_MAP)
+        self._lineColorMap.clear()
+        self._lineColorMap = self._settings.get(Sets.LINE_COLOR_MAP)
         # Add tag names to line color map
-        for lineColorRowId in self._lineColorMap_.keys():
-            self._lineColorMap_[lineColorRowId]["tagName"] = createLineColorTagName(self._lineColorMap_[lineColorRowId]["regex"])
+        for lineColorRowId in self._lineColorMap.keys():
+            self._lineColorMap[lineColorRowId]["tagName"] = createLineColorTagName(self._lineColorMap[lineColorRowId]["regex"])
 
     def getLineColorMap(self):
-        return self._lineColorMap_
+        return self._lineColorMap
 
     def createAllTextFrameLineColorTag(self):        
-        for key in sorted(self._lineColorMap_.keys()):            
-             self.createTextFrameLineColorTag(self._lineColorMap_[key]["tagName"], self._lineColorMap_[key]["color"])
+        for key in sorted(self._lineColorMap.keys()):            
+             self.createTextFrameLineColorTag(self._lineColorMap[key]["tagName"], self._lineColorMap[key]["color"])
 
     def createTextFrameLineColorTag(self,tagName,color):
         self.textArea.tag_configure(tagName, foreground=color)
@@ -90,11 +90,11 @@ class TextFrame:
 
         traceLog(LogLevel.DEBUG,"Reload text frame")
 
-        tFont = Font(family=self._settings_.get(Sets.FONT_FAMILY), size=self._settings_.get(Sets.FONT_SIZE))
+        tFont = Font(family=self._settings.get(Sets.FONT_FAMILY), size=self._settings.get(Sets.FONT_SIZE))
 
-        self.textArea.config(background=self._settings_.get(Sets.BACKGROUND_COLOR),\
-                            selectbackground=self._settings_.get(Sets.SELECT_BACKGROUND_COLOR),\
-                            foreground=self._settings_.get(Sets.TEXT_COLOR), font=tFont)
+        self.textArea.config(background=self._settings.get(Sets.BACKGROUND_COLOR),\
+                            selectbackground=self._settings.get(Sets.SELECT_BACKGROUND_COLOR),\
+                            foreground=self._settings.get(Sets.TEXT_COLOR), font=tFont)
 
     def addLineColorTagToText(self,regex,tagName):
 
@@ -130,7 +130,7 @@ class TextFrame:
         
         lineNumber = index.split(".")[0]
 
-        fileNameRegex = self._settings_.get(Sets.LOG_FILE_BASE_NAME) + ".*" + Sets.LOG_FILE_TYPE
+        fileNameRegex = self._settings.get(Sets.LOG_FILE_BASE_NAME) + ".*" + Sets.LOG_FILE_TYPE
 
         startIndex = str(lineNumber) + ".0"
         stopIndex = startIndex + "+1l"
@@ -140,14 +140,14 @@ class TextFrame:
         if pos:
             fileName = self.textArea.get(pos,pos + "+" + countVar.get() + "c")
             
-            renameFileView.RenameFile(self._settings_,self,self._root_,fileName)            
+            renameFileView.RenameFile(self._settings,self,self._root,fileName)            
         else:
             traceLog(LogLevel.ERROR, "Internal problem. No valid file name found in line")
 
     def updateDisconnectLineFileName(self,oldFileName,newFileName):
         
         # Update filename in line buffer
-        self._highlightWorker_.replaceLineBufferString(oldFileName,newFileName)
+        self._highlightWorker.replaceLineBufferString(oldFileName,newFileName)
 
         countVar = tk.StringVar()
         pos = self.textArea.search(oldFileName,"1.0",stopindex=tk.END,count=countVar,nocase=True,regexp=False)

@@ -23,110 +23,110 @@ from workers import readerWorker, processWorker, logWriterWorker, highlightWorke
 class ConnectController:
 
     def __init__(self,settings,rootClass):
-        self._settings_ = settings
-        self._rootClass_ = rootClass
-        self._root_ = rootClass.root
+        self._settings = settings
+        self._rootClass = rootClass
+        self._root = rootClass.root
 
-        self._closeProgram_ = False
+        self._closeProgram = False
 
-        self._readerWorker_ = None
-        self._processWorker_ = None
-        self._logWriterWorker_ = None
-        self._highlightWorker_ = None
-        self._guiWorker_ = None
+        self._readerWorker = None
+        self._processWorker = None
+        self._logWriterWorker = None
+        self._highlightWorker = None
+        self._guiWorker = None
 
-        self._controlFrame_ = None
+        self._controlFrame = None
 
-        self._appState_ = ConnectState.DISCONNECTED
+        self._appState = ConnectState.DISCONNECTED
 
     def linkWorkers(self,workers):
-        self._readerWorker_ = workers.readerWorker
-        self._processWorker_ = workers.processWorker
-        self._logWriterWorker_ = workers.logWriterWorker
-        self._highlightWorker_ = workers.highlightWorker
-        self._guiWorker_ = workers.guiWorker
+        self._readerWorker = workers.readerWorker
+        self._processWorker = workers.processWorker
+        self._logWriterWorker = workers.logWriterWorker
+        self._highlightWorker = workers.highlightWorker
+        self._guiWorker = workers.guiWorker
 
     def linkControlFrame(self,controlFrame):
-        self._controlFrame_ = controlFrame
+        self._controlFrame = controlFrame
 
     def connectSerial(self):
 
         traceLog(LogLevel.INFO,"Connect to serial")
 
-        if self._readerWorker_:
-            self._readerWorker_.startWorker()
+        if self._readerWorker:
+            self._readerWorker.startWorker()
 
-        if self._processWorker_:
-            self._processWorker_.startWorker()
+        if self._processWorker:
+            self._processWorker.startWorker()
 
-        if self._logWriterWorker_:
-            self._logWriterWorker_.startWorker()
+        if self._logWriterWorker:
+            self._logWriterWorker.startWorker()
 
 
     def disconnectSerial(self,close=False):
-        self._closeProgram_ = close
+        self._closeProgram = close
         # Disconnect will block, so must be done in different thread
-        disconnectThread = threading.Thread(target=self._disconnectSerialProcess_,name="Disconnect")
+        disconnectThread = threading.Thread(target=self._disconnectSerialProcess,name="Disconnect")
         disconnectThread.start()
 
-    def _disconnectSerialProcess_(self):
+    def _disconnectSerialProcess(self):
         traceLog(LogLevel.INFO,"Disconnect from serial")
 
         # Stop serial reader
-        self._readerWorker_.stopWorker()
+        self._readerWorker.stopWorker()
 
         # Empty process queue and stop process thread
-        self._processWorker_.stopWorker()
+        self._processWorker.stopWorker()
 
         # Empty log queue and stop log writer thread
-        self._logWriterWorker_.stopWorker()
+        self._logWriterWorker.stopWorker()
 
         # Add disconnect line if connected
-        if self._appState_ == ConnectState.CONNECTED:
+        if self._appState == ConnectState.CONNECTED:
             timestamp = datetime.datetime.now()
             timeString = Sets.timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + Sets.timeStampBracket[1]
 
-            disconnectLine = timeString + Sets.disconnectLineText + self._logWriterWorker_.lastLogFileInfo + "\n"
+            disconnectLine = timeString + Sets.disconnectLineText + self._logWriterWorker.lastLogFileInfo + "\n"
 
-            self._highlightWorker_.highlightQueue.put(disconnectLine)
+            self._highlightWorker.highlightQueue.put(disconnectLine)
 
 
         traceLog(LogLevel.INFO,"Main worker threads stopped")
 
-        self._controlFrame_.setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
-        self._controlFrame_.enablePortButtons()
-        self._appState_ = ConnectState.DISCONNECTED
+        self._controlFrame.setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
+        self._controlFrame.enablePortButtons()
+        self._appState = ConnectState.DISCONNECTED
 
-        if self._closeProgram_:
+        if self._closeProgram:
 
-            self._highlightWorker_.stopWorker(emptyQueue=False)
+            self._highlightWorker.stopWorker(emptyQueue=False)
 
-            self._guiWorker_.stopWorker()
+            self._guiWorker.stopWorker()
 
             # Close tkinter window (close program)
-            self._root_.after(100,self._rootClass_.destroyWindow)
+            self._root.after(100,self._rootClass.destroyWindow)
 
     def setAppState(self,state):
-        self._appState_ = state
+        self._appState = state
 
     def getAppState(self):
-        return self._appState_
+        return self._appState
 
     def changeAppState(self,state):
 
         # TODO Maybe change to toggle function
 
         if state == ConnectState.CONNECTED:
-            self._controlFrame_.setConnectButtonText("Disconnect")
+            self._controlFrame.setConnectButtonText("Disconnect")
             self.connectSerial()
-            self._controlFrame_.setStatusLabel("CONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
-            self._controlFrame_.disablePortButtons()
+            self._controlFrame.setStatusLabel("CONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
+            self._controlFrame.disablePortButtons()
 
         elif state == ConnectState.DISCONNECTED:
-            self._controlFrame_.setConnectButtonText("Connect")
+            self._controlFrame.setConnectButtonText("Connect")
             self.disconnectSerial()
-            self._controlFrame_.setStatusLabel("DISCONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
-            self._controlFrame_.disablePortButtons()
+            self._controlFrame.setStatusLabel("DISCONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
+            self._controlFrame.disablePortButtons()
 
 ################################
 # Root frame
