@@ -1,4 +1,5 @@
 import tkinter as tk
+import time
 
 
 import settings as Sets
@@ -9,6 +10,8 @@ class Search:
         self._settings = settings
         self._textField = None
         self._showing = False
+
+        self._searchJob = None
 
         self._results = list()
         self._selectedResultIndex = -1
@@ -57,7 +60,7 @@ class Search:
 
             self._var = tk.StringVar(self._view)
             self._var.set("")
-            self._var.trace("w",self._search)
+            self._var.trace("w",self._searchUpdate)
 
             self._entry = tk.Entry(self._view,textvariable=self._var)
             self._entry.pack(side=tk.LEFT,padx=(4,2))
@@ -69,13 +72,13 @@ class Search:
             self._label.pack(side=tk.LEFT,anchor=tk.E)
 
             self._caseVar = tk.StringVar(self._view)
-            self._caseVar.trace("w",self._search)
+            self._caseVar.trace("w",self._searchUpdate)
             self._caseButton = tk.Checkbutton(self._view,text="Aa",variable=self._caseVar,cursor="arrow",onvalue=self.STRING_FALSE,offvalue=self.STRING_TRUE)
             self._caseButton.pack(side=tk.LEFT)
             self._caseButton.deselect()
 
             self._regexVar = tk.StringVar(self._view)
-            self._regexVar.trace("w",self._search)
+            self._regexVar.trace("w",self._searchUpdate)
             self._regexButton = tk.Checkbutton(self._view,text=".*",variable=self._regexVar,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)
             self._regexButton.pack(side=tk.LEFT)
             self._regexButton.deselect()
@@ -129,12 +132,16 @@ class Search:
             # We are currently searching through all lines every time a new line is added.
             # This can likely be updated to just search the new line added,
             # but will require some rework of the result list, including updating all line numbers
-            self._search(searchStringUpdated=reloadSelectedResult)
+            self._searchUpdate(searchStringUpdated=reloadSelectedResult)
 
 
-    def _search(self,searchStringUpdated=True,*args):
+    def _searchUpdate(self,searchStringUpdated=True,*args):
 
         if self._showing:
+            
+            if self._searchJob:
+                self._textField.after_cancel(self._searchJob)
+                print("Search job cancelled")
 
             string = self._var.get()
 
@@ -148,27 +155,98 @@ class Search:
 
             if string:
 
-                nocase = self._caseVar.get() == self.STRING_TRUE
-                regexp = self._regexVar.get() == self.STRING_TRUE
+                self._nocase = self._caseVar.get() == self.STRING_TRUE
+                self._regexp = self._regexVar.get() == self.STRING_TRUE
 
-                countVar = tk.StringVar()
-                while True:
-                    pos = self._textField.search(string,self._start,stopindex=tk.END,count=countVar,nocase=nocase,regexp=regexp)
-                    if not pos:
-                        break
-                    else:
-                        line = int(pos.split(".")[0])                        
-                        self._results.append((pos,pos + "+" + countVar.get() + "c",line))
-                        self._start = pos + "+1c"
+                self._startTime = time.time()
+                
+                # TODO does not work with new lines added from insert line.
+                self._searchJob = self._textField.after(0,self._searchProcess,string,searchStringUpdated)
 
-                for result in self._results:
-                    self._textField.tag_add(self.TAG_SEARCH, result[0], result[1])
+                # startTime = time.time()
 
-                if searchStringUpdated:
-                    self._selectedResultIndex = -1
-                    self._selectNextResult()
+                # countVar = tk.StringVar()
+                # while True:
+                #     pos = self._textField.search(string,self._start,stopindex=tk.END,count=countVar,nocase=self._nocase,regexp=self._regexp)
+                #     if not pos:
+                #         break
+                #     else:
+                #         line = int(pos.split(".")[0])                        
+                #         self._results.append((pos,pos + "+" + countVar.get() + "c",line))
+                #         self._start = pos + "+1c"
+
+                # searchTime = time.time()
+
+                # for result in self._results:
+                #     self._textField.tag_add(self.TAG_SEARCH, result[0], result[1])
+                
+                # tagTime = time.time()
+
+                # if searchStringUpdated:
+                #     self._selectedResultIndex = -1
+                #     self._selectNextResult()
+
+                # print("Search time: " + str(searchTime-startTime))
+                # print("Tag time   : " + str(tagTime-searchTime))
 
             self._updateResultInfo()
+    
+    def _searchProcess(self,string,searchStringUpdated):
+
+        countVar = tk.StringVar()
+        loopMax = 500
+
+        searchCompleted = False
+        self._tempResults = list()
+
+        for _ in range(loopMax):        
+            pos = self._textField.search(string,self._start,stopindex=tk.END,count=countVar,nocase=self._nocase,regexp=self._regexp)
+            if not pos:
+                searchCompleted = True
+                break                
+            else:
+                line = int(pos.split(".")[0])                        
+                self._tempResults.append((pos,pos + "+" + countVar.get() + "c",line))
+                self._start = pos + "+1c"
+
+        for result in self._tempResults:
+            self._textField.tag_add(self.TAG_SEARCH, result[0], result[1])
+
+        self._results.extend(self._tempResults)
+
+        if searchStringUpdated:
+            self._selectedResultIndex = -1
+            self._selectNextResult()
+
+        self._updateResultInfo()
+
+
+        if searchCompleted:    
+            self._searchTime = time.time()                
+            # for result in self._tempResults:
+            #     self._textField.tag_add(self.TAG_SEARCH, result[0], result[1])
+
+            # self._results.extend(self._tempResults)
+
+            # tagTime = time.time()
+
+            # if searchStringUpdated:
+            #     self._selectedResultIndex = -1
+            #     self._selectNextResult()
+
+            # self._tagTime = time.time()
+
+            # self._updateResultInfo()
+
+            self._searchJob = None
+
+            print("Search time: " + str(self._searchTime-self._startTime))
+            # print("Tag time   : " + str(self._tagTime-self._searchTime))
+
+        else:             
+            self._searchJob = self._textField.after(1,self._searchProcess,string,searchStringUpdated)
+        
+        
 
     def _selectNextResult(self,*args):
         self._incrementResultIndex()
