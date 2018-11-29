@@ -94,11 +94,15 @@ class Search:
 
             self._entry.focus_set()
 
-    def searchLinesAdded(self,numberOfLinesDeleted):
+    def searchLinesAdded(self,numberOfLinesAdded,numberOfLinesDeleted,lastLine):
 
         if self._showing:
 
             reloadSelectedResult = False
+
+            # Start by updating result list
+            start = lastLine - numberOfLinesAdded
+            # TODO
 
             # If lines have been deleted from the window line buffer, search must be updated
             if numberOfLinesDeleted > 0:
@@ -150,7 +154,7 @@ class Search:
                 self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
 
             self._textField.tag_remove(self.TAG_SEARCH,1.0,tk.END)
-            self._start = "1.0"
+            start = "1.0"
             self._results = list()
 
             if string:
@@ -161,37 +165,37 @@ class Search:
                 self._startTime = time.time()
                 
                 # TODO does not work with new lines added from insert line.
-                self._searchJob = self._textField.after(0,self._searchProcess,string,searchStringUpdated)
+                # self._searchJob = self._textField.after(0,self._searchProcess,string,start,searchStringUpdated)
 
-                # startTime = time.time()
+                startTime = time.time()
 
-                # countVar = tk.StringVar()
-                # while True:
-                #     pos = self._textField.search(string,self._start,stopindex=tk.END,count=countVar,nocase=self._nocase,regexp=self._regexp)
-                #     if not pos:
-                #         break
-                #     else:
-                #         line = int(pos.split(".")[0])                        
-                #         self._results.append((pos,pos + "+" + countVar.get() + "c",line))
-                #         self._start = pos + "+1c"
+                countVar = tk.StringVar()
+                while True:
+                    pos = self._textField.search(string,start,stopindex=tk.END,count=countVar,nocase=self._nocase,regexp=self._regexp)
+                    if not pos:
+                        break
+                    else:
+                        line = int(pos.split(".")[0])                        
+                        self._results.append((pos,pos + "+" + countVar.get() + "c",line))
+                        start = pos + "+1c"
 
-                # searchTime = time.time()
+                searchTime = time.time()
 
-                # for result in self._results:
-                #     self._textField.tag_add(self.TAG_SEARCH, result[0], result[1])
+                for result in self._results:
+                    self._textField.tag_add(self.TAG_SEARCH, result[0], result[1])
                 
-                # tagTime = time.time()
+                tagTime = time.time()
 
-                # if searchStringUpdated:
-                #     self._selectedResultIndex = -1
-                #     self._selectNextResult()
+                if searchStringUpdated:
+                    self._selectedResultIndex = -1
+                    self._selectNextResult()
 
-                # print("Search time: " + str(searchTime-startTime))
-                # print("Tag time   : " + str(tagTime-searchTime))
+                print("Search time: " + str(searchTime-startTime))
+                print("Tag time   : " + str(tagTime-searchTime))
 
             self._updateResultInfo()
     
-    def _searchProcess(self,string,searchStringUpdated):
+    def _searchProcess(self,string,start,searchStringUpdated):
 
         countVar = tk.StringVar()
         loopMax = 500
@@ -200,14 +204,14 @@ class Search:
         self._tempResults = list()
 
         for _ in range(loopMax):        
-            pos = self._textField.search(string,self._start,stopindex=tk.END,count=countVar,nocase=self._nocase,regexp=self._regexp)
+            pos = self._textField.search(string,start,stopindex=tk.END,count=countVar,nocase=self._nocase,regexp=self._regexp)
             if not pos:
                 searchCompleted = True
                 break                
             else:
                 line = int(pos.split(".")[0])                        
                 self._tempResults.append((pos,pos + "+" + countVar.get() + "c",line))
-                self._start = pos + "+1c"
+                start = pos + "+1c"
 
         for result in self._tempResults:
             self._textField.tag_add(self.TAG_SEARCH, result[0], result[1])
@@ -244,7 +248,7 @@ class Search:
             # print("Tag time   : " + str(self._tagTime-self._searchTime))
 
         else:             
-            self._searchJob = self._textField.after(1,self._searchProcess,string,searchStringUpdated)
+            self._searchJob = self._textField.after(1,self._searchProcess,string,start,searchStringUpdated)
         
         
 

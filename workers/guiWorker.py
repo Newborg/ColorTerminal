@@ -150,7 +150,7 @@ class GuiWorker:
                 self._bottomFrame.updateLogFileLineCount("Lines in log file " + str(self._logWriterWorker.linesInLogFile))
 
                 numberOfLinesDeleted = linesInserted - (lastLineAtEnd - lastLineAtStart)
-                self._search.searchLinesAdded(numberOfLinesDeleted=numberOfLinesDeleted)
+                self._search.searchLinesAdded(numberOfLinesAdded=linesInserted,numberOfLinesDeleted=numberOfLinesDeleted,lastLine=lastLineAtEnd)
 
             if reloadInitiated:
                 self.guiReloadEvent.set()
