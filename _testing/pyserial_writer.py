@@ -9,6 +9,8 @@ keepWriting = 1
 logFile = "log_example_small.txt"
 # logFile = "log_search.txt"
 
+timePeriod = 0.2
+
 def writer():
 
     with open(logFile,"r") as file:
@@ -27,10 +29,10 @@ def writer():
                     i = i + 1
                     if i == len(lines):
                         i = 0
-                        time.sleep(0.2)
+                        time.sleep(timePeriod)
                         ser.write(b"\x41\x42\x43\xFE\x41\x42\x43\xFE\x41\x42\x43")
                         ser.write(str.encode("\n",encoding="utf-8"))
-                    time.sleep(0.2)
+                    time.sleep(timePeriod)
 
                 except serial.SerialTimeoutException:
                     pass

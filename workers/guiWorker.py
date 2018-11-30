@@ -49,9 +49,12 @@ class GuiWorker:
     def startWorker(self):
 
         if self._highlightWorker != None and self._logWriterWorker != None:
-            self._cancelGuiJob()
-            self._updateGuiFlag = True
-            self._updateGuiJob = self._root.after(50,self._waitForInput)
+            if not self._updateGuiFlag:
+                self._cancelGuiJob()
+                self._updateGuiFlag = True
+                self._updateGuiJob = self._root.after(50,self._waitForInput)
+            # else:
+            #     traceLog(LogLevel.ERROR,"Not able to start gui thread. Thread already enabled")
         else:
             traceLog(LogLevel.ERROR,"Gui Worker: highlight or logwriter not set.")
 
@@ -60,9 +63,7 @@ class GuiWorker:
         "Will block until GUI worker is done. GUI queue is always emptied before stop."
 
         self._cancelGuiJob()
-
-        self._updateGuiFlag = False
-        time.sleep(0.05) # This might not be needed, but is just to be sure that the updateGui function has not started
+        self._updateGuiFlag = False        
         self.guiEvent.wait()
 
     def reloadGuiBuffer(self):
@@ -159,14 +160,14 @@ class GuiWorker:
 
 
     def _cancelGuiJob(self):
-        if self._updateGuiJob is not None:
+        if self._updateGuiJob:
             self._root.after_cancel(self._updateGuiJob)
             self._updateGuiJob = None
 
     def _waitForInput(self):
-        if self._updateGuiFlag:
-            self.guiEvent.clear()
-            self._updateGUI()
-            self.guiEvent.set()
+        self.guiEvent.clear()
+        if self._updateGuiFlag:            
+            self._updateGUI()            
             self._updateGuiJob = self._root.after(100,self._waitForInput)
+        self.guiEvent.set()
             

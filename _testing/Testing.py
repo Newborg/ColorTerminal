@@ -1,4 +1,10 @@
 #####################################
+# List to vars
+
+# pos = "3.4"
+# (line,test) = int(pos.split(".")) 
+
+#####################################
 # UTF-8 encode decode
 
 line = b"\x41\x42\x43\xFE\x41\x42\x43\xFE\x41\x42\x43"

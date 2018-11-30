@@ -9,15 +9,20 @@ class Search:
     def __init__(self,settings):
         self._settings = settings
         self._textField = None
+        self._guiWorker = None
         self._showing = False
 
         self._searchJob = None
 
         self._results = list()
         self._selectedResultIndex = -1
+        self._lineNumberDeleteOffset = 0
 
     def linkTextFrame(self,textFrame):
         self._textField = textFrame.textArea
+
+    def linkWorkers(self,workers):
+        self._guiWorker = workers.guiWorker
 
     def close(self,*event):
 
@@ -45,6 +50,18 @@ class Search:
 
     NO_RESULT_STRING = "No result"
 
+    class Result:
+        def __init__(self,line,startColumn,length):
+            self.originalLineNumber = line
+            self.startColumn = startColumn
+            self.length = length
+
+        def getStartAndEndIndex(self,deletedLines):
+            pos = str(self.originalLineNumber - deletedLines) + "." + str(self.startColumn)
+            endPos = pos + "+" + str(self.length) + "c"
+            return (pos,endPos)
+
+
     def show(self,*args):
 
         if not self._showing:
@@ -60,7 +77,7 @@ class Search:
 
             self._var = tk.StringVar(self._view)
             self._var.set("")
-            self._var.trace("w",self._searchUpdate)
+            self._var.trace("w",self._searchStringUpdated)
 
             self._entry = tk.Entry(self._view,textvariable=self._var)
             self._entry.pack(side=tk.LEFT,padx=(4,2))
@@ -72,23 +89,27 @@ class Search:
             self._label.pack(side=tk.LEFT,anchor=tk.E)
 
             self._caseVar = tk.StringVar(self._view)
-            self._caseVar.trace("w",self._searchUpdate)
-            self._caseButton = tk.Checkbutton(self._view,text="Aa",variable=self._caseVar,cursor="arrow",onvalue=self.STRING_FALSE,offvalue=self.STRING_TRUE)
-            self._caseButton.pack(side=tk.LEFT)
-            self._caseButton.deselect()
+            self._caseVar.trace("w",self._searchStringUpdated)
+            caseButton = tk.Checkbutton(self._view,text="Aa",variable=self._caseVar,cursor="arrow",onvalue=self.STRING_FALSE,offvalue=self.STRING_TRUE)
+            caseButton.pack(side=tk.LEFT)
+            caseButton.deselect()
 
             self._regexVar = tk.StringVar(self._view)
-            self._regexVar.trace("w",self._searchUpdate)
-            self._regexButton = tk.Checkbutton(self._view,text=".*",variable=self._regexVar,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)
-            self._regexButton.pack(side=tk.LEFT)
-            self._regexButton.deselect()
+            self._regexVar.trace("w",self._searchStringUpdated)
+            regexButton = tk.Checkbutton(self._view,text=".*",variable=self._regexVar,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)
+            regexButton.pack(side=tk.LEFT)
+            regexButton.deselect()
 
-            self._closeButton = tk.Button(self._view,text="X",command=self.close,cursor="arrow",relief=tk.FLAT)
-            self._closeButton.pack(side=tk.LEFT)
+            closeButton = tk.Button(self._view,text="X",command=self.close,cursor="arrow",relief=tk.FLAT)
+            closeButton.pack(side=tk.LEFT)
 
             # Bind escape to close view
             self._textField.bind("<Escape>",self.close)
             self._entry.bind("<Escape>",self.close)
+
+            # Init search settings
+            self._nocase = self._caseVar.get() == self.STRING_TRUE
+            self._regexp = self._regexVar.get() == self.STRING_TRUE
 
         else:
 
@@ -98,104 +119,96 @@ class Search:
 
         if self._showing:
 
-            reloadSelectedResult = False
+            string = self._var.get()
 
-            # Start by updating result list
-            start = lastLine - numberOfLinesAdded
-            # TODO
+            if string:
 
-            # If lines have been deleted from the window line buffer, search must be updated
-            if numberOfLinesDeleted > 0:
+                # Instead of updating indexes in all results in the result list,
+                # we keep track of the lines deleted and use this to offset when an index is needed.
+                self._lineNumberDeleteOffset += numberOfLinesDeleted
 
-                # Check if selectedResultIndex is currently pointing to a valid search result
-                if self._selectedResultIndex > -1 and self._selectedResultIndex < len(self._results):
+                # Search in newly added lines
+                searchStartIndex = str(lastLine - numberOfLinesAdded + 1) + ".0"
+                countVar = tk.StringVar()
+                while True:
+                    pos = self._textField.search(string,searchStartIndex,stopindex=tk.END,count=countVar,nocase=self._nocase,regexp=self._regexp)
+                    if not pos:
+                        break
+                    else:
+                        posSplit = pos.split(".")
+                        newLine = int(posSplit[0]) + self._lineNumberDeleteOffset # Add number of deleted line to line number to match existing results in result list
+                        column = int(posSplit[1])
 
-                    # Get current (old, as lines have been deleted) line number of selected search result
-                    selectedResultLineNumber = self._results[self._selectedResultIndex][2]
+                        result = self.Result(newLine,column,int(countVar.get()))
+                        self._results.append(result)
+                        self._addTag(self.TAG_SEARCH, result)
 
-                    # Check if line with selected result has been deleted.
-                    # In that case, select the next result in the window
-                    if selectedResultLineNumber <= numberOfLinesDeleted:
-                        reloadSelectedResult = True
+                        searchStartIndex = pos + "+1c"
+
+                # If lines have been deleted from the window line buffer, find and remove results from these lines
+                if numberOfLinesDeleted > 0:
+                    resultsDeleted = 0
+                    for result in self._results:
+                        if (result.originalLineNumber - self._lineNumberDeleteOffset) <= 0:
+                            resultsDeleted += 1
+                        else:
+                            break
+
+                    for _ in range(resultsDeleted):
+                        del self._results[0]
+
+                    # Update index of the selected result
+                    self._selectedResultIndex = self._selectedResultIndex - resultsDeleted
+
+                    if self._results:
+                        # If new selected result is no longer pointing to a valid result, selected first result in list (line with selected result has been deleted)
+                        if self._selectedResultIndex < 0 or self._selectedResultIndex >= len(self._results):
+                            self._selectedResultIndex = 0
 
                     else:
-                        # Check if a line with a result has been deleted.
-                        # In that case, update index of selected result accordingly.
-                        # No need to update results list, as this is reloaded on every call                       
-                        
-                        resultsDeleted = 0                        
-                        for result in self._results:
-                            if result[2] <= numberOfLinesDeleted:
-                                resultsDeleted += 1
-                            else:                         
-                                break
-                        
-                        self._selectedResultIndex = self._selectedResultIndex - resultsDeleted
+                        self._selectedResultIndex = -1
+
+                    self._updateSelectedResultTags()
+
+            self._updateResultInfo()
 
 
-            # We are currently searching through all lines every time a new line is added.
-            # This can likely be updated to just search the new line added,
-            # but will require some rework of the result list, including updating all line numbers
-            self._searchUpdate(searchStringUpdated=reloadSelectedResult)
-
-
-    def _searchUpdate(self,searchStringUpdated=True,*args):
+    def _searchStringUpdated(self,*args):
 
         if self._showing:
-            
-            if self._searchJob:
-                self._textField.after_cancel(self._searchJob)
-                print("Search job cancelled")
 
             string = self._var.get()
 
-            if searchStringUpdated:
-                self._textField.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
-                self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
+            if self._searchJob:
+                self._textField.after_cancel(self._searchJob)
+                self._searchJob = None
+                if not string:
+                    # If search field is empty, the guiWorker has to be started again
+                    self._guiWorker.startWorker()
 
+            self._textField.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
+            self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
             self._textField.tag_remove(self.TAG_SEARCH,1.0,tk.END)
+
             start = "1.0"
             self._results = list()
+            self._lineNumberDeleteOffset = 0
 
             if string:
 
                 self._nocase = self._caseVar.get() == self.STRING_TRUE
                 self._regexp = self._regexVar.get() == self.STRING_TRUE
 
-                self._startTime = time.time()
+                # self._startTime = time.time()
+
+                # Stop GUI worker to prevent lines being added during search (A large search can take up to 900 ms)
+                self._guiWorker.stopWorker()
                 
-                # TODO does not work with new lines added from insert line.
-                # self._searchJob = self._textField.after(0,self._searchProcess,string,start,searchStringUpdated)
-
-                startTime = time.time()
-
-                countVar = tk.StringVar()
-                while True:
-                    pos = self._textField.search(string,start,stopindex=tk.END,count=countVar,nocase=self._nocase,regexp=self._regexp)
-                    if not pos:
-                        break
-                    else:
-                        line = int(pos.split(".")[0])                        
-                        self._results.append((pos,pos + "+" + countVar.get() + "c",line))
-                        start = pos + "+1c"
-
-                searchTime = time.time()
-
-                for result in self._results:
-                    self._textField.tag_add(self.TAG_SEARCH, result[0], result[1])
-                
-                tagTime = time.time()
-
-                if searchStringUpdated:
-                    self._selectedResultIndex = -1
-                    self._selectNextResult()
-
-                print("Search time: " + str(searchTime-startTime))
-                print("Tag time   : " + str(tagTime-searchTime))
+                self._searchJob = self._textField.after(0,self._searchProcess,string,start)
 
             self._updateResultInfo()
-    
-    def _searchProcess(self,string,start,searchStringUpdated):
+
+    def _searchProcess(self,string,start):
 
         countVar = tk.StringVar()
         loopMax = 500
@@ -203,75 +216,68 @@ class Search:
         searchCompleted = False
         self._tempResults = list()
 
-        for _ in range(loopMax):        
+        for _ in range(loopMax):
             pos = self._textField.search(string,start,stopindex=tk.END,count=countVar,nocase=self._nocase,regexp=self._regexp)
             if not pos:
                 searchCompleted = True
-                break                
-            else:
-                line = int(pos.split(".")[0])                        
-                self._tempResults.append((pos,pos + "+" + countVar.get() + "c",line))
+                break
+            else:                
+                posSplit = pos.split(".")
+                self._tempResults.append(self.Result(int(posSplit[0]),int(posSplit[1]),int(countVar.get())))
                 start = pos + "+1c"
 
-        for result in self._tempResults:
-            self._textField.tag_add(self.TAG_SEARCH, result[0], result[1])
+        for result in self._tempResults:            
+            self._addTag(self.TAG_SEARCH, result)
 
         self._results.extend(self._tempResults)
 
-        if searchStringUpdated:
-            self._selectedResultIndex = -1
-            self._selectNextResult()
+        self._selectedResultIndex = -1
+        self._selectNextResult()
 
         self._updateResultInfo()
 
-
-        if searchCompleted:    
-            self._searchTime = time.time()                
-            # for result in self._tempResults:
-            #     self._textField.tag_add(self.TAG_SEARCH, result[0], result[1])
-
-            # self._results.extend(self._tempResults)
-
-            # tagTime = time.time()
-
-            # if searchStringUpdated:
-            #     self._selectedResultIndex = -1
-            #     self._selectNextResult()
-
-            # self._tagTime = time.time()
-
-            # self._updateResultInfo()
+        if searchCompleted:
+            # self._searchTime = time.time()
 
             self._searchJob = None
+            self._guiWorker.startWorker()
 
-            print("Search time: " + str(self._searchTime-self._startTime))
-            # print("Tag time   : " + str(self._tagTime-self._searchTime))
+            # print("Search time: " + str(self._searchTime-self._startTime))            
 
-        else:             
-            self._searchJob = self._textField.after(1,self._searchProcess,string,start,searchStringUpdated)
-        
-        
+        else:
+            self._searchJob = self._textField.after(1,self._searchProcess,string,start)
 
-    def _selectNextResult(self,*args):
-        self._incrementResultIndex()
+    def _addTag(self,tag,searchResult:Result):
+        (pos,endPos) = searchResult.getStartAndEndIndex(self._lineNumberDeleteOffset)
+        self._textField.tag_add(tag, pos, endPos)
+
+    def _updateSelectedResultTags(self,*args):
+
         if self._selectedResultIndex > -1 and self._selectedResultIndex < len(self._results):
 
             # Selected result tag
             selected = self._textField.tag_ranges(self.TAG_SEARCH_SELECT)
             if selected:
                 self._textField.tag_remove(self.TAG_SEARCH_SELECT,selected[0],selected[1])
-            self._textField.tag_add(self.TAG_SEARCH_SELECT, self._results[self._selectedResultIndex][0], self._results[self._selectedResultIndex][1])
+            self._addTag(self.TAG_SEARCH_SELECT,self._results[self._selectedResultIndex])
 
             # Background of selected line
             selectedBg = self._textField.tag_ranges(self.TAG_SEARCH_SELECT_BG)
             if selectedBg:
                 self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,selectedBg[0],selectedBg[1])
-            selectLine = self._results[self._selectedResultIndex][0].split(".")[0]
-            self._textField.tag_add(self.TAG_SEARCH_SELECT_BG, selectLine + ".0", selectLine + ".0+1l")
+            selectLine = self._results[self._selectedResultIndex].originalLineNumber - self._lineNumberDeleteOffset
+            self._textField.tag_add(self.TAG_SEARCH_SELECT_BG, str(selectLine) + ".0", str(selectLine) + ".0+1l")
 
-            self._textField.see(self._results[self._selectedResultIndex][0])
+            # Focus window on selected result
+            self._textField.see(self._results[self._selectedResultIndex].getStartAndEndIndex(self._lineNumberDeleteOffset)[0])
 
-            self._updateResultInfo()
+
+    def _selectNextResult(self,*args):
+        self._incrementResultIndex()
+
+        self._updateSelectedResultTags()
+
+        self._updateResultInfo()
 
     def _incrementResultIndex(self):
         if self._results:
@@ -280,7 +286,6 @@ class Search:
                 self._selectedResultIndex = 0
 
     def _updateResultInfo(self):
-
         if not self._results:
             self._label.config(text=self.NO_RESULT_STRING)
         else:
