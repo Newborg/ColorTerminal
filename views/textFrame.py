@@ -84,6 +84,8 @@ class TextFrame:
                             selectbackground=self._settings.get(Sets.TEXTAREA_SELECT_BACKGROUND_COLOR),\
                             foreground=self._settings.get(Sets.TEXTAREA_COLOR), font=tFont)
 
+        self.updateLineWrap(self._settings.get(Sets.TEXTAREA_LINE_WRAP))
+
     def updateLineWrap(self,lineWrapState):
         if lineWrapState == Sets.LINE_WRAP_ON:
             self.textArea.config(wrap=tk.CHAR)

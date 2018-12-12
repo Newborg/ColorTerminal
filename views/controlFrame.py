@@ -48,8 +48,8 @@ class ControlFrame:
         # hideLinesButton_ = tk.Button(topFrame_,text="Hide Lines", command=hideLinesCommand, width=10)
         # hideLinesButton_.pack(side=tk.LEFT)
 
-        self._lineWrapToggleButton = tk.Button(self._topFrame,text="Line Wrap", command=self._lineWrapToggleCommmand, width=10)
-        self._lineWrapToggleButton.pack(side=tk.LEFT)
+        # self._lineWrapToggleButton = tk.Button(self._topFrame,text="Line Wrap", command=self._lineWrapToggleCommmand, width=10)
+        # self._lineWrapToggleButton.pack(side=tk.LEFT)
 
         self._clearButton = tk.Button(self._topFrame,text="Clear", command=self._clearButtonCommand, width=10)
         self._clearButton.pack(side=tk.LEFT,padx=(0,40))

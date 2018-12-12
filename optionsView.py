@@ -224,7 +224,7 @@ class OptionsView:
             setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.TEXTAREA_COLOR, "Text Color", self.ENTRY_TYPE_COLOR))
             setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.TEXTAREA_FONT_FAMILY, "Font Family", self.ENTRY_TYPE_STRING))
             setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.TEXTAREA_FONT_SIZE, "Font Size", self.ENTRY_TYPE_INT))
-            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.TEXTAREA_LINE_WRAP, "Line Wrap On", self.ENTRY_TYPE_TOGGLE))
+            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.TEXTAREA_LINE_WRAP, "Line Wrap", self.ENTRY_TYPE_TOGGLE))
 
             self._setsDict.update(self._createStandardRows(self._textAreaFrame,setLines,0))
 
@@ -549,6 +549,7 @@ class OptionsView:
             entry.label = tk.Label(parent,text=setLine.setDisplayName)
             entry.label.grid(row=row,column=0,sticky=tk.W)
 
+            ########
             # Entry variable
             if setLine.setType == self.ENTRY_TYPE_INT:
                 entry.var = tk.IntVar(parent)
@@ -560,22 +561,28 @@ class OptionsView:
             # TODO use tkinter validateCommand
             entry.observer = entry.var.trace("w",partial(self._validateInput,setLine.setId,entryName))
 
-            # Entry field
+            ########
+            # Input field
             if setLine.setType == self.ENTRY_TYPE_TOGGLE:
-                entry.input = tk.Checkbutton(parent,"",variable=entry.var)
-            else:
+                # TODO create better toggle values (link to specific settings)
+                toggleButtonFrame = tk.Frame(parent)
+                toggleButtonFrame.grid(row=row,column=1,sticky=tk.E+tk.W)
+                toggleButtonFrame.grid_columnconfigure(0,weight=1)
+                toggleButtonFrame.grid_columnconfigure(1,weight=1)
+                onButton = tk.Radiobutton(toggleButtonFrame,text="On",variable=entry.var, indicatoron=False,value="on")
+                onButton.grid(row=0,column=0,sticky=tk.E+tk.W)
+                offButton = tk.Radiobutton(toggleButtonFrame,text="Off",variable=entry.var, indicatoron=False,value="off")
+                offButton.grid(row=0,column=1,sticky=tk.E+tk.W)
+            else:                
                 # TODO Find better solution for entry width
                 entry.input = tk.Entry(parent,textvariable=entry.var,width=int(maxLen*1.5),takefocus=False)
+                entry.input.grid(row=row,column=1)
 
-            entry.input.grid(row=row,column=1)
-
+            ########
             # Color button
             if setLine.setType == self.ENTRY_TYPE_COLOR:
                 entry.button = tk.Button(parent,bg=self._settings.get(setLine.setId),width=3,command=partial(self._getColor,setLine.setId,entryName))
                 entry.button.grid(row=row,column=2,padx=4)
-
-
-
 
             setRow.entries[entryName] = entry
             setDict[setLine.setId] = setRow
@@ -668,6 +675,13 @@ class OptionsView:
                                                 selectbackground=self._setsDict[Sets.TEXTAREA_SELECT_BACKGROUND_COLOR].entries[entryName].var.get(),\
                                                 foreground=self._setsDict[Sets.TEXTAREA_COLOR].entries[entryName].var.get(),\
                                                 font=tFont)
+
+                lineWrapString = self._setsDict[Sets.TEXTAREA_LINE_WRAP].entries[entryName].var.get()
+                if lineWrapString == "on":
+                    self._updateExampleTextLineWrap(Sets.LINE_WRAP_ON)
+                elif lineWrapString == "off":
+                    self._updateExampleTextLineWrap(Sets.LINE_WRAP_OFF)
+                    
             except tk.TclError:
                 pass
 
@@ -731,7 +745,7 @@ class OptionsView:
                         start = pos + "+1c"
 
     def _updateExampleTextLineWrap(self,lineWrapState):
-
+        
         if lineWrapState == Sets.LINE_WRAP_ON:
             self._exampleText.config(wrap=tk.CHAR)
         else:
@@ -786,34 +800,41 @@ class OptionsView:
             if isValid:
                 self._updateExampleText(settingsLine.group)
 
-        entryId = rowId + "_" + entryName
+        #######
+        # Track valid entries
 
-        try:
-            self._notValidEntries.remove(entryId)
-        except ValueError:
-            pass
+        if entry.data.entryType != self.ENTRY_TYPE_TOGGLE:
 
-        if isValid:
-            entry.input.config(background="white")
-        else:
-            entry.input.config(background=notValidBackgroundColor)
-            self._notValidEntries.append(entryId)
+            entryId = rowId + "_" + entryName
 
-        infoText = ""
-        for notValidEntry in self._notValidEntries:
+            try:
+                self._notValidEntries.remove(entryId)
+            except ValueError:
+                pass
+
+            if isValid:
+                entry.input.config(background="white")
+            else:
+                entry.input.config(background=notValidBackgroundColor)
+                self._notValidEntries.append(entryId)
+
+            infoText = ""
+            for notValidEntry in self._notValidEntries:
+                if infoText:
+                    infoText += "\n"
+                infoText += notValidEntry + notValidTextEnd
+
             if infoText:
-                infoText += "\n"
-            infoText += notValidEntry + notValidTextEnd
+                self._optionsInfoLabel.config(text=infoText)
+            else:
+                self._optionsInfoLabel.config(text="")
 
-        if infoText:
-            self._optionsInfoLabel.config(text=infoText)
-        else:
-            self._optionsInfoLabel.config(text="")
+            if self._notValidEntries:
+                self._setSaveButtonState(tk.DISABLED)
+            else:
+                self._setSaveButtonState(tk.NORMAL)
 
-        if self._notValidEntries:
-            self._setSaveButtonState(tk.DISABLED)
-        else:
-            self._setSaveButtonState(tk.NORMAL)
+
 
 
     def _isValidColor(self,colorString):
