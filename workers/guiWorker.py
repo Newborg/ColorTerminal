@@ -83,7 +83,7 @@ class GuiWorker:
             self._textArea.see(tk.END)
 
         # Limit number of lines in window
-        if (endLine-1) > self._settings.get(Sets.MAX_LINE_BUFFER):
+        if (endLine-1) > self._settings.get(Sets.TEXTAREA_MAX_LINE_BUFFER):
             self._textArea.delete(1.0,2.0)
 
     def _updateLastLine(self,newLine):

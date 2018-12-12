@@ -37,7 +37,7 @@ class OptionsView:
         # Delete all variable observers
         for settingsLine in list(self._setsDict.values()):
             for entry in list(settingsLine.entries.values()):
-                try:                    
+                try:
                     entry.var.trace_vdelete("w",entry.observer)
                 except:
                     pass
@@ -88,7 +88,7 @@ class OptionsView:
 
     class EntryData:
         def __init__(self,entryType,entryVar):
-            self.entryType = entryType            
+            self.entryType = entryType
             self.entryVar = entryVar
 
 
@@ -96,6 +96,7 @@ class OptionsView:
     ENTRY_TYPE_STRING = "typeString"
     ENTRY_TYPE_INT = "typeInt"
     ENTRY_TYPE_REGEX = "typeRegex"
+    ENTRY_TYPE_TOGGLE = "typeToggle"
     ENTRY_TYPE_OTHER = "typeOther"
 
     GROUP_TEXT_AREA = "groupTextArea"
@@ -162,14 +163,15 @@ class OptionsView:
             self._exampleTextFrame.grid_columnconfigure(0,weight=1)
             self._exampleTextFrame.grid_rowconfigure(0,weight=1)
 
-            tFont = Font(family=self._settings.get(Sets.FONT_FAMILY), size=self._settings.get(Sets.FONT_SIZE))
-            self._exampleText = tk.Text(self._exampleTextFrame,height=1, width=2, \
-                                            wrap=tk.NONE,\
-                                            background=self._settings.get(Sets.BACKGROUND_COLOR),\
-                                            selectbackground=self._settings.get(Sets.SELECT_BACKGROUND_COLOR),\
-                                            foreground=self._settings.get(Sets.TEXT_COLOR),\
+            tFont = Font(family=self._settings.get(Sets.TEXTAREA_FONT_FAMILY), size=self._settings.get(Sets.TEXTAREA_FONT_SIZE))
+            self._exampleText = tk.Text(self._exampleTextFrame,height=1, width=2,\
+                                            background=self._settings.get(Sets.TEXTAREA_BACKGROUND_COLOR),\
+                                            selectbackground=self._settings.get(Sets.TEXTAREA_SELECT_BACKGROUND_COLOR),\
+                                            foreground=self._settings.get(Sets.TEXTAREA_COLOR),\
                                             font=tFont)
             self._exampleText.grid(row=0,column=0, padx=(0,0), pady=(10,0),sticky=tk.E+tk.W+tk.N+tk.S)
+
+            self._updateExampleTextLineWrap(self._settings.get(Sets.TEXTAREA_LINE_WRAP))
 
             self._exampleText.insert(1.0,logExample)
 
@@ -217,11 +219,12 @@ class OptionsView:
             self._tabList.append(self.GROUP_TEXT_AREA)
 
             setLines = list()
-            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.BACKGROUND_COLOR, "Background Color", self.ENTRY_TYPE_COLOR))
-            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.SELECT_BACKGROUND_COLOR, "Background Color Select", self.ENTRY_TYPE_COLOR))
-            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.TEXT_COLOR, "Text Color", self.ENTRY_TYPE_COLOR))
-            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.FONT_FAMILY, "Font Family", self.ENTRY_TYPE_STRING))
-            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.FONT_SIZE, "Font Size", self.ENTRY_TYPE_INT))
+            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.TEXTAREA_BACKGROUND_COLOR, "Background Color", self.ENTRY_TYPE_COLOR))
+            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.TEXTAREA_SELECT_BACKGROUND_COLOR, "Background Color Select", self.ENTRY_TYPE_COLOR))
+            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.TEXTAREA_COLOR, "Text Color", self.ENTRY_TYPE_COLOR))
+            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.TEXTAREA_FONT_FAMILY, "Font Family", self.ENTRY_TYPE_STRING))
+            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.TEXTAREA_FONT_SIZE, "Font Size", self.ENTRY_TYPE_INT))
+            setLines.append(self.SettingsLineTemplate(self.GROUP_TEXT_AREA, Sets.TEXTAREA_LINE_WRAP, "Line Wrap On", self.ENTRY_TYPE_TOGGLE))
 
             self._setsDict.update(self._createStandardRows(self._textAreaFrame,setLines,0))
 
@@ -325,7 +328,7 @@ class OptionsView:
             for entryName in tempSetsDict[rowId].entries.keys():
                 setting = tempSetsDict[rowId].entries[entryName].var.get()
                 if Sets.LINE_COLOR_MAP in rowId:
-                    tempLineColorMap[rowId][entryName] = setting                    
+                    tempLineColorMap[rowId][entryName] = setting
                 else:
                     self._settings.setOption(rowId,setting)
 
@@ -476,7 +479,7 @@ class OptionsView:
 
         return setDict
 
-    def _createSingleLineColorRow(self,parent,row,rowId,regex,color):        
+    def _createSingleLineColorRow(self,parent,row,rowId,regex,color):
         colorLine = self.LineColorSettingsLine(self.GROUP_LINE_COLORING)
 
         colorLine.lineFrame = tk.Frame(parent,highlightcolor=self.ROW_HIGHLIGHT_COLOR,highlightthickness=2)
@@ -546,19 +549,33 @@ class OptionsView:
             entry.label = tk.Label(parent,text=setLine.setDisplayName)
             entry.label.grid(row=row,column=0,sticky=tk.W)
 
+            # Entry variable
             if setLine.setType == self.ENTRY_TYPE_INT:
                 entry.var = tk.IntVar(parent)
             else:
                 entry.var = tk.StringVar(parent)
+
+            # Init entry var
             entry.var.set(self._settings.get(setLine.setId))
             # TODO use tkinter validateCommand
             entry.observer = entry.var.trace("w",partial(self._validateInput,setLine.setId,entryName))
-            # TODO Find better solution for entry width
-            entry.input = tk.Entry(parent,textvariable=entry.var,width=int(maxLen*1.5),takefocus=False)
+
+            # Entry field
+            if setLine.setType == self.ENTRY_TYPE_TOGGLE:
+                entry.input = tk.Checkbutton(parent,"",variable=entry.var)
+            else:
+                # TODO Find better solution for entry width
+                entry.input = tk.Entry(parent,textvariable=entry.var,width=int(maxLen*1.5),takefocus=False)
+
             entry.input.grid(row=row,column=1)
+
+            # Color button
             if setLine.setType == self.ENTRY_TYPE_COLOR:
                 entry.button = tk.Button(parent,bg=self._settings.get(setLine.setId),width=3,command=partial(self._getColor,setLine.setId,entryName))
                 entry.button.grid(row=row,column=2,padx=4)
+
+
+
 
             setRow.entries[entryName] = entry
             setDict[setLine.setId] = setRow
@@ -645,11 +662,11 @@ class OptionsView:
         if group == self.GROUP_TEXT_AREA:
             # General text area
             try:
-                tFont = Font(family=self._setsDict[Sets.FONT_FAMILY].entries[entryName].var.get(),\
-                            size=self._setsDict[Sets.FONT_SIZE].entries[entryName].var.get())
-                self._exampleText.config(background=self._setsDict[Sets.BACKGROUND_COLOR].entries[entryName].var.get(),\
-                                                selectbackground=self._setsDict[Sets.SELECT_BACKGROUND_COLOR].entries[entryName].var.get(),\
-                                                foreground=self._setsDict[Sets.TEXT_COLOR].entries[entryName].var.get(),\
+                tFont = Font(family=self._setsDict[Sets.TEXTAREA_FONT_FAMILY].entries[entryName].var.get(),\
+                            size=self._setsDict[Sets.TEXTAREA_FONT_SIZE].entries[entryName].var.get())
+                self._exampleText.config(background=self._setsDict[Sets.TEXTAREA_BACKGROUND_COLOR].entries[entryName].var.get(),\
+                                                selectbackground=self._setsDict[Sets.TEXTAREA_SELECT_BACKGROUND_COLOR].entries[entryName].var.get(),\
+                                                foreground=self._setsDict[Sets.TEXTAREA_COLOR].entries[entryName].var.get(),\
                                                 font=tFont)
             except tk.TclError:
                 pass
@@ -713,6 +730,12 @@ class OptionsView:
                         self._exampleText.tag_add(lineInfo["tagName"],pos,pos + "+" + countVar.get() + "c")
                         start = pos + "+1c"
 
+    def _updateExampleTextLineWrap(self,lineWrapState):
+
+        if lineWrapState == Sets.LINE_WRAP_ON:
+            self._exampleText.config(wrap=tk.CHAR)
+        else:
+            self._exampleText.config(wrap=tk.NONE)
 
 
     ####################################
@@ -723,10 +746,10 @@ class OptionsView:
         notValidBackgroundColor = "red"
         notValidTextEnd = " not valid."
 
-        # Get variable        
+        # Get variable
         try:
             settingsLine:self.SettingsLine = self._setsDict[rowId]
-            entry:self.Entry = settingsLine.entries[entryName]            
+            entry:self.Entry = settingsLine.entries[entryName]
             varIn = entry.var.get()
             isValid = True
         except tk.TclError:
@@ -753,11 +776,11 @@ class OptionsView:
                         notValidTextEnd = " already in use."
 
             # Check font family
-            if rowId == Sets.FONT_FAMILY:
+            if rowId == Sets.TEXTAREA_FONT_FAMILY:
                 isValid = self._isValidFontFamily(varIn)
 
             # Check font size
-            if rowId == Sets.FONT_SIZE:
+            if rowId == Sets.TEXTAREA_FONT_SIZE:
                 isValid = self._isValidFontSize(varIn)
 
             if isValid:

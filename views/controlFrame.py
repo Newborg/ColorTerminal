@@ -12,6 +12,7 @@ class ControlFrame:
     def __init__(self,settings,rootClass,search,optionsView):
         self._settings = settings
         self._root = rootClass.root
+        self._textFrame = None
         self._textArea = None
         self._bottomFrame = None
         self._search = search
@@ -47,6 +48,9 @@ class ControlFrame:
         # hideLinesButton_ = tk.Button(topFrame_,text="Hide Lines", command=hideLinesCommand, width=10)
         # hideLinesButton_.pack(side=tk.LEFT)
 
+        self._lineWrapToggleButton = tk.Button(self._topFrame,text="Line Wrap", command=self._lineWrapToggleCommmand, width=10)
+        self._lineWrapToggleButton.pack(side=tk.LEFT)
+
         self._clearButton = tk.Button(self._topFrame,text="Clear", command=self._clearButtonCommand, width=10)
         self._clearButton.pack(side=tk.LEFT,padx=(0,40))
 
@@ -80,6 +84,7 @@ class ControlFrame:
         self._highlightWorker = workers.highlightWorker
 
     def linkTextFrame(self,textFrame):
+        self._textFrame = textFrame
         self._textArea = textFrame.textArea
 
     def linkBottomFrame(self,bottomFrame):
@@ -139,6 +144,15 @@ class ControlFrame:
     def _hideLinesCommand(self):
         self._highlightWorker.toggleHideLines()
         self._reloadBufferCommand()
+
+    def _lineWrapToggleCommmand(self):
+        lineWrapState = self._settings.get(Sets.TEXTAREA_LINE_WRAP)
+        if lineWrapState == Sets.LINE_WRAP_ON:
+            self._textFrame.updateLineWrap(Sets.LINE_WRAP_OFF)
+            self._settings.setOption(Sets.TEXTAREA_LINE_WRAP,Sets.LINE_WRAP_OFF)
+        else:
+            self._textFrame.updateLineWrap(Sets.LINE_WRAP_ON)
+            self._settings.setOption(Sets.TEXTAREA_LINE_WRAP,Sets.LINE_WRAP_ON)
 
     def _showOptionsView(self):
         self._search.close()

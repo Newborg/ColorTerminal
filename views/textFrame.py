@@ -27,16 +27,16 @@ class TextFrame:
         self._textFrame = tk.Frame(self._root)
 
         fontList = tk.font.families()        
-        if not self._settings.get(Sets.FONT_FAMILY) in fontList:
-            traceLog(LogLevel.WARNING,"Font \"" + self._settings.get(Sets.FONT_FAMILY) + "\" not found in system")
+        if not self._settings.get(Sets.TEXTAREA_FONT_FAMILY) in fontList:
+            traceLog(LogLevel.WARNING,"Font \"" + self._settings.get(Sets.TEXTAREA_FONT_FAMILY) + "\" not found in system")
 
-        tFont = Font(family=self._settings.get(Sets.FONT_FAMILY), size=self._settings.get(Sets.FONT_SIZE))
+        tFont = Font(family=self._settings.get(Sets.TEXTAREA_FONT_FAMILY), size=self._settings.get(Sets.TEXTAREA_FONT_SIZE))
 
-        self.textArea = tk.Text(self._textFrame, height=1, width=1, background=self._settings.get(Sets.BACKGROUND_COLOR),\
-                                selectbackground=self._settings.get(Sets.SELECT_BACKGROUND_COLOR),\
-                                foreground=self._settings.get(Sets.TEXT_COLOR), font=tFont)
+        self.textArea = tk.Text(self._textFrame, height=1, width=1, background=self._settings.get(Sets.TEXTAREA_BACKGROUND_COLOR),\
+                                selectbackground=self._settings.get(Sets.TEXTAREA_SELECT_BACKGROUND_COLOR),\
+                                foreground=self._settings.get(Sets.TEXTAREA_COLOR), font=tFont)
 
-        self.textArea.config(wrap=tk.NONE)
+        self.updateLineWrap(self._settings.get(Sets.TEXTAREA_LINE_WRAP))
 
         self.textArea.config(state=tk.DISABLED)
 
@@ -67,12 +67,31 @@ class TextFrame:
         self.reloadLineColorMap()
         self.createAllTextFrameLineColorTag()
 
-        
-        
-
 
     def linkWorkers(self,workers):
         self._highlightWorker = workers.highlightWorker
+
+    ##############
+    # Miscellaneous 
+
+    def reloadTextFrame(self):
+
+        traceLog(LogLevel.DEBUG,"Reload text frame")
+
+        tFont = Font(family=self._settings.get(Sets.TEXTAREA_FONT_FAMILY), size=self._settings.get(Sets.TEXTAREA_FONT_SIZE))
+
+        self.textArea.config(background=self._settings.get(Sets.TEXTAREA_BACKGROUND_COLOR),\
+                            selectbackground=self._settings.get(Sets.TEXTAREA_SELECT_BACKGROUND_COLOR),\
+                            foreground=self._settings.get(Sets.TEXTAREA_COLOR), font=tFont)
+
+    def updateLineWrap(self,lineWrapState):
+        if lineWrapState == Sets.LINE_WRAP_ON:
+            self.textArea.config(wrap=tk.CHAR)
+        else:
+            self.textArea.config(wrap=tk.NONE)
+
+    ##############
+    # Line Color Map and Tag
 
     def reloadLineColorMap(self):
         
@@ -98,16 +117,6 @@ class TextFrame:
     def deleteTextTag(self,tagName):
         self.textArea.tag_delete(tagName)
 
-    def reloadTextFrame(self):
-
-        traceLog(LogLevel.DEBUG,"Reload text frame")
-
-        tFont = Font(family=self._settings.get(Sets.FONT_FAMILY), size=self._settings.get(Sets.FONT_SIZE))
-
-        self.textArea.config(background=self._settings.get(Sets.BACKGROUND_COLOR),\
-                            selectbackground=self._settings.get(Sets.SELECT_BACKGROUND_COLOR),\
-                            foreground=self._settings.get(Sets.TEXT_COLOR), font=tFont)
-
     def addLineColorTagToText(self,regex,tagName):
 
         lastline = int(self.textArea.index("end-2c").split(".")[0])
@@ -128,6 +137,7 @@ class TextFrame:
         self.addLineColorTagToText(regex,tagName)
 
 
+    ##############    
     # Hyberlink
 
     def _enter_(self, event):

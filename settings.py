@@ -4,12 +4,13 @@ import json
 DEFAULT_WINDOW_SIZE         = "MainWindow_defaultWindowSize"
 THEME_COLOR                 = "MainWindow_themeColor"
 
-BACKGROUND_COLOR            = "TextArea_backgroundColor"
-SELECT_BACKGROUND_COLOR     = "TextArea_selectBackgroundColor"
-TEXT_COLOR                  = "TextArea_textColor"
-FONT_FAMILY                 = "TextArea_fontFamily"
-FONT_SIZE                   = "TextArea_fontSize"
-MAX_LINE_BUFFER             = "TextArea_maxLineBuffer"
+TEXTAREA_BACKGROUND_COLOR           = "TextArea_backgroundColor"
+TEXTAREA_SELECT_BACKGROUND_COLOR    = "TextArea_selectBackgroundColor"
+TEXTAREA_COLOR                      = "TextArea_textColor"
+TEXTAREA_FONT_FAMILY                = "TextArea_fontFamily"
+TEXTAREA_FONT_SIZE                  = "TextArea_fontSize"
+TEXTAREA_MAX_LINE_BUFFER            = "TextArea_maxLineBuffer"
+TEXTAREA_LINE_WRAP                  = "TextArea_lineWrap"
 
 SEARCH_MATCH_COLOR          = "Search_MatchColor"
 SEARCH_SELECTED_COLOR       = "Search_SelectedColor"
@@ -57,6 +58,9 @@ HIDELINE_COLOR_TAG = "HIDELINE_COLOR_TAG"
 LOG_FILE_TYPE = ".txt"
 LOG_FILE_LINK_TAG = "LOG_FILE_LINK_TAG"
 
+LINE_WRAP_ON = "on"
+LINE_WRAP_OFF = "off"
+
 class Settings:
 
     def __init__(self,jsonFileName):
@@ -79,12 +83,13 @@ class Settings:
         self.settings[THEME_COLOR]                 = settingsJson.get(THEME_COLOR,"#42bcf4")
 
         # Text Area
-        self.settings[BACKGROUND_COLOR]            = settingsJson.get(BACKGROUND_COLOR,"#000000")
-        self.settings[SELECT_BACKGROUND_COLOR]     = settingsJson.get(SELECT_BACKGROUND_COLOR,"#303030")
-        self.settings[TEXT_COLOR]                  = settingsJson.get(TEXT_COLOR,"#FFFFFF")
-        self.settings[FONT_FAMILY]                 = settingsJson.get(FONT_FAMILY,"Consolas")
-        self.settings[FONT_SIZE]                   = settingsJson.get(FONT_SIZE,10)
-        self.settings[MAX_LINE_BUFFER]             = settingsJson.get(MAX_LINE_BUFFER,4000)
+        self.settings[TEXTAREA_BACKGROUND_COLOR]        = settingsJson.get(TEXTAREA_BACKGROUND_COLOR,"#000000")
+        self.settings[TEXTAREA_SELECT_BACKGROUND_COLOR] = settingsJson.get(TEXTAREA_SELECT_BACKGROUND_COLOR,"#303030")
+        self.settings[TEXTAREA_COLOR]                   = settingsJson.get(TEXTAREA_COLOR,"#FFFFFF")
+        self.settings[TEXTAREA_FONT_FAMILY]             = settingsJson.get(TEXTAREA_FONT_FAMILY,"Consolas")
+        self.settings[TEXTAREA_FONT_SIZE]               = settingsJson.get(TEXTAREA_FONT_SIZE,10)
+        self.settings[TEXTAREA_MAX_LINE_BUFFER]         = settingsJson.get(TEXTAREA_MAX_LINE_BUFFER,4000)
+        self.settings[TEXTAREA_LINE_WRAP]               = settingsJson.get(TEXTAREA_LINE_WRAP,LINE_WRAP_ON)
 
         # Search
         self.settings[SEARCH_MATCH_COLOR]          = settingsJson.get(SEARCH_MATCH_COLOR,"#9e6209")
@@ -124,4 +129,3 @@ class Settings:
             traceLog(LogLevel.WARNING,"Settings file not found. Not able to save setting")
             pass
 
-    

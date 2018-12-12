@@ -145,7 +145,7 @@ class HighlightWorker():
 
         self._lineBuffer.append(rawline)
 
-        if lineBufferSize > self._settings.get(Sets.MAX_LINE_BUFFER):
+        if lineBufferSize > self._settings.get(Sets.TEXTAREA_MAX_LINE_BUFFER):
             del self._lineBuffer[0]
 
     def _hideLines(self,line):
