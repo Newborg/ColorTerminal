@@ -5,6 +5,7 @@ from tkinter.font import Font
 from traceLog import traceLog,LogLevel
 import settings as Sets
 import renameFileView
+from util import AutoScrollbar
 
 # Import for intellisense 
 from workers.highlightWorker import HighlightWorker
@@ -35,13 +36,21 @@ class TextFrame:
                                 selectbackground=self._settings.get(Sets.SELECT_BACKGROUND_COLOR),\
                                 foreground=self._settings.get(Sets.TEXT_COLOR), font=tFont)
 
+        self.textArea.config(wrap=tk.NONE)
+
         self.textArea.config(state=tk.DISABLED)
 
-        # Set up scroll bar
+        # Set up scroll bars
         yscrollbar=tk.Scrollbar(self._textFrame, orient=tk.VERTICAL, command=self.textArea.yview)
         yscrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.textArea["yscrollcommand"]=yscrollbar.set
-        self.textArea.pack(side=tk.LEFT, fill=tk.BOTH, expand = tk.YES)
+
+        # AutoScrollbar will hide itself when not needed
+        xscrollbar=AutoScrollbar(self._textFrame, orient=tk.HORIZONTAL, command=self.textArea.xview)
+        xscrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.textArea["xscrollcommand"]=xscrollbar.set
+        
+        self.textArea.pack(anchor=tk.W, fill=tk.BOTH, expand = tk.YES)
 
 
         self.textArea.tag_configure(Sets.CONNECT_COLOR_TAG, background=Sets.CONNECT_LINE_BACKGROUND_COLOR, selectbackground=Sets.CONNECT_LINE_SELECT_BACKGROUND_COLOR)
@@ -57,6 +66,9 @@ class TextFrame:
 
         self.reloadLineColorMap()
         self.createAllTextFrameLineColorTag()
+
+        
+        
 
 
     def linkWorkers(self,workers):
