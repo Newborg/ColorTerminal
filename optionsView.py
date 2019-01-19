@@ -3,6 +3,8 @@ from tkinter.font import Font
 from tkinter.colorchooser import askcolor
 from tkinter.ttk import Notebook
 
+from collections import Counter
+
 from functools import partial
 import threading
 
@@ -90,7 +92,13 @@ class OptionsView:
         def __init__(self,entryType,entryVar):
             self.entryType = entryType
             self.entryVar = entryVar
+            self.validation = OptionsView.EntryDataValidation(OptionsView.ENTRY_VALIDATION_OK,"white","")
 
+    class EntryDataValidation:
+        def __init__(self,status,backgroundColor,infoText):
+            self.status = status
+            self.backgroundColor = backgroundColor
+            self.infoText = infoText
 
     ENTRY_TYPE_COLOR = "typeColor"
     ENTRY_TYPE_STRING = "typeString"
@@ -98,6 +106,10 @@ class OptionsView:
     ENTRY_TYPE_REGEX = "typeRegex"
     ENTRY_TYPE_TOGGLE = "typeToggle"
     ENTRY_TYPE_OTHER = "typeOther"
+
+    ENTRY_VALIDATION_OK = "entryValidationOk"
+    ENTRY_VALIDATION_FAILED = "entryValidationFailed"
+    ENTRY_VALIDATION_DUPLICATE = "entryValidationDuplicate"
 
     GROUP_TEXT_AREA = "groupTextArea"
     GROUP_SEARCH = "groupSearch"
@@ -136,8 +148,6 @@ class OptionsView:
             self._view.protocol("WM_DELETE_WINDOW", self._onClosing)
 
             self._setsDict = dict()
-
-            self._notValidEntries = list()
 
             ##############################
             # TAB CONTROL
@@ -281,6 +291,10 @@ class OptionsView:
                 self._optionsSaveButton.config(state=tk.NORMAL)
 
             self._tabControl.bind("<<NotebookTabChanged>>",self._tabChanged)
+
+
+            # print("Number of settings " + str(len(self._setsDict)))
+
 
     def _saveSettings(self):
 
@@ -757,85 +771,89 @@ class OptionsView:
 
     def _validateInput(self,rowId,entryName,*args):
 
-        notValidBackgroundColor = "red"
-        notValidTextEnd = " not valid."
-
         # Get variable
         try:
             settingsLine:self.SettingsLine = self._setsDict[rowId]
             entry:self.Entry = settingsLine.entries[entryName]
             varIn = entry.var.get()
-            isValid = True
+            validationStatus = self.ENTRY_VALIDATION_OK
         except tk.TclError:
             # print("Tcl Error")
-            isValid = False
+            validationStatus = self.ENTRY_VALIDATION_FAILED
 
-        if isValid:
+        if validationStatus == self.ENTRY_VALIDATION_OK:
 
             # Check Colors
             if entry.data.entryType == self.ENTRY_TYPE_COLOR:
-                isValid = self._isValidColor(varIn)
-                if isValid:
+                if self._isValidColor(varIn):
                     # print("Color " + str(color))
                     entry.button.config(background=varIn)
+                    validationStatus = self.ENTRY_VALIDATION_OK
+                else:
+                    validationStatus = self.ENTRY_VALIDATION_FAILED
 
             # Check regex
-            if entry.data.entryType == self.ENTRY_TYPE_REGEX:
-                isValid = self._isValidRegex(varIn)
-                if isValid:
-                    # Check if regex already exists
-                    if not self._isUniqueRegex(rowId,varIn):
-                        isValid = False
-                        notValidBackgroundColor = "yellow"
-                        notValidTextEnd = " already in use."
+            if entry.data.entryType == self.ENTRY_TYPE_REGEX:  
+              
+                # Validate regex
+                if self._isValidRegex(varIn):
+                    entry.data.validation.status = self.ENTRY_VALIDATION_OK
+                else:
+                    entry.data.validation.status = self.ENTRY_VALIDATION_FAILED
+
+                self._updateAllRegexEntries()
+                
+                validationStatus = entry.data.validation.status
+
 
             # Check font family
             if rowId == Sets.TEXTAREA_FONT_FAMILY:
-                isValid = self._isValidFontFamily(varIn)
+                if self._isValidFontFamily(varIn):
+                    validationStatus = self.ENTRY_VALIDATION_OK
+                else:
+                    validationStatus = self.ENTRY_VALIDATION_FAILED
 
             # Check font size
             if rowId == Sets.TEXTAREA_FONT_SIZE:
-                isValid = self._isValidFontSize(varIn)
+                if self._isValidFontSize(varIn):
+                    validationStatus = self.ENTRY_VALIDATION_OK
+                else:
+                    validationStatus = self.ENTRY_VALIDATION_FAILED
 
-            if isValid:
-                self._updateExampleText(settingsLine.group)
-
+        
         #######
-        # Track valid entries
+        # Update validation info
 
-        if entry.data.entryType != self.ENTRY_TYPE_TOGGLE:
+        if validationStatus == self.ENTRY_VALIDATION_OK:
+            entry.data.validation.status = self.ENTRY_VALIDATION_OK
+            entry.data.validation.backgroundColor = "white"
+            entry.data.validation.infoText = ""
+        elif validationStatus == self.ENTRY_VALIDATION_FAILED:
+            entry.data.validation.status = self.ENTRY_VALIDATION_FAILED
+            entry.data.validation.backgroundColor = "red"
+            entry.data.validation.infoText = "Non-valid input."
 
-            entryId = rowId + "_" + entryName
+        entry.input.config(background=entry.data.validation.backgroundColor)
 
-            try:
-                self._notValidEntries.remove(entryId)
-            except ValueError:
-                pass
+        infoText = ""
+        for key in self._setsDict.keys():
+            for (entryKey,entryItem) in self._setsDict[key].entries.items():
+                if entryItem.data.validation.status != self.ENTRY_VALIDATION_OK:
+                    entryId = key + "_" + entryKey
+                    if infoText:
+                        infoText += "\n"
+                    infoText += entryId + ": " + entryItem.data.validation.infoText
+        
+        if infoText:
+            self._optionsInfoLabel.config(text=infoText)
+            self._setSaveButtonState(tk.DISABLED)
+        else:
+            self._optionsInfoLabel.config(text="")
+            self._setSaveButtonState(tk.NORMAL)
+            self._updateExampleText(settingsLine.group)
 
-            if isValid:
-                entry.input.config(background="white")
-            else:
-                entry.input.config(background=notValidBackgroundColor)
-                self._notValidEntries.append(entryId)
-
-            infoText = ""
-            for notValidEntry in self._notValidEntries:
-                if infoText:
-                    infoText += "\n"
-                infoText += notValidEntry + notValidTextEnd
-
-            if infoText:
-                self._optionsInfoLabel.config(text=infoText)
-            else:
-                self._optionsInfoLabel.config(text="")
-
-            if self._notValidEntries:
-                self._setSaveButtonState(tk.DISABLED)
-            else:
-                self._setSaveButtonState(tk.NORMAL)
-
-
-
+   
+   
 
     def _isValidColor(self,colorString):
         isValid = True
@@ -873,19 +891,44 @@ class OptionsView:
             isValid = False
         return isValid
 
-    def _isUniqueRegex(self,rowId,regex):
-        # Check if regex already exists (TODO, redo/improve this loop)
-        isValid = True
+    def _updateAllRegexEntries(self):
+        # Get all regex                
+        regexList = list()
         for key in self._setsDict.keys():
-            if key != rowId:
-                try:
-                    value = self._setsDict[key].entries["regex"].var.get()
-                    if value == regex:
-                        isValid = False
-                        break
-                except KeyError:
-                    pass
-        return isValid
+            try:
+                value = self._setsDict[key].entries["regex"].var.get()
+                regexList.append(value)
+            except KeyError:
+                pass
+
+        # Find any duplicate entries
+        regexListCount = Counter(regexList)
+        regexDuplicateList = [regex for regex, count in regexListCount.items() if count > 1]
+
+        # Update all duplicate regex entries
+        for key in self._setsDict.keys():
+            try:
+                regexEntry = self._setsDict[key].entries["regex"]
+                # Only update status if entry validation status is not currently failed
+                if regexEntry.data.validation.status != self.ENTRY_VALIDATION_FAILED:
+                    # Mark duplicates
+                    if regexEntry.var.get() in regexDuplicateList:                                                            
+                        # print("New duplicate: " + regexEntry.var.get())
+                        regexEntry.data.validation.status = self.ENTRY_VALIDATION_DUPLICATE
+                        regexEntry.data.validation.backgroundColor = "yellow"
+                        regexEntry.data.validation.infoText = "Duplicate regex entry not allowed."
+                    else:
+                        # Clear previous duplicates that are now valid
+                        if regexEntry.data.validation.status == self.ENTRY_VALIDATION_DUPLICATE:
+                            # print("Clear duplicate: " + regexEntry.var.get())
+                            regexEntry.data.validation.status = self.ENTRY_VALIDATION_OK
+                            regexEntry.data.validation.backgroundColor = "white"
+                            regexEntry.data.validation.infoText = ""
+
+                    regexEntry.input.config(background=regexEntry.data.validation.backgroundColor)
+            except KeyError:
+                pass
+
 
     ####################################
     # Misc
