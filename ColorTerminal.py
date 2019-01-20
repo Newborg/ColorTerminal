@@ -1,4 +1,5 @@
 
+import sys
 import tkinter as tk
 from tkinter import messagebox
 
@@ -172,6 +173,15 @@ class Workers:
 ################################################################
 ################################################################
 
+stdoutFile = "CTstdout.txt"
+
+sys.stdout = sys.stderr = open(stdoutFile,"a")
+
+################################################################
+################################################################
+
+
+
 # Settings
 SETTINGS_FILE_NAME_ = "CTsettings.json"
 settings_ = Sets.Settings(SETTINGS_FILE_NAME_)
@@ -293,3 +303,6 @@ traceLog(LogLevel.INFO,"Main loop started")
 rootClass_.root.mainloop()
 
 traceLog(LogLevel.INFO,"Main loop done")
+
+
+sys.stdout.close()
