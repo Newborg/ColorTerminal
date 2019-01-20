@@ -1,5 +1,7 @@
 
 import sys
+import argparse
+
 import tkinter as tk
 from tkinter import messagebox
 
@@ -173,9 +175,16 @@ class Workers:
 ################################################################
 ################################################################
 
+# Input arguments and stdout control
+
 stdoutFile = "CTstdout.txt"
 
-sys.stdout = sys.stderr = open(stdoutFile,"a")
+parser = argparse.ArgumentParser()
+parser.add_argument("-s","--stdouttofile",help="send stdout and stderr to " + stdoutFile,action="store_true")
+args = parser.parse_args()
+
+if args.stdouttofile:
+    sys.stdout = sys.stderr = open(stdoutFile,"a")
 
 ################################################################
 ################################################################
@@ -304,5 +313,5 @@ rootClass_.root.mainloop()
 
 traceLog(LogLevel.INFO,"Main loop done")
 
-
-sys.stdout.close()
+if args.stdouttofile:
+    sys.stdout.close()
