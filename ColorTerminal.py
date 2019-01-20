@@ -180,10 +180,10 @@ class Workers:
 stdoutFile = "CTstdout.txt"
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-s","--stdouttofile",help="send stdout and stderr to " + stdoutFile,action="store_true")
+parser.add_argument("-c","--enableConsole",help="send stdout and stderr to console, otherwise this is written to " + stdoutFile,action="store_true")
 args = parser.parse_args()
 
-if args.stdouttofile:
+if not args.enableConsole:
     sys.stdout = sys.stderr = open(stdoutFile,"a")
 
 ################################################################
@@ -313,5 +313,5 @@ rootClass_.root.mainloop()
 
 traceLog(LogLevel.INFO,"Main loop done")
 
-if args.stdouttofile:
+if not args.enableConsole:
     sys.stdout.close()
