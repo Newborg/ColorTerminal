@@ -372,11 +372,12 @@ class OptionsView:
 
         # Reorder line color tags
         rowIds = sorted(tempLineColorRows.keys())
-        preTagName = textFrame.createLineColorTagName(tempLineColorRows[rowIds[0]].entries["regex"].var.get())
-        for rowId in rowIds[1:-1]:
-            tagName = textFrame.createLineColorTagName(tempLineColorRows[rowId].entries["regex"].var.get())
-            self._textFrame.textArea.tag_raise(tagName,aboveThis=preTagName)
-            preTagName = tagName
+        if rowIds:
+            preTagName = textFrame.createLineColorTagName(tempLineColorRows[rowIds[0]].entries["regex"].var.get())
+            for rowId in rowIds[1:-1]:
+                tagName = textFrame.createLineColorTagName(tempLineColorRows[rowId].entries["regex"].var.get())
+                self._textFrame.textArea.tag_raise(tagName,aboveThis=preTagName)
+                preTagName = tagName
 
         # print(*self._textFrame.textArea.tag_names(),sep=", ")
 
@@ -833,7 +834,8 @@ class OptionsView:
             entry.data.validation.backgroundColor = "red"
             entry.data.validation.infoText = "Non-valid input."
 
-        entry.input.config(background=entry.data.validation.backgroundColor)
+        if not entry.data.entryType == self.ENTRY_TYPE_TOGGLE:
+            entry.input.config(background=entry.data.validation.backgroundColor)
 
         infoText = ""
         for key in self._setsDict.keys():
