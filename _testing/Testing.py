@@ -1,4 +1,20 @@
 #####################################
+# Remove non-printable characters
+
+import string
+
+text = "HELLO\x06æøåæøå"
+
+print(text)
+
+nonprintable = set([chr(i) for i in range(128)]).difference(string.printable)
+
+newtext = text.translate({ord(character):None for character in nonprintable})
+
+print(newtext)
+
+exit()
+#####################################
 # List to vars
 
 # pos = "3.4"

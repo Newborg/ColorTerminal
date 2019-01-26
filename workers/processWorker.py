@@ -1,6 +1,7 @@
 
 import queue
 import threading
+import string
 
 import datetime
 
@@ -18,6 +19,8 @@ class ProcessWorker:
 
         self._highlightWorker = None
         self._logWriterWorker = None
+
+        self._nonprintable = set([chr(i) for i in range(128)]).difference(string.printable)
 
     ##############
     # Public Interface
@@ -100,8 +103,10 @@ class ProcessWorker:
 
                 lastTimestamp = line.timestamp
 
+                # Remove non-printable characters
+                newData = line.data.translate({ord(character):None for character in self._nonprintable})
                 # Replace newline
-                newData = line.data.rstrip() + "\n"
+                newData = newData.rstrip() + "\n"
 
                 # Construct newLine string
                 newLine = timeString + " " + timeDeltaString + " " + newData

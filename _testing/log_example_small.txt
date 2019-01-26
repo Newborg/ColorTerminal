@@ -3,7 +3,7 @@
 03 Main::MeasSequence=>distillerDistillationSequenceSafe
 04 AAAAAAAAAAAAA
 05 B
-06 CCCCCCCCCCCC
+06 ÆÆÆÆØØØØÅÅÅÅ
 07 Main::SteamGenerator=>=== Setting steam capacity to 100 % ===
 08 Main::DMMasterStateMachine=>Progress: 34, textindex: 6, text: Doing distillation
 09 GUI::GUIMasterStateMachine=>Beginning transition onFOSS::Bifrost::T123::MeasureProgress from MeasureMode
