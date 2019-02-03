@@ -52,10 +52,10 @@ class TextFrame:
         
         self.textArea.pack(anchor=tk.W, fill=tk.BOTH, expand = tk.YES)
 
+        self.textArea.tag_configure(Sets.HIDELINE_COLOR_TAG, foreground=self._settings.get(Sets.HIDE_LINE_FONT_COLOR))
 
         self.textArea.tag_configure(Sets.CONNECT_COLOR_TAG, background=Sets.CONNECT_LINE_BACKGROUND_COLOR, selectbackground=Sets.CONNECT_LINE_SELECT_BACKGROUND_COLOR)
         self.textArea.tag_configure(Sets.DISCONNECT_COLOR_TAG, background=Sets.DISCONNECT_LINE_BACKGROUND_COLOR, selectbackground=Sets.DISCONNECT_LINE_SELECT_BACKGROUND_COLOR)
-        self.textArea.tag_configure(Sets.HIDELINE_COLOR_TAG, foreground=Sets.HIDE_LINE_FONT_COLOR)
         self.textArea.tag_configure(Sets.LOG_FILE_LINK_TAG, underline=1)
 
         self.textArea.tag_bind(Sets.LOG_FILE_LINK_TAG, "<Enter>", self._enter_)
@@ -85,6 +85,8 @@ class TextFrame:
                             foreground=self._settings.get(Sets.TEXTAREA_COLOR), font=tFont)
 
         self.updateLineWrap(self._settings.get(Sets.TEXTAREA_LINE_WRAP))
+
+        self.textArea.tag_configure(Sets.HIDELINE_COLOR_TAG, foreground=self._settings.get(Sets.HIDE_LINE_FONT_COLOR))
 
     def updateLineWrap(self,lineWrapState):
         if lineWrapState == Sets.LINE_WRAP_ON:

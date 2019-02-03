@@ -1,4 +1,50 @@
 #####################################
+# Copy
+
+import copy
+
+ListA = [1,2,3]
+ListB = copy.copy(ListA)
+
+print(ListA)
+print(ListB)
+print("************")
+
+ListB[0] = 4
+
+print(ListA)
+print(ListB)
+print("************")
+
+ListA[1] = 5
+
+print(ListA)
+print(ListB)
+print("************")
+
+exit()
+
+#####################################
+# Clear on pass by reference
+
+firstDict = {"One":1,"dict":{"SubTwo":2}}
+
+refDict = firstDict["dict"]
+
+print(firstDict)
+print(refDict)
+
+print("****************")
+
+refDict.clear()
+
+print(firstDict)
+print(refDict)
+
+
+exit()
+
+#####################################
 # Remove non-printable characters
 
 import string

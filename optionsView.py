@@ -65,7 +65,7 @@ class OptionsView:
             self.group = group
             self.entries = dict()
 
-    class LineColorSettingsLine(SettingsLine):
+    class FramedSettingsLine(SettingsLine):
         def __init__(self,group):
             super().__init__(group)
             self.lineFrame = None
@@ -115,6 +115,7 @@ class OptionsView:
     GROUP_SEARCH = "groupSearch"
     GROUP_LOGGING = "groupLogging"
     GROUP_LINE_COLORING = "groupLineColoring"
+    GROUP_HIDE_LINE = "groupHideLine"
 
     EDIT_UP = "editUp"
     EDIT_DOWN = "editDown"
@@ -142,6 +143,8 @@ class OptionsView:
             self._showing = True
 
             self._lineColorMap = self._textFrame.getLineColorMap()
+            self._hideLinesList = self._settings.get(Sets.HIDE_LINE_LIST)
+            print(self._hideLinesList)
 
             self._view = tk.Toplevel(self._root)
             self._view.title("Options")
@@ -215,10 +218,43 @@ class OptionsView:
             self._lastFocusOutRowId = ""
 
             self._newButtonRow = len(self._lineColorMap)
-            self._newButton  = tk.Button(self._lineColoringFrame,text="New Line",command=partial(self._addNewEmptyLineColor,self._lineColoringFrame))
+            self._newButton  = tk.Button(self._lineColoringFrame,text="New Line",command=self._addNewEmptyLineColor)
             self._newButton.grid(row=self._newButtonRow,column=0,sticky=tk.W,padx=(2,100),pady=2)
 
             self._deletedLineColorRows = list()
+
+            ###############
+            # Tab: Hide Lines
+
+            self._hideLinesFrame = tk.Frame(self._tabControl,padx=5,pady=5)
+            self._hideLinesFrame.grid(row=0,column=0,sticky=tk.N)
+            self._tabControl.add(self._hideLinesFrame, text="Hide Lines")
+            self._tabList.append(self.GROUP_HIDE_LINE)
+
+            self._hideLinesListFrame = tk.Frame(self._hideLinesFrame)
+            self._hideLinesListFrame.grid(row=0,column=0,sticky=tk.N)
+
+            self._setsDict.update(self._createHideLineRows(self._hideLinesListFrame,self._hideLinesList))
+
+            self._hideLinesListFrame.grid_columnconfigure(0,weight=1)
+
+            hideLinesDeleteButton = tk.Button(self._hideLinesListFrame,text="Delete",command=partial(self._editHideLineRow,self.EDIT_DELETE))
+            hideLinesDeleteButton.grid(row=0,column=1,padx=2)
+
+            self._newHideLineButtonRow = len(self._hideLinesList)
+            self._newHideLineButton  = tk.Button(self._hideLinesListFrame,text="New Line",command=self._addNewEmptyHideLineRow)
+            self._newHideLineButton.grid(row=self._newHideLineButtonRow,column=0,sticky=tk.W,padx=(2,100),pady=2)
+
+            # self._testText = tk.Label(self._hideLinesFrame,text="HELLLOOOOOO")
+            # self._testText.grid(row=1,column=0)
+
+            self._hideLineFontFrame = tk.Frame(self._hideLinesFrame)
+            self._hideLineFontFrame.grid(row=1,column=0,sticky=tk.N+tk.W)
+
+            setLines = list()
+            setLines.append(self.SettingsLineTemplate(self.GROUP_HIDE_LINE, Sets.HIDE_LINE_FONT_COLOR, "Hide Line Font Color", self.ENTRY_TYPE_COLOR))
+
+            self._setsDict.update(self._createStandardRows(self._hideLineFontFrame,setLines,0))
 
             ###############
             # Tab: Text Area
@@ -332,21 +368,25 @@ class OptionsView:
         # Save all settings
         tempLineColorMap = dict()
         tempLineColorRows = dict()
+        tempHideLinesList = list()
         # Sort settings to guarantee right order of line coloring
         for rowId in sorted(tempSetsDict.keys()):
 
             if Sets.LINE_COLOR_MAP in rowId:
                 tempLineColorMap[rowId] = dict()
                 tempLineColorRows[rowId] = tempSetsDict[rowId]
-
+            
             for entryName in tempSetsDict[rowId].entries.keys():
                 setting = tempSetsDict[rowId].entries[entryName].var.get()
                 if Sets.LINE_COLOR_MAP in rowId:
                     tempLineColorMap[rowId][entryName] = setting
+                elif Sets.HIDE_LINE_LIST in rowId:
+                    tempHideLinesList.append(setting)
                 else:
                     self._settings.setOption(rowId,setting)
 
         self._settings.setOption(Sets.LINE_COLOR_MAP,tempLineColorMap)
+        self._settings.setOption(Sets.HIDE_LINE_LIST,tempHideLinesList)
 
         # Once settings have been saved, allow for reopen of options view
         self._showing = False
@@ -389,6 +429,8 @@ class OptionsView:
         self._highlightWorker.startWorker()
         self._guiWorker.startWorker()
 
+        # TODO If hide line are activated and these have been updated, reload buffer
+        
         # Remove spinner
         saveSpinner.close()
 
@@ -400,15 +442,25 @@ class OptionsView:
     ####################################
     # View Creation
 
-    def _addNewEmptyLineColor(self,parent):
+    def _addNewEmptyLineColor(self):
         # print("New Button " + str(self.newButtonRow))
 
         self._newButton.grid(row=self._newButtonRow+1)
 
-        rowId = self._getRowId(self._newButtonRow)
+        rowId = self._getLineColorRowId(self._newButtonRow)
         self._setsDict[rowId] = self._createSingleLineColorRow(self._lineColoringFrame,self._newButtonRow,rowId,"","white")
 
         self._newButtonRow += 1
+
+    def _addNewEmptyHideLineRow(self):
+        self._newHideLineButton.grid(row=self._newHideLineButtonRow+1)
+
+        rowId = self._getHideLineRowId(self._newHideLineButtonRow)
+        self._setsDict[rowId] = self._createSingleHideLineRow(self._hideLinesListFrame,self._newHideLineButtonRow,rowId,"")
+
+        self._newHideLineButtonRow += 1
+
+        self._updateExampleText(self.GROUP_HIDE_LINE)
 
     def _editLineColorRow(self,edit):
         # print("Last focus in " + self.lastFocusInRowId)
@@ -440,7 +492,7 @@ class OptionsView:
                     tempTextColorMap = list()
                     for i in indexToChange:
                         # Save regex and color
-                        rowId = self._getRowId(i)
+                        rowId = self._getLineColorRowId(i)
                         tempTextColorMap.append((self._setsDict[rowId].entries["regex"].var.get(), \
                                                  self._setsDict[rowId].entries["regex"].data, \
                                                  self._setsDict[rowId].entries["color"].var.get(), \
@@ -467,14 +519,14 @@ class OptionsView:
 
                     # Recreate saved rows
                     for i,(regexVar,regexData,colorVar,colorData) in enumerate(tempTextColorMap):
-                        rowId = self._getRowId(indexToChange[i])
+                        rowId = self._getLineColorRowId(indexToChange[i])
                         self._setsDict[rowId] = self._createSingleLineColorRow(self._lineColoringFrame,indexToChange[i],rowId,regexVar,colorVar)
                         self._setsDict[rowId].entries["regex"].data = regexData
                         self._setsDict[rowId].entries["color"].data = colorData
 
                     # If move up or down, refocus
                     if newRowNum > -1:
-                        rowId = self._getRowId(newRowNum)
+                        rowId = self._getLineColorRowId(newRowNum)
                         self._focusInSet(rowId)
                     # If delete, update row count and move newButton
                     else:
@@ -486,6 +538,52 @@ class OptionsView:
                     self._updateExampleText(self.GROUP_LINE_COLORING)
 
 
+    def _editHideLineRow(self,edit):
+        # If lastFocusIn is not the same as lastFocusOut,
+        # we know that lastFocusIn is currently selected.
+        if self._lastFocusInRowId != self._lastFocusOutRowId:
+            if Sets.HIDE_LINE_LIST in self._lastFocusInRowId:
+
+                # The following is prepared for more advanced edit than "delete"
+
+                # Get row number
+                rowNum = int(self._lastFocusInRowId.replace(Sets.HIDE_LINE_LIST,""))
+
+                # Find index of rows to edit
+                indexToChange = list()
+                if edit == self.EDIT_DELETE:
+                    indexToChange = range(rowNum,self._newHideLineButtonRow)
+
+                if indexToChange:
+                    tempHideLinesList = list()
+                    for i in indexToChange:
+                        # Save regex
+                        rowId = self._getHideLineRowId(i)
+                        tempHideLinesList.append((self._setsDict[rowId].entries["hideRegex"].var.get(), \
+                                                 self._setsDict[rowId].entries["hideRegex"].data))
+
+                        # Remove rows to edit from view
+                        self._setsDict[rowId].lineFrame.destroy()
+                        del self._setsDict[rowId]
+
+                    # Delete saved rows
+                    if edit == self.EDIT_DELETE:               
+                        del tempHideLinesList[0]
+
+                    # Recreate saved rows (update rowIds)
+                    for i,(regexVar,regexData) in enumerate(tempHideLinesList):
+                        rowId = self._getHideLineRowId(indexToChange[i])
+                        self._setsDict[rowId] = self._createSingleHideLineRow(self._hideLinesListFrame,indexToChange[i],rowId,regexVar)
+                        self._setsDict[rowId].entries["hideRegex"].data = regexData
+
+                    # Update row count and move newButton                    
+                    self._newHideLineButtonRow = self._newHideLineButtonRow - 1
+                    self._newHideLineButton.grid(row=self._newHideLineButtonRow)
+                    self._lastFocusInRowId = ""
+
+                    self._updateExampleText(self.GROUP_HIDE_LINE)
+
+
     def _createLineColorRows(self,parent,lineColorMap):
         setDict = dict()
         for rowId in sorted(lineColorMap.keys()):
@@ -495,7 +593,7 @@ class OptionsView:
         return setDict
 
     def _createSingleLineColorRow(self,parent,row,rowId,regex,color):
-        colorLine = self.LineColorSettingsLine(self.GROUP_LINE_COLORING)
+        colorLine = self.FramedSettingsLine(self.GROUP_LINE_COLORING)
 
         colorLine.lineFrame = tk.Frame(parent,highlightcolor=self.ROW_HIGHLIGHT_COLOR,highlightthickness=2)
         colorLine.lineFrame.grid(row=row,column=0)
@@ -541,6 +639,41 @@ class OptionsView:
         colorLine.entries[entryName] = colorEntry
 
         return colorLine
+
+    def _createHideLineRows(self,parent,hideLineList):
+        setDict = dict()
+        for idx, hideLine in enumerate(hideLineList):
+            rowId = self._getHideLineRowId(idx)          
+            setDict[rowId] = self._createSingleHideLineRow(parent,idx,rowId,hideLine)
+
+        return setDict
+
+    def _createSingleHideLineRow(self,parent,row,rowId,regex):
+        hideLine = self.FramedSettingsLine(self.GROUP_HIDE_LINE)
+
+        hideLine.lineFrame = tk.Frame(parent,highlightcolor=self.ROW_HIGHLIGHT_COLOR,highlightthickness=2)
+        hideLine.lineFrame.grid(row=row,column=0,sticky=tk.W)
+        hideLine.lineFrame.bind("<Button-1>",partial(self._focusInSet,rowId))
+        hideLine.lineFrame.bind("<FocusOut>",partial(self._focusOut,rowId))
+
+        regexEntry = self.Entry(self.ENTRY_TYPE_REGEX,regex)
+        entryName = "hideRegex"
+
+        regexEntry.label = tk.Label(hideLine.lineFrame,text="Regex")
+        regexEntry.label.grid(row=0,column=0)
+        regexEntry.label.bind("<Button-1>",partial(self._focusInSet,rowId))
+        regexEntry.var = tk.StringVar(hideLine.lineFrame)
+        regexEntry.var.set(regex)
+        regexEntry.observer = regexEntry.var.trace("w",partial(self._validateInput,rowId,entryName))
+
+        regexEntry.input = tk.Entry(hideLine.lineFrame,textvariable=regexEntry.var,width=30,takefocus=False)
+        regexEntry.input.grid(row=0,column=1,padx=(0,4))
+        regexEntry.input.bind("<Button-1>",partial(self._focusInLog,rowId))
+
+
+        hideLine.entries[entryName] = regexEntry
+
+        return hideLine
 
     def _createStandardRows(self,parent,setLines,startRow):
         setDict = dict()
@@ -679,6 +812,9 @@ class OptionsView:
         for tagName in tagNames:
             if Sets.LINE_COLOR_MAP in tagName:
                 self._exampleText.tag_delete(tagName)
+        
+        # Delete hide line tag
+        self._exampleText.tag_delete(Sets.HIDELINE_COLOR_TAG)
 
         entryName = "entry"
         if group == self.GROUP_TEXT_AREA:
@@ -732,8 +868,7 @@ class OptionsView:
                     self._exampleText.tag_add(Sets.SEARCH_SELECTED_LINE_COLOR, selectLine + ".0", selectLine + ".0+1l")
 
 
-
-        if group == self.GROUP_LINE_COLORING or group == self.GROUP_SEARCH:
+        if group == self.GROUP_LINE_COLORING or group == self.GROUP_SEARCH or group == self.GROUP_HIDE_LINE:
 
             # Get line color map from view
             tempLineColorMap = list()
@@ -758,6 +893,31 @@ class OptionsView:
                     else:
                         self._exampleText.tag_add(lineInfo["tagName"],pos,pos + "+" + countVar.get() + "c")
                         start = pos + "+1c"
+
+        if group == self.GROUP_HIDE_LINE:
+    
+            # Create hide line tags
+            self._exampleText.tag_configure(Sets.HIDELINE_COLOR_TAG, foreground=self._setsDict[Sets.HIDE_LINE_FONT_COLOR].entries["entry"].var.get())
+
+            for rowId in self._setsDict.keys():
+                if Sets.HIDE_LINE_LIST in rowId:                    
+                    searchString = self._setsDict[rowId].entries["hideRegex"].var.get()
+
+                    # Find lines to hide
+                    countVar = tk.StringVar()
+                    results = list()
+                    start = 1.0
+                    while True:
+                        pos = self._exampleText.search(searchString,start,stopindex=tk.END,count=countVar,nocase=False,regexp=False)
+                        if not pos:
+                            break
+                        else:
+                            results.append(pos.split(".")[0])
+                            start = results[-1] + ".0+1l"
+
+                    # Add tags
+                    for result in results:
+                        self._exampleText.tag_add(Sets.HIDELINE_COLOR_TAG, result + ".0", result + ".0+1l")
 
     def _updateExampleTextLineWrap(self,lineWrapState):
         
@@ -935,5 +1095,10 @@ class OptionsView:
     ####################################
     # Misc
 
-    def _getRowId(self,rowNum):
+    # TODO CLEANUP!!!!
+
+    def _getLineColorRowId(self,rowNum):
         return Sets.LINE_COLOR_MAP + "{:02d}".format(rowNum)
+
+    def _getHideLineRowId(self,rowNum):
+        return "%s%02d" % (Sets.HIDE_LINE_LIST, rowNum) 

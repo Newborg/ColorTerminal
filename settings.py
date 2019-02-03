@@ -1,5 +1,6 @@
 from traceLog import traceLog,LogLevel
 import json
+import copy
 
 DEFAULT_WINDOW_SIZE         = "MainWindow_defaultWindowSize"
 THEME_COLOR                 = "MainWindow_themeColor"
@@ -21,6 +22,9 @@ LOG_FILE_BASE_NAME          = "LogFile_logFileBaseName"
 LOG_FILE_TIMESTAMP          = "LogFile_logFileTimestamp"
 
 LINE_COLOR_MAP              = "LineColorMap"
+
+HIDE_LINE_LIST              = "HideLine_List"
+HIDE_LINE_FONT_COLOR        = "HideLine_FontColor"
 
 
 # Static for now
@@ -51,7 +55,6 @@ CONNECT_COLOR_TAG = "CONNECT_COLOR_TAG"
 DISCONNECT_COLOR_TAG = "DISCONNECT_COLOR_TAG"
 
 # Hide line
-HIDE_LINE_FONT_COLOR = "#808080"
 HIDELINE_COLOR_TAG = "HIDELINE_COLOR_TAG"
 
 # Log file
@@ -92,17 +95,21 @@ class Settings:
         self.settings[TEXTAREA_LINE_WRAP]               = settingsJson.get(TEXTAREA_LINE_WRAP,LINE_WRAP_ON)
 
         # Search
-        self.settings[SEARCH_MATCH_COLOR]          = settingsJson.get(SEARCH_MATCH_COLOR,"#9e6209")
-        self.settings[SEARCH_SELECTED_COLOR]       = settingsJson.get(SEARCH_SELECTED_COLOR,"#06487f")
-        self.settings[SEARCH_SELECTED_LINE_COLOR]  = settingsJson.get(SEARCH_SELECTED_LINE_COLOR,"#303030")
+        self.settings[SEARCH_MATCH_COLOR]           = settingsJson.get(SEARCH_MATCH_COLOR,"#9e6209")
+        self.settings[SEARCH_SELECTED_COLOR]        = settingsJson.get(SEARCH_SELECTED_COLOR,"#06487f")
+        self.settings[SEARCH_SELECTED_LINE_COLOR]   = settingsJson.get(SEARCH_SELECTED_LINE_COLOR,"#303030")
 
         # Log File
-        self.settings[LOG_FILE_PATH]               = settingsJson.get(LOG_FILE_PATH,"Logs")
-        self.settings[LOG_FILE_BASE_NAME]          = settingsJson.get(LOG_FILE_BASE_NAME,"SerialLog_")
-        self.settings[LOG_FILE_TIMESTAMP]          = settingsJson.get(LOG_FILE_TIMESTAMP,"%Y.%m.%d_%H.%M.%S")
+        self.settings[LOG_FILE_PATH]                = settingsJson.get(LOG_FILE_PATH,"Logs")
+        self.settings[LOG_FILE_BASE_NAME]           = settingsJson.get(LOG_FILE_BASE_NAME,"SerialLog_")
+        self.settings[LOG_FILE_TIMESTAMP]           = settingsJson.get(LOG_FILE_TIMESTAMP,"%Y.%m.%d_%H.%M.%S")
 
         # Line Color Map
-        self.settings[LINE_COLOR_MAP]              = settingsJson.get(LINE_COLOR_MAP,{})
+        self.settings[LINE_COLOR_MAP]               = settingsJson.get(LINE_COLOR_MAP,{})
+
+        # Hide Line List
+        self.settings[HIDE_LINE_LIST]               = settingsJson.get(HIDE_LINE_LIST,[])
+        self.settings[HIDE_LINE_FONT_COLOR]         = settingsJson.get(HIDE_LINE_FONT_COLOR,"#808080")
 
         try:
             with open(self.jsonFileName,"w") as jsonFile:
@@ -114,7 +121,8 @@ class Settings:
 
     def get(self,option):
         # No keycheck, should fail if wrong key
-        return self.settings[option]
+        # print("Get settings: " + option + " with value: " + str(self.settings[option]))
+        return copy.deepcopy(self.settings[option])
 
     def setOption(self,option,value):
 

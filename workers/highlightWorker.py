@@ -26,9 +26,10 @@ class HighlightWorker():
         self._textFrame:textFrame.TextFrame = None
 
         self._consecutiveLinesHidden = 0
-        self._hideLineMap = list()
-        self._hideLineMap.append("GUI::.*")
-        self._hideLineMap.append("Main::.*")
+        self._hideLinesList = list()
+        # self._hideLinesList.append("GUI::.*")
+        # self._hideLinesList.append("Main::.*")
+        # self._reloadHideLinesList()
         self._hideLinesFlag = False
 
         self._highlightFlag = False
@@ -55,6 +56,7 @@ class HighlightWorker():
             if not self._highlightFlag:
 
                 self._reloadLineColorMap()
+                self._reloadHideLinesList()
 
                 self._highlightFlag = True
                 self._highlightThread = threading.Thread(target=self._highlightWorker,daemon=True,name="Highlight")
@@ -91,6 +93,10 @@ class HighlightWorker():
             self._hideLinesFlag = False
         else:
             self._hideLinesFlag = True
+
+    def _reloadHideLinesList(self):
+        self._hideLinesList.clear()
+        self._hideLinesList = self._settings.get(Sets.HIDE_LINE_LIST)
 
     def replaceLineBufferString(self,oldString,newString,replaceAll=False):
 
@@ -153,7 +159,7 @@ class HighlightWorker():
         if self._hideLinesFlag:
             tempConsecutiveLinesHidden = 0
 
-            for keys in self._hideLineMap:
+            for keys in self._hideLinesList:
                 match = re.search(keys,line)
                 if match:
                     tempConsecutiveLinesHidden = 1
@@ -211,7 +217,7 @@ class HighlightWorker():
                     linesToProcess = self._lineBuffer
 
                     # Wait for GUI queue to be empty and gui update to be done,
-                    # otherwise some lines can be lost, when GUI is cleared
+                    # otherwise some lines can be lost when GUI is cleared
                     self._guiWorker.guiQueue.join()
                     self._guiWorker.guiEvent.wait()
 
@@ -233,9 +239,9 @@ class HighlightWorker():
                         hideInfoLine = self._getTimeStamp(line) + " Lines hidden: " + str(consecutiveLinesHidden) + "\n"
                         lineTags = self._getHideLineColorTags()
                         if consecutiveLinesHidden > 1:
-                            pLine = PrintLine(hideInfoLine,lineTags,True)
+                            pLine = PrintLine(hideInfoLine,lineTags,updatePreviousLine = True)
                         else:
-                            pLine = PrintLine(hideInfoLine,lineTags,False)
+                            pLine = PrintLine(hideInfoLine,lineTags,updatePreviousLine = False)
 
                     self._guiWorker.guiQueue.put(pLine)
 

@@ -45,8 +45,8 @@ class ControlFrame:
         # reloadBufferButton_ = tk.Button(topFrame_,text="Reload buffer", command=reloadBufferCommand, width=10)
         # reloadBufferButton_.pack(side=tk.LEFT)
 
-        # hideLinesButton_ = tk.Button(topFrame_,text="Hide Lines", command=hideLinesCommand, width=10)
-        # hideLinesButton_.pack(side=tk.LEFT)
+        hideLinesButton_ = tk.Button(self._topFrame,text="Hide Lines", command=self._hideLinesCommand, width=10)
+        hideLinesButton_.pack(side=tk.LEFT)
 
         # self._lineWrapToggleButton = tk.Button(self._topFrame,text="Line Wrap", command=self._lineWrapToggleCommmand, width=10)
         # self._lineWrapToggleButton.pack(side=tk.LEFT)
