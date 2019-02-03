@@ -38,7 +38,7 @@ def writer():
                     
                     if i == len(lines):
                         i = 0
-                        for _ in range(10):
+                        for _ in range(5):
                             ser.write(str.encode("FASTLINE\n",encoding="utf-8"))
 
                     time.sleep(timePeriod)

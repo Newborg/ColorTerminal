@@ -104,7 +104,7 @@ class ProcessWorker:
                 lastTimestamp = line.timestamp
 
                 # Remove non-printable characters
-                newData = line.data.translate({ord(character):None for character in self._nonprintable})
+                newData = line.data.translate({ord(character):"\\u%04d" % ord(character) for character in self._nonprintable})
                 # Replace newline
                 newData = newData.rstrip() + "\n"
 
