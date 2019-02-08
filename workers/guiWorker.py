@@ -141,6 +141,10 @@ class GuiWorker:
                     for lineTag in msg.lineTags:                        
                         self._textArea.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
 
+                    # if "Main" in msg.line:
+                    #     print("Hide line: " + msg.line)
+                    #     self._textArea.tag_add("HIDDEN_TAG",lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
+
                 # Disable text widget edit
                 self._textArea.config(state=tk.DISABLED)
 

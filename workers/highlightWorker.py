@@ -142,7 +142,7 @@ class HighlightWorker():
 
     def _getHideLineColorTags(self):
         highlights = list()
-        highlights.append((Sets.HIDELINE_COLOR_TAG,"0","0+1l"))
+        highlights.append((Sets.HIDE_LINE_COLOR_TAG,"0","0+1l"))
         return highlights
 
     def _addToLineBuffer(self,rawline):

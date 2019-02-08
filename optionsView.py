@@ -814,7 +814,7 @@ class OptionsView:
                 self._exampleText.tag_delete(tagName)
         
         # Delete hide line tag
-        self._exampleText.tag_delete(Sets.HIDELINE_COLOR_TAG)
+        self._exampleText.tag_delete(Sets.HIDE_LINE_COLOR_TAG)
 
         entryName = "entry"
         if group == self.GROUP_TEXT_AREA:
@@ -897,7 +897,7 @@ class OptionsView:
         if group == self.GROUP_HIDE_LINE:
     
             # Create hide line tags
-            self._exampleText.tag_configure(Sets.HIDELINE_COLOR_TAG, foreground=self._setsDict[Sets.HIDE_LINE_FONT_COLOR].entries["entry"].var.get())
+            self._exampleText.tag_configure(Sets.HIDE_LINE_COLOR_TAG, foreground=self._setsDict[Sets.HIDE_LINE_FONT_COLOR].entries["entry"].var.get())
 
             for rowId in self._setsDict.keys():
                 if Sets.HIDE_LINE_LIST in rowId:                    
@@ -917,7 +917,7 @@ class OptionsView:
 
                     # Add tags
                     for result in results:
-                        self._exampleText.tag_add(Sets.HIDELINE_COLOR_TAG, result + ".0", result + ".0+1l")
+                        self._exampleText.tag_add(Sets.HIDE_LINE_COLOR_TAG, result + ".0", result + ".0+1l")
 
     def _updateExampleTextLineWrap(self,lineWrapState):
         
