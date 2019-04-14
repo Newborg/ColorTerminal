@@ -93,6 +93,12 @@ class ControlFrame:
     def setConnectButtonText(self,text):
         self._connectButton.config(text=text)
 
+    def enableConnectButtons(self):
+        self._connectButton.config(state=tk.NORMAL)
+
+    def disableConnectButtons(self):
+        self._connectButton.config(state=tk.DISABLED)
+
     def setStatusLabel(self,labelText, bgColor):
         self._statusLabel.config(text=labelText, bg=bgColor)
         self._statusLabelHeader.config(bg=bgColor)
@@ -117,11 +123,11 @@ class ControlFrame:
 
         if appState == ConnectState.DISCONNECTED:
             # Connect to serial
-            self._connectController.changeAppState(ConnectState.CONNECTED)
+            self._connectController.changeAppState(ConnectState.CONNECTING)
 
         elif appState == ConnectState.CONNECTED:
             # Close down reader
-            self._connectController.changeAppState(ConnectState.DISCONNECTED)
+            self._connectController.changeAppState(ConnectState.DISCONNECTING)
 
     def _goToEndButtonCommand(self,*args):
         self._textArea.see(tk.END)

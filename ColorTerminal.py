@@ -85,7 +85,7 @@ class ConnectController:
         self._logWriterWorker.stopWorker()
 
         # Add disconnect line if connected
-        if self._appState == ConnectState.CONNECTED:
+        if self._appState == ConnectState.DISCONNECTING:
             timestamp = datetime.datetime.now()
             timeString = Sets.timeStampBracket[0] + timestamp.strftime("%H:%M:%S") + Sets.timeStampBracket[1]
 
@@ -96,9 +96,7 @@ class ConnectController:
 
         traceLog(LogLevel.INFO,"Main worker threads stopped")
 
-        self._controlFrame.setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
-        self._controlFrame.enablePortButtons()
-        self._appState = ConnectState.DISCONNECTED
+        self.changeAppState(ConnectState.DISCONNECTED)
 
         if self._closeProgram:
 
@@ -109,27 +107,39 @@ class ConnectController:
             # Close tkinter window (close program)
             self._root.after(100,self._rootClass.destroyWindow)
 
-    def setAppState(self,state):
-        self._appState = state
-
     def getAppState(self):
         return self._appState
 
-    def changeAppState(self,state):
+    def changeAppState(self,newState:ConnectState,extraInfo=""):
 
-        # TODO Maybe change to toggle function
+        self._appState = newState
 
-        if state == ConnectState.CONNECTED:
+        if newState == ConnectState.CONNECTING:
             self._controlFrame.setConnectButtonText("Disconnect")
+            self._controlFrame.disableConnectButtons()
+            self._controlFrame.disablePortButtons()
             self.connectSerial()
             self._controlFrame.setStatusLabel("CONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
-            self._controlFrame.disablePortButtons()
 
-        elif state == ConnectState.DISCONNECTED:
+        elif newState == ConnectState.CONNECTED:
+            self._controlFrame.setConnectButtonText("Disconnect")
+            self._controlFrame.enableConnectButtons()
+            self._controlFrame.disablePortButtons()
+            self._controlFrame.setStatusLabel("CONNECTED to " + str(extraInfo),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
+
+        elif newState == ConnectState.DISCONNECTING:
             self._controlFrame.setConnectButtonText("Connect")
+            self._controlFrame.disableConnectButtons()
+            self._controlFrame.disablePortButtons()
             self.disconnectSerial()
             self._controlFrame.setStatusLabel("DISCONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
-            self._controlFrame.disablePortButtons()
+
+        elif newState == ConnectState.DISCONNECTED:
+            self._controlFrame.setConnectButtonText("Connect")
+            self._controlFrame.enableConnectButtons()
+            self._controlFrame.enablePortButtons()
+            self._controlFrame.setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
+
 
 ################################
 # Root frame

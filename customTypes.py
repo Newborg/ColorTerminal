@@ -1,8 +1,10 @@
 from enum import Enum
 
 class ConnectState(Enum):
-    CONNECTED = 1
-    DISCONNECTED = 0
+    CONNECTING = 1
+    CONNECTED = 2
+    DISCONNECTING = 3   
+    DISCONNECTED = 4
 
 class SerialLine:
     def __init__(self, data, timestamp):

@@ -62,11 +62,9 @@ class ReaderWorker:
     def _readerWorker(self):
 
         try:
-            with serial.Serial(self._controlFrame.getSerialPortVar(), 115200, timeout=2) as ser:
-
-                self._root.after(10,self._controlFrame.setStatusLabel,"CONNECTED to " + str(ser.name),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
-                self._root.after(15,self._controlFrame.disablePortButtons)
-                self._connectController.setAppState(ConnectState.CONNECTED)
+            with serial.Serial(self._controlFrame.getSerialPortVar(), 115200, timeout=1) as ser:
+                
+                self._root.after(10,self._connectController.changeAppState,ConnectState.CONNECTED,str(ser.name))
 
                 try:
                     while self._readFlag:
@@ -80,12 +78,12 @@ class ReaderWorker:
 
                 except serial.SerialException as e:
                     traceLog(LogLevel.ERROR,"Serial read error: " + str(e))
-                    # Change program state to disconnected
-                    self._root.after(10,self._connectController.changeAppState,ConnectState.DISCONNECTED)
+                    # Change program state to disconnecting
+                    self._root.after(10,self._connectController.changeAppState,ConnectState.DISCONNECTING)
 
         except serial.SerialException as e:
             traceLog(LogLevel.ERROR,str(e))
             # In case other threads are still starting up,
             # wait for 2 sec
-            # Then change program state to disconnected
-            self._root.after(2000,self._connectController.changeAppState,ConnectState.DISCONNECTED)
+            # Then change program state to disconnecting
+            self._root.after(2000,self._connectController.changeAppState,ConnectState.DISCONNECTING)
