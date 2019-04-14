@@ -148,7 +148,7 @@ class GuiWorker:
 
             if receivedLines:
                 self._bottomFrame.updateWindowBufferLineCount(lastline)
-                self._bottomFrame.updateLogFileLineCount("Lines in log file " + str(self._logWriterWorker.linesInLogFile))
+                self._bottomFrame.updateLogFileLineCount(self._logWriterWorker.linesInLogFile)
 
                 numberOfLinesDeleted = linesInserted - (lastLineAtEnd - lastLineAtStart)
                 self._search.searchLinesAdded(numberOfLinesAdded=linesInserted,numberOfLinesDeleted=numberOfLinesDeleted,lastLine=lastLineAtEnd)

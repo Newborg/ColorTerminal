@@ -1,5 +1,6 @@
 from traceLog import traceLog,LogLevel
 import json
+import copy
 
 DEFAULT_WINDOW_SIZE         = "MainWindow_defaultWindowSize"
 THEME_COLOR                 = "MainWindow_themeColor"
@@ -113,8 +114,8 @@ class Settings:
 
 
     def get(self,option):
-        # No keycheck, should fail if wrong key
-        return self.settings[option]
+        # No keycheck, should fail if wrong key        
+        return copy.deepcopy(self.settings[option])
 
     def setOption(self,option,value):
 
