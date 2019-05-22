@@ -79,7 +79,7 @@ class GuiWorker:
         endLine = int(self._textArea.index(tk.END).split(".")[0])
 
         self._textArea.insert(tk.END, newLine)
-        if (bottomVisibleLine >= (endLine-1)):
+        if (bottomVisibleLine >= (endLine-2)):
             self._textArea.see(tk.END)
 
         # Limit number of lines in window
