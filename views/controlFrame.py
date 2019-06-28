@@ -171,11 +171,14 @@ class ControlFrame:
         comPorts = serial.tools.list_ports.comports()
 
         for comPort in comPorts:
+            serialPortDict[comPort.device] = dict()
+            serialPortDict[comPort.device]["description"] = comPort.description
             try:
                 with serial.Serial(comPort.device, 115200, timeout=2):
-                    serialPortDict[comPort.device] = comPort.description
+                    serialPortDict[comPort.device]["available"] = True
             except serial.SerialException:
                 traceLog(LogLevel.DEBUG,"scanSerialPorts: " + comPort.device + " already open")
+                serialPortDict[comPort.device]["available"] = False
 
         return serialPortDict
 
@@ -186,20 +189,34 @@ class ControlFrame:
         if self._serialPorts:
             self._serialPortList.clear()
             self._serialPortList.extend(sorted(list(self._serialPorts.keys())))
-            self._serialPortVar.set(self._serialPortList[0])
             self._serialPortVar.trace("w",self._updateSerialPortSelect)
 
             # Delete options
             self._serialPortOption["menu"].delete(0,"end")
 
             # Add new options
+            portIsSet = False
             for port in self._serialPortList:
-                self._serialPortOption["menu"].add_command(label=port, command=tk._setit(self._serialPortVar,port))
+                if self._serialPorts[port]["available"]:
+                    optionState = tk.NORMAL
+                    if not portIsSet:
+                        self._serialPortVar.set(port) # Select available port in list
+                        portIsSet = True
+                else:
+                    optionState = tk.DISABLED
 
-            self._serialPortOption.config(state=tk.NORMAL)
-            self._serialPortLabel.config(text=self._serialPorts[self._serialPortVar.get()])
+                self._serialPortOption["menu"].add_command(label=port, command=tk._setit(self._serialPortVar,port), state=optionState)
 
-            self._connectButton.config(state=tk.NORMAL)
+            if portIsSet:
+                self._serialPortLabel.config(text=self._serialPorts[self._serialPortVar.get()]["description"])
+                self._serialPortOption.config(state=tk.NORMAL)
+                self._connectButton.config(state=tk.NORMAL)
+            else:
+                # If not ports are available
+                self._serialPortVar.set("No avail")
+                self._serialPortLabel.config(text="No available serial port")
+                self._serialPortOption.config(state=tk.NORMAL)
+                self._connectButton.config(state=tk.DISABLED)
 
         else:
             self._serialPortVar.set(self.NO_SERIAL_PORT)
@@ -211,4 +228,4 @@ class ControlFrame:
         if self._serialPortVar.get() == self.NO_SERIAL_PORT:
             self._serialPortLabel.config(text=self.NO_SERIAL_PORT)
         else:
-            self._serialPortLabel.config(text=self._serialPorts[self._serialPortVar.get()])
+            self._serialPortLabel.config(text=self._serialPorts[self._serialPortVar.get()]["description"])
