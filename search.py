@@ -14,9 +14,15 @@ class Search:
 
         self._searchJob = None
 
+        # self._topResults = list()
+        # self._bottomResults = list()
         self._results = list()
+
         self._selectedResultIndex = -1
         self._lineNumberDeleteOffset = 0
+
+        self._bottomLinesSearched = False
+        self._searchStartIndex = 0
 
     def linkTextFrame(self,textFrame):
         self._textField = textFrame.textArea
@@ -31,6 +37,8 @@ class Search:
             self._textField.tag_delete(self.TAG_SEARCH)
             self._textField.tag_delete(self.TAG_SEARCH_SELECT)
             self._textField.tag_delete(self.TAG_SEARCH_SELECT_BG)
+
+            self._focusOut()
 
             self._entry.unbind("<Escape>")
             self._textField.unbind("<Escape>")
@@ -81,9 +89,14 @@ class Search:
 
             self._entry = tk.Entry(self._view,textvariable=self._var)
             self._entry.pack(side=tk.LEFT,padx=(4,2))
-            self._entry.bind("<Return>",self._selectNextResult)
+            self._entry.bind("<Return>",self._selectNextResult) # Enter key
+            self._entry.bind("<Next>",self._selectNextResult) # Page down
+            self._entry.bind("<Prior>",self._selectPriorResult) # Page up
 
-            self._entry.focus_set()
+            self._entry.bind("<FocusIn>",self._focusIn)
+            self._entry.bind("<FocusOut>",self._focusOut)
+
+            self._entry.focus_set()            
 
             self._label = tk.Label(self._view,text=self.NO_RESULT_STRING,width=10,anchor=tk.W)
             self._label.pack(side=tk.LEFT,anchor=tk.E)
@@ -172,6 +185,11 @@ class Search:
 
             self._updateResultInfo()
 
+    def _focusIn(self,*args):
+        self._guiWorker.disableScrolling()
+
+    def _focusOut(self,*args):
+        self._guiWorker.enableScrolling()
 
     def _searchStringUpdated(self,*args):
 
@@ -190,9 +208,15 @@ class Search:
             self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
             self._textField.tag_remove(self.TAG_SEARCH,1.0,tk.END)
 
-            start = "1.0"
+            
+            # Start search at first visible line
+            self._searchStartIndex = self._textField.index("@0,0")
+            
+            # Reset result lists            
             self._results = list()
             self._lineNumberDeleteOffset = 0
+
+            self._bottomLinesSearched = False
 
             if string:
 
@@ -203,8 +227,8 @@ class Search:
 
                 # Stop GUI worker to prevent lines being added during search (A large search can take up to 900 ms)
                 self._guiWorker.stopWorker()
-                
-                self._searchJob = self._textField.after(0,self._searchProcess,string,start)
+
+                self._searchJob = self._textField.after(0,self._searchProcess,string,self._searchStartIndex)
 
             self._updateResultInfo()
 
@@ -213,25 +237,43 @@ class Search:
         countVar = tk.StringVar()
         loopMax = 500
 
+        loopStoppedAtBottom = False
         searchCompleted = False
-        self._tempResults = list()
+        tempResults = list()
 
-        for _ in range(loopMax):
-            pos = self._textField.search(string,start,stopindex=tk.END,count=countVar,nocase=self._nocase,regexp=self._regexp)
+        # If lines below start index has been search (first part of search) then set stopIndex to line above start index
+        if not self._bottomLinesSearched:
+            stopIndex = tk.END
+        else:
+            stopIndex = self._searchStartIndex + "-1l"
+
+        for _ in range(loopMax):            
+            pos = self._textField.search(string,start,stopindex=stopIndex,count=countVar,nocase=self._nocase,regexp=self._regexp)
             if not pos:
-                searchCompleted = True
+                if not self._bottomLinesSearched:
+                    self._bottomLinesSearched = True
+                    loopStoppedAtBottom = True
+                    start = "1.0"                    
+                else:
+                    searchCompleted = True
                 break
-            else:                
+            else:
                 posSplit = pos.split(".")
-                self._tempResults.append(self.Result(int(posSplit[0]),int(posSplit[1]),int(countVar.get())))
+                tempResults.append(self.Result(int(posSplit[0]),int(posSplit[1]),int(countVar.get())))
                 start = pos + "+1c"
 
-        for result in self._tempResults:            
+        for result in tempResults:
             self._addTag(self.TAG_SEARCH, result)
 
-        self._results.extend(self._tempResults)
+        # Add temp results to result list and keep result list sorted by line number
+        if (not self._bottomLinesSearched) or loopStoppedAtBottom:
+            self._results.extend(tempResults)
+            self._selectedResultIndex = -1
+        else:
+            tempResultCount = len(tempResults)
+            self._results[self._selectedResultIndex:self._selectedResultIndex] = tempResults
+            self._selectedResultIndex = self._selectedResultIndex + tempResultCount - 1
 
-        self._selectedResultIndex = -1
         self._selectNextResult()
 
         self._updateResultInfo()
@@ -242,7 +284,7 @@ class Search:
             self._searchJob = None
             self._guiWorker.startWorker()
 
-            # print("Search time: " + str(self._searchTime-self._startTime))            
+            # print("Search time: " + str(self._searchTime-self._startTime))
 
         else:
             self._searchJob = self._textField.after(1,self._searchProcess,string,start)
@@ -272,12 +314,25 @@ class Search:
             self._textField.see(self._results[self._selectedResultIndex].getStartAndEndIndex(self._lineNumberDeleteOffset)[0])
 
 
+    def _selectPriorResult(self,*args):
+        self._decrementResultIndex()
+
+        self._updateSelectedResultTags()
+
+        self._updateResultInfo()
+
     def _selectNextResult(self,*args):
         self._incrementResultIndex()
 
         self._updateSelectedResultTags()
 
         self._updateResultInfo()
+
+    def _decrementResultIndex(self):
+        if self._results:
+            self._selectedResultIndex -= 1
+            if self._selectedResultIndex == 0:
+                self._selectedResultIndex = len(self._results) - 1
 
     def _incrementResultIndex(self):
         if self._results:

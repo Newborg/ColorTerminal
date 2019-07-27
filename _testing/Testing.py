@@ -1,4 +1,20 @@
 #####################################
+# Insert in the middle of lost
+
+listA = [1,2,3,4,5]
+listB = [12,12,12]
+
+print(listA[2])
+
+listA[2:2] = listB
+print(listA)
+
+print(listA[2])
+
+exit()
+
+
+#####################################
 # Remove non-printable characters
 
 import string

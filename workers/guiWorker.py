@@ -20,6 +20,8 @@ class GuiWorker:
         self._search:Search = search
         self._highlightWorker = None
         self._logWriterWorker = None
+        
+        self._scrollingEnabled = True
 
         self.guiQueue = queue.Queue()
 
@@ -69,6 +71,12 @@ class GuiWorker:
     def reloadGuiBuffer(self):
         self._reloadGuiBuffer = True
 
+    def enableScrolling(self):        
+        self._scrollingEnabled = True
+
+    def disableScrolling(self):        
+        self._scrollingEnabled = False
+
     ##############
     # Internal
 
@@ -79,7 +87,7 @@ class GuiWorker:
         endLine = int(self._textArea.index(tk.END).split(".")[0])
 
         self._textArea.insert(tk.END, newLine)
-        if (bottomVisibleLine >= (endLine-2)):
+        if self._scrollingEnabled and (bottomVisibleLine >= (endLine-2)):
             self._textArea.see(tk.END)
 
         # Limit number of lines in window
