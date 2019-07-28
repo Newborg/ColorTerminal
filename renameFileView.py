@@ -5,7 +5,7 @@ import tkinter as tk
 import settings as Sets
 from traceLog import traceLog,LogLevel
 
-# Import for intellisense 
+# Import for intellisense
 # from views.textFrame import TextFrame
 
 # Global
@@ -13,13 +13,14 @@ _showing = False
 
 class RenameFile:
 
-    def __init__(self,settings,textFrame,root,inputFileName):
+    def __init__(self,settings,textFrame,root,iconPath,inputFileName):
         self._settings = settings
         self._textFrame = textFrame
-        self._root = root        
+        self._root = root
+        self._iconPath = iconPath
         self._inputFileName = inputFileName
 
-        self._show()        
+        self._show()
 
 
     def _close(self,*args):
@@ -30,7 +31,7 @@ class RenameFile:
         self._outputFileNameEntry.unbind("<Escape>")
 
         self._view.destroy()
-        
+
 
     def _show(self):
 
@@ -42,6 +43,7 @@ class RenameFile:
             self._view = tk.Toplevel(self._root,padx=10,pady=10)
             self._view.title("Rename log file")
             self._view.protocol("WM_DELETE_WINDOW", self._close)
+            self._view.iconbitmap(self._iconPath)
 
             # self._view.wm_attributes("-topmost", 1) # On top of all windows :(
 
@@ -83,7 +85,7 @@ class RenameFile:
 
             self._centerWindowInParent()
 
-                        
+
             self._outputFileNameEntry.icursor(tk.END)
             self._outputFileNameEntry.focus_set()
 
@@ -99,7 +101,7 @@ class RenameFile:
     def _saveNewFileName(self,*args):
 
         newFileName = self._outputFileNameVar.get() + Sets.LOG_FILE_TYPE
-        
+
         if self._inputFileName != newFileName:
 
             fullInputFileName = os.path.join(self._settings.get(Sets.LOG_FILE_PATH),self._inputFileName)
@@ -109,7 +111,7 @@ class RenameFile:
                 self._textFrame.updateDisconnectLineFileName(self._inputFileName,newFileName)
                 traceLog(LogLevel.INFO,"Log file name updated to " + newFileName)
             else:
-                traceLog(LogLevel.ERROR,"Log file " + self._inputFileName + " not found in log folder")        
+                traceLog(LogLevel.ERROR,"Log file " + self._inputFileName + " not found in log folder")
 
         self._close()
 

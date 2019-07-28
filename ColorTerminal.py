@@ -1,4 +1,5 @@
 
+import os
 import sys
 import argparse
 
@@ -19,6 +20,16 @@ import search
 from views import controlFrame, textFrame, bottomFrame
 
 from workers import readerWorker, processWorker, logWriterWorker, highlightWorker, guiWorker
+
+################################
+# Version information
+
+VERSION_ = "1.0.1"
+
+################################
+# Icon
+
+RELATIVE_ICON_PATH_ = r"icons\Icon03.ico"
 
 ################################
 # Connection Controller
@@ -146,16 +157,18 @@ class ConnectController:
 
 class RootClass:
 
-    def __init__(self,settings):
+    def __init__(self,settings,iconPath):
         self._settings_ = settings
 
         self.root = tk.Tk()
+
+        self.root.iconbitmap(iconPath)
 
         self._connectController_ = None
 
         self.root.protocol("WM_DELETE_WINDOW", self._onClosing_)
 
-        self.root.title("Color Terminal")
+        self.root.title("Color Terminal v" + VERSION_)
         self.root.geometry(self._settings_.get(Sets.DEFAULT_WINDOW_SIZE))
 
     def linkConnectController(self,connectController):
@@ -194,7 +207,21 @@ parser.add_argument("-c","--enableConsole",help="send stdout and stderr to conso
 args = parser.parse_args()
 
 if not args.enableConsole:
-    sys.stdout = sys.stderr = open(stdoutFile,"a")
+    sys.stdout = sys.stderr = open(stdoutFile,"a")    
+
+################################################################
+################################################################
+
+# PyInstaller bundle check
+
+iconPath_ = RELATIVE_ICON_PATH_
+
+if hasattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):
+    traceLog(LogLevel.INFO,"Running in a PyInstaller bundle")    
+    bundle_dir = getattr(sys,'_MEIPASS')    
+    iconPath_ = os.path.join(bundle_dir,RELATIVE_ICON_PATH_)    
+else:    
+    traceLog(LogLevel.INFO,"Running in a normal Python process")    
 
 ################################################################
 ################################################################
@@ -207,16 +234,16 @@ settings_ = Sets.Settings(SETTINGS_FILE_NAME_)
 settings_.reload()
 
 # Root
-rootClass_ = RootClass(settings_)
+rootClass_ = RootClass(settings_,iconPath_)
 
 # Main Controllers
 connectController_ = ConnectController(settings_,rootClass_)
 
 # Views
 search_ = search.Search(settings_)
-optionsView_ = optionsView.OptionsView(settings_,rootClass_)
+optionsView_ = optionsView.OptionsView(settings_,rootClass_,iconPath_)
 controlFrame_ = controlFrame.ControlFrame(settings_,rootClass_,search_,optionsView_)
-textFrame_ = textFrame.TextFrame(settings_,rootClass_)
+textFrame_ = textFrame.TextFrame(settings_,rootClass_,iconPath_)
 bottomFrame_ = bottomFrame.BottomFrame(settings_,rootClass_)
 
 # Workers

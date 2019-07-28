@@ -16,9 +16,11 @@ from views import textFrame
 
 class OptionsView:
 
-    def __init__(self,settings,rootClass):
+    def __init__(self,settings,rootClass,iconPath):
         self._settings = settings
         self._root = rootClass.root
+        self._iconPath = iconPath
+
         self._highlightWorker = None
         self._guiWorker = None
 
@@ -146,6 +148,8 @@ class OptionsView:
             self._view = tk.Toplevel(self._root)
             self._view.title("Options")
             self._view.protocol("WM_DELETE_WINDOW", self._onClosing)
+
+            self._view.iconbitmap(self._iconPath)
 
             self._setsDict = dict()
 

@@ -16,9 +16,10 @@ def createLineColorTagName(regex):
 
 class TextFrame:
 
-    def __init__(self,settings,rootClass):
+    def __init__(self,settings,rootClass,iconPath):
         self._settings = settings
         self._root = rootClass.root
+        self._iconPath = iconPath
 
         self._lineColorMap = dict()
 
@@ -164,7 +165,7 @@ class TextFrame:
         if pos:
             fileName = self.textArea.get(pos,pos + "+" + countVar.get() + "c")
             
-            renameFileView.RenameFile(self._settings,self,self._root,fileName)            
+            renameFileView.RenameFile(self._settings,self,self._root,self._iconPath,fileName)            
         else:
             traceLog(LogLevel.ERROR, "Internal problem. No valid file name found in line")
 
