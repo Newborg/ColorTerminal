@@ -96,7 +96,7 @@ class Search:
             self._entry.bind("<FocusIn>",self._focusIn)
             self._entry.bind("<FocusOut>",self._focusOut)
 
-            self._entry.focus_set()            
+            self._entry.focus_set()
 
             self._label = tk.Label(self._view,text=self.NO_RESULT_STRING,width=10,anchor=tk.W)
             self._label.pack(side=tk.LEFT,anchor=tk.E)
@@ -208,11 +208,11 @@ class Search:
             self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
             self._textField.tag_remove(self.TAG_SEARCH,1.0,tk.END)
 
-            
+
             # Start search at first visible line
             self._searchStartIndex = self._textField.index("@0,0")
-            
-            # Reset result lists            
+
+            # Reset result lists
             self._results = list()
             self._lineNumberDeleteOffset = 0
 
@@ -247,13 +247,13 @@ class Search:
         else:
             stopIndex = self._searchStartIndex + "-1l"
 
-        for _ in range(loopMax):            
+        for _ in range(loopMax):
             pos = self._textField.search(string,start,stopindex=stopIndex,count=countVar,nocase=self._nocase,regexp=self._regexp)
             if not pos:
                 if not self._bottomLinesSearched:
                     self._bottomLinesSearched = True
                     loopStoppedAtBottom = True
-                    start = "1.0"                    
+                    start = "1.0"
                 else:
                     searchCompleted = True
                 break
@@ -331,7 +331,7 @@ class Search:
     def _decrementResultIndex(self):
         if self._results:
             self._selectedResultIndex -= 1
-            if self._selectedResultIndex == 0:
+            if self._selectedResultIndex < 0:
                 self._selectedResultIndex = len(self._results) - 1
 
     def _incrementResultIndex(self):
