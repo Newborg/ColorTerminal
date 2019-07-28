@@ -26,6 +26,7 @@ class ControlFrame:
         self._highlightWorker = None
 
         self._root.bind("<Alt-e>", self._goToEndButtonCommand)
+        self._root.bind("<End>", self._goToEndButtonCommand)
 
         # Create widgets
         self._topFrame = tk.Frame(self._root)
