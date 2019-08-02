@@ -24,6 +24,7 @@ class ControlFrame:
 
         self._connectController = None
         self._highlightWorker = None
+        self._guiWorker = None
 
         self._root.bind("<Alt-e>", self._goToEndButtonCommand)
         self._root.bind("<End>", self._goToEndButtonCommand)
@@ -83,6 +84,7 @@ class ControlFrame:
 
     def linkWorkers(self,workers):
         self._highlightWorker = workers.highlightWorker
+        self._guiWorker = workers.guiWorker
 
     def linkTextFrame(self,textFrame):
         self._textFrame = textFrame
@@ -131,6 +133,7 @@ class ControlFrame:
             self._connectController.changeAppState(ConnectState.DISCONNECTING)
 
     def _goToEndButtonCommand(self,*args):
+        self._guiWorker.enableScrolling()
         self._textArea.see(tk.END)
 
     def _clearButtonCommand(self,*args):

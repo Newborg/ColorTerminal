@@ -40,6 +40,7 @@ class Search:
 
             self._focusOut()
 
+
             self._entry.unbind("<Escape>")
             self._textField.unbind("<Escape>")
 
@@ -89,9 +90,9 @@ class Search:
 
             self._entry = tk.Entry(self._view,textvariable=self._var)
             self._entry.pack(side=tk.LEFT,padx=(4,2))
-            self._entry.bind("<Return>",self._selectNextResult) # Enter key
-            self._entry.bind("<Next>",self._selectNextResult) # Page down
-            self._entry.bind("<Prior>",self._selectPriorResult) # Page up
+            self._entry.bind("<Return>",self._selectNextResultButton) # Enter key
+            self._entry.bind("<Next>",self._selectNextResultButton) # Page down
+            self._entry.bind("<Prior>",self._selectPriorResultButton) # Page up
 
             self._entry.bind("<FocusIn>",self._focusIn)
             self._entry.bind("<FocusOut>",self._focusOut)
@@ -186,7 +187,8 @@ class Search:
             self._updateResultInfo()
 
     def _focusIn(self,*args):
-        self._guiWorker.disableScrolling()
+        # self._guiWorker.disableScrolling()
+        pass
 
     def _focusOut(self,*args):
         self._guiWorker.enableScrolling()
@@ -281,6 +283,10 @@ class Search:
         if searchCompleted:
             # self._searchTime = time.time()
 
+            if self._results:
+                # Disable scrolling of window if a result has been found. Otherwise we will quickly move past the selected result.
+                self._guiWorker.disableScrolling()
+
             self._searchJob = None
             self._guiWorker.startWorker()
 
@@ -314,6 +320,14 @@ class Search:
             self._textField.see(self._results[self._selectedResultIndex].getStartAndEndIndex(self._lineNumberDeleteOffset)[0])
 
 
+    def _selectPriorResultButton(self,*args):
+        self._guiWorker.disableScrolling()
+        self._selectPriorResult()
+
+    def _selectNextResultButton(self,*args):
+        self._guiWorker.disableScrolling()
+        self._selectNextResult()  
+
     def _selectPriorResult(self,*args):
         self._decrementResultIndex()
 
@@ -327,7 +341,7 @@ class Search:
         self._updateSelectedResultTags()
 
         self._updateResultInfo()
-
+    
     def _decrementResultIndex(self):
         if self._results:
             self._selectedResultIndex -= 1
