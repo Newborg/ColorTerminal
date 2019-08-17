@@ -125,8 +125,10 @@ class ControlFrame:
         appState = self._connectController.getAppState()
 
         if appState == ConnectState.DISCONNECTED:
+            # Save default port
+            self._settings.setOption(Sets.CONNECTION_DEFAULT_PORT,self._serialPortVar.get())            
             # Connect to serial
-            self._connectController.changeAppState(ConnectState.CONNECTING)
+            self._connectController.changeAppState(ConnectState.CONNECTING)            
 
         elif appState == ConnectState.CONNECTED:
             # Close down reader
@@ -198,19 +200,35 @@ class ControlFrame:
             # Delete options
             self._serialPortOption["menu"].delete(0,"end")
 
+            # Get default port
+            defaultPort = self._settings.get(Sets.CONNECTION_DEFAULT_PORT)
+
             # Add new options
             portIsSet = False
+            firstAvailablePort = ""
             for port in self._serialPortList:
                 if self._serialPorts[port]["available"]:
                     optionState = tk.NORMAL
-                    if not portIsSet:
-                        self._serialPortVar.set(port) # Select available port in list
+
+                    if firstAvailablePort == "":
+                        firstAvailablePort = port
+
+                    # Select default port if available
+                    if defaultPort == port:
+                        self._serialPortVar.set(port)
                         portIsSet = True
                 else:
                     optionState = tk.DISABLED
 
                 self._serialPortOption["menu"].add_command(label=port, command=tk._setit(self._serialPortVar,port), state=optionState)
 
+            # Default port not available, select first available
+            if not portIsSet and firstAvailablePort != "":
+                traceLog(LogLevel.INFO, "Default port %s not available, selecting port %s" % (defaultPort, firstAvailablePort))
+                self._serialPortVar.set(firstAvailablePort)
+                portIsSet = True
+
+            # Update label and button states
             if portIsSet:
                 self._serialPortLabel.config(text=self._serialPorts[self._serialPortVar.get()]["description"])
                 self._serialPortOption.config(state=tk.NORMAL)
@@ -221,6 +239,8 @@ class ControlFrame:
                 self._serialPortLabel.config(text="No available serial port")
                 self._serialPortOption.config(state=tk.NORMAL)
                 self._connectButton.config(state=tk.DISABLED)
+
+
 
         else:
             self._serialPortVar.set(self.NO_SERIAL_PORT)

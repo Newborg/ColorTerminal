@@ -2,6 +2,8 @@ from traceLog import traceLog,LogLevel
 import json
 import copy
 
+CONNECTION_DEFAULT_PORT     = "Connection_default_port"
+
 DEFAULT_WINDOW_SIZE         = "MainWindow_defaultWindowSize"
 THEME_COLOR                 = "MainWindow_themeColor"
 
@@ -79,9 +81,12 @@ class Settings:
             traceLog(LogLevel.WARNING,"Settings file not found. Using default values")
             pass
 
+        # Connection
+        self.settings[CONNECTION_DEFAULT_PORT]          = settingsJson.get(CONNECTION_DEFAULT_PORT,"")
+
         # Main Window
-        self.settings[DEFAULT_WINDOW_SIZE]         = settingsJson.get(DEFAULT_WINDOW_SIZE,"1100x600")
-        self.settings[THEME_COLOR]                 = settingsJson.get(THEME_COLOR,"#42bcf4")
+        self.settings[DEFAULT_WINDOW_SIZE]          = settingsJson.get(DEFAULT_WINDOW_SIZE,"1100x600")
+        self.settings[THEME_COLOR]                  = settingsJson.get(THEME_COLOR,"#42bcf4")
 
         # Text Area
         self.settings[TEXTAREA_BACKGROUND_COLOR]        = settingsJson.get(TEXTAREA_BACKGROUND_COLOR,"#000000")
