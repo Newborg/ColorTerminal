@@ -27,6 +27,11 @@ def writer():
         try:
             while keepWriting:
                 try:
+                    if i == len(lines):
+                        i = 0
+                        for _ in range(5):
+                            ser.write(str.encode("FASTLINE\n",encoding="utf-8"))
+
                     ser.write(str.encode(lines[i],encoding="utf-8"))
                     i = i + 1
 
@@ -35,11 +40,6 @@ def writer():
                         time.sleep(timePeriod)
                         ser.write(b"\x41\x06\x42\x02\x42\x04\x42\x42\x43\xFE\x41\x42\x43\xFE\x41\x42\x43")
                         ser.write(str.encode("\n",encoding="utf-8"))
-                    
-                    if i == len(lines):
-                        i = 0
-                        for _ in range(5):
-                            ser.write(str.encode("FASTLINE\n",encoding="utf-8"))
 
                     time.sleep(timePeriod)
 
