@@ -24,7 +24,7 @@ from workers import readerWorker, processWorker, logWriterWorker, highlightWorke
 ################################
 # Version information
 
-VERSION_ = "1.0.1"
+VERSION_ = "1.0.2"
 
 ################################
 # Icon
