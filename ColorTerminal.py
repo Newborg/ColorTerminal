@@ -16,6 +16,7 @@ import settings as Sets
 from customTypes import ConnectState
 import optionsView
 import search
+import fileView
 
 from views import controlFrame, textFrame, bottomFrame
 
@@ -24,7 +25,7 @@ from workers import readerWorker, processWorker, logWriterWorker, highlightWorke
 ################################
 # Version information
 
-VERSION_ = "1.0.2"
+VERSION_ = "1.1.0"
 
 ################################
 # Icon
@@ -298,6 +299,13 @@ rootClass_.root.bind('<Control-f>', search_.show)
 
 
 import renameFileView
+
+# File View test
+def openFileView(*args):
+    testFile = r"_testing\SerialLog_2019.07.28_12.07.44.txt"
+    fileView.FileView(settings_,rootClass_,iconPath_,textFrame_,testFile)
+   
+rootClass_.root.bind('<Control-o>', openFileView)
 
 
 # TESTING
