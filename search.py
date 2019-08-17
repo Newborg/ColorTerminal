@@ -24,8 +24,8 @@ class Search:
         self._bottomLinesSearched = False
         self._searchStartIndex = 0
 
-    def linkTextFrame(self,textFrame):
-        self._textField = textFrame.textArea
+    def linkTextArea(self,textArea):
+        self._textField = textArea
 
     def linkWorkers(self,workers):
         self._guiWorker = workers.guiWorker
@@ -186,12 +186,12 @@ class Search:
 
             self._updateResultInfo()
 
-    def _focusIn(self,*args):
-        # self._guiWorker.disableScrolling()
+    def _focusIn(self,*args):        
+        # self._disableGuiScrolling()
         pass
 
     def _focusOut(self,*args):
-        self._guiWorker.enableScrolling()
+        self._enableGuiScrolling()
 
     def _searchStringUpdated(self,*args):
 
@@ -204,7 +204,8 @@ class Search:
                 self._searchJob = None
                 if not string:
                     # If search field is empty, the guiWorker has to be started again
-                    self._guiWorker.startWorker()
+                    if self._guiWorker:
+                        self._guiWorker.startWorker()
 
             self._textField.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
             self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
@@ -228,7 +229,8 @@ class Search:
                 # self._startTime = time.time()
 
                 # Stop GUI worker to prevent lines being added during search (A large search can take up to 900 ms)
-                self._guiWorker.stopWorker()
+                if self._guiWorker:
+                    self._guiWorker.stopWorker()
 
                 self._searchJob = self._textField.after(0,self._searchProcess,string,self._searchStartIndex)
 
@@ -285,10 +287,12 @@ class Search:
 
             if self._results:
                 # Disable scrolling of window if a result has been found. Otherwise we will quickly move past the selected result.
-                self._guiWorker.disableScrolling()
+                self._disableGuiScrolling()
+                # self._guiWorker.disableScrolling()
 
             self._searchJob = None
-            self._guiWorker.startWorker()
+            if self._guiWorker:
+                self._guiWorker.startWorker()
 
             # print("Search time: " + str(self._searchTime-self._startTime))
 
@@ -321,11 +325,13 @@ class Search:
 
 
     def _selectPriorResultButton(self,*args):
-        self._guiWorker.disableScrolling()
+        self._disableGuiScrolling()
+        # self._guiWorker.disableScrolling()
         self._selectPriorResult()
 
     def _selectNextResultButton(self,*args):
-        self._guiWorker.disableScrolling()
+        self._disableGuiScrolling()
+        # self._guiWorker.disableScrolling()
         self._selectNextResult()  
 
     def _selectPriorResult(self,*args):
@@ -359,3 +365,11 @@ class Search:
             self._label.config(text=self.NO_RESULT_STRING)
         else:
             self._label.config(text=str(self._selectedResultIndex+1) + " of " + str(len(self._results)))
+
+    def _enableGuiScrolling(self):
+        if self._guiWorker:
+            self._guiWorker.enableScrolling()
+    
+    def _disableGuiScrolling(self):
+        if self._guiWorker:
+            self._guiWorker.disableScrolling()

@@ -1,3 +1,4 @@
+import time
 
 import tkinter as tk
 from tkinter.font import Font
@@ -6,6 +7,7 @@ from traceLog import traceLog,LogLevel
 import settings as Sets
 import renameFileView
 from util import AutoScrollbar
+import search
 
 # Import for intellisense 
 from workers.highlightWorker import HighlightWorker
@@ -65,12 +67,28 @@ class TextFrame:
 
         self._textFrame.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
 
+        self._search = search.Search(self._settings)
+        self._search.linkTextArea(self.textArea)
+
         self.reloadLineColorMap()
         self.createAllTextFrameLineColorTag()
 
 
     def linkWorkers(self,workers):
         self._highlightWorker = workers.highlightWorker
+        self._search.linkWorkers(workers)
+
+    ##############
+    # Search interface
+
+    def searchLinesAdded(self,numberOfLinesAdded,numberOfLinesDeleted,lastLine):
+        self._search.searchLinesAdded(numberOfLinesAdded,numberOfLinesDeleted,lastLine)
+
+    def showSearch(self,*args):
+        self._search.show()
+
+    def closeSearch(self):
+        self._search.close()
 
     ##############
     # Miscellaneous 
@@ -121,16 +139,27 @@ class TextFrame:
         self.textArea.tag_delete(tagName)
 
     def addLineColorTagToText(self,regex,tagName):
+        
+        #### A lot slower! ####
+        # lastline = int(self.textArea.index("end-2c").split(".")[0])
 
-        lastline = int(self.textArea.index("end-2c").split(".")[0])
+        # for lineNumber in range(1,lastline+1):
+        #     start = str(lineNumber) + ".0"
+        #     end = start + "+1l"
+        #     countVar = tk.StringVar()
+        #     pos = self.textArea.search(regex,start,stopindex=end,count=countVar,nocase=False,regexp=True)
+        #     if pos:
+        #         self.textArea.tag_add(tagName,pos,pos + "+" + countVar.get() + "c")
 
-        for lineNumber in range(1,lastline+1):
-            start = str(lineNumber) + ".0"
-            end = start + "+1l"
-            countVar = tk.StringVar()
-            pos = self.textArea.search(regex,start,stopindex=end,count=countVar,nocase=False,regexp=True)
-            if pos:
+        countVar = tk.StringVar()
+        start = 1.0
+        while True:
+            pos = self.textArea.search(regex,start,stopindex=tk.END,count=countVar,nocase=False,regexp=True)
+            if not pos:
+                break
+            else:
                 self.textArea.tag_add(tagName,pos,pos + "+" + countVar.get() + "c")
+                start = pos + "+1c"
 
     def createAndAddLineColorTag(self,regex,color):
 

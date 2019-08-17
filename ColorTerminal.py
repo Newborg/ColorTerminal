@@ -15,7 +15,7 @@ from traceLog import traceLog,LogLevel
 import settings as Sets
 from customTypes import ConnectState
 import optionsView
-import search
+# import search
 import fileView
 
 from views import controlFrame, textFrame, bottomFrame
@@ -241,9 +241,8 @@ rootClass_ = RootClass(settings_,iconPath_)
 connectController_ = ConnectController(settings_,rootClass_)
 
 # Views
-search_ = search.Search(settings_)
 optionsView_ = optionsView.OptionsView(settings_,rootClass_,iconPath_)
-controlFrame_ = controlFrame.ControlFrame(settings_,rootClass_,search_,optionsView_)
+controlFrame_ = controlFrame.ControlFrame(settings_,rootClass_,optionsView_)
 textFrame_ = textFrame.TextFrame(settings_,rootClass_,iconPath_)
 bottomFrame_ = bottomFrame.BottomFrame(settings_,rootClass_)
 
@@ -252,16 +251,13 @@ readerWorker_ = readerWorker.ReaderWorker(settings_,rootClass_,controlFrame_)
 processWorker_ = processWorker.ProcessWorker(settings_)
 logWriterWorker_ = logWriterWorker.LogWriterWorker(settings_)
 highlightWorker_ = highlightWorker.HighlightWorker(settings_)
-guiWorker_ = guiWorker.GuiWorker(settings_,rootClass_,search_)
+guiWorker_ = guiWorker.GuiWorker(settings_,rootClass_)
 # Common class with link to all workers
 workers_ = Workers(readerWorker_,processWorker_,logWriterWorker_,highlightWorker_,guiWorker_)
 
 ################################
 # Link modules
 rootClass_.linkConnectController(connectController_)
-
-search_.linkTextFrame(textFrame_)
-search_.linkWorkers(workers_)
 
 optionsView_.linkTextFrame(textFrame_)
 optionsView_.linkWorkers(workers_)
@@ -295,7 +291,7 @@ guiWorker_.linkWorkers(workers_)
 highlightWorker_.startWorker()
 guiWorker_.startWorker()
 
-rootClass_.root.bind('<Control-f>', search_.show)
+rootClass_.root.bind('<Control-f>', textFrame_.showSearch)
 
 
 import renameFileView
@@ -327,29 +323,29 @@ rootClass_.root.bind('<Control-o>', openFileView)
 
 # BULK DATA LOAD FOR DEBUG
 
-# _logFile = r"_testing\log_example_small.txt"
+_logFile = r"_testing\log_example_small.txt"
 
-# from customTypes import SerialLine
+from customTypes import SerialLine
 
-# def addDataToProcessQueue(*args):
-#     with open(_logFile,"r") as file:
-#         lines = file.readlines()
+def addDataToProcessQueue(*args):
+    with open(_logFile,"r") as file:
+        lines = file.readlines()
 
-#     print("Debug, lines loaded: " + str(len(lines)))
+    print("Debug, lines loaded: " + str(len(lines)))
 
-#     linesToAdd = 3500
+    linesToAdd = 3500
 
-#     loops = int(linesToAdd / len(lines))
+    loops = int(linesToAdd / len(lines))
 
-#     for _ in range(loops):
-#         for line in lines:
-#             timestamp = datetime.datetime.now()
-#             inLine = SerialLine(line,timestamp)
-#             processWorker_.processQueue.put(inLine)
+    for _ in range(loops):
+        for line in lines:
+            timestamp = datetime.datetime.now()
+            inLine = SerialLine(line,timestamp)
+            processWorker_.processQueue.put(inLine)
 
-#     print("Debug, lines added to view: " + str(loops*len(lines)))
+    print("Debug, lines added to view: " + str(loops*len(lines)))
 
-# rootClass_.root.bind('<Control-n>', addDataToProcessQueue)
+rootClass_.root.bind('<Control-n>', addDataToProcessQueue)
 
 
 traceLog(LogLevel.INFO,"Main loop started")

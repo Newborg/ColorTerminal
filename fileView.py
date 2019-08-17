@@ -7,7 +7,8 @@ from traceLog import traceLog,LogLevel
 import settings as Sets
 from util import AutoScrollbar
 from views import textFrame
-
+import search
+import copy
 
 class FileView:
 
@@ -38,21 +39,21 @@ class FileView:
 
         tFont = Font(family=self._settings.get(Sets.TEXTAREA_FONT_FAMILY), size=self._settings.get(Sets.TEXTAREA_FONT_SIZE))
 
-        self.textArea = tk.Text(self._textFrame, height=1, width=1, background=self._settings.get(Sets.TEXTAREA_BACKGROUND_COLOR),\
+        self._textArea = tk.Text(self._textFrame, height=1, width=1, background=self._settings.get(Sets.TEXTAREA_BACKGROUND_COLOR),\
                                 selectbackground=self._settings.get(Sets.TEXTAREA_SELECT_BACKGROUND_COLOR),\
                                 foreground=self._settings.get(Sets.TEXTAREA_COLOR), font=tFont)
 
         # Set up scroll bars
-        yscrollbar=tk.Scrollbar(self._textFrame, orient=tk.VERTICAL, command=self.textArea.yview)
+        yscrollbar=tk.Scrollbar(self._textFrame, orient=tk.VERTICAL, command=self._textArea.yview)
         yscrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.textArea["yscrollcommand"]=yscrollbar.set
+        self._textArea["yscrollcommand"]=yscrollbar.set
 
         # AutoScrollbar will hide itself when not needed
-        xscrollbar=AutoScrollbar(self._textFrame, orient=tk.HORIZONTAL, command=self.textArea.xview)
+        xscrollbar=AutoScrollbar(self._textFrame, orient=tk.HORIZONTAL, command=self._textArea.xview)
         xscrollbar.pack(side=tk.BOTTOM, fill=tk.X)
-        self.textArea["xscrollcommand"]=xscrollbar.set
+        self._textArea["xscrollcommand"]=xscrollbar.set
 
-        self.textArea.pack(anchor=tk.W, fill=tk.BOTH, expand = tk.YES)
+        self._textArea.pack(anchor=tk.W, fill=tk.BOTH, expand = tk.YES)
 
         self._textFrame.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
 
@@ -71,35 +72,39 @@ class FileView:
         except FileNotFoundError:
             traceLog(LogLevel.WARNING,"File not found")
             pass
-   
 
-        self.textArea.insert(tk.END, lines)
 
-        self.textArea.config(state=tk.DISABLED)
+        self._textArea.insert(tk.END, lines)
+
+        self._textArea.config(state=tk.DISABLED)
 
         # Apply new line colors
-        lineColorMap = self._mainTextFrame.getLineColorMap()          
+        lineColorMap = copy.deepcopy(self._mainTextFrame.getLineColorMap())
         for lineInfo in lineColorMap.values():
-            self.textArea.tag_configure(lineInfo["tagName"],foreground=lineInfo["color"])
+            self._textArea.tag_configure(lineInfo["tagName"],foreground=lineInfo["color"])
 
             countVar = tk.StringVar()
             start = 1.0
             while True:
-                pos = self.textArea.search(lineInfo["regex"],start,stopindex=tk.END,count=countVar,nocase=False,regexp=True)
+                pos = self._textArea.search(lineInfo["regex"],start,stopindex=tk.END,count=countVar,nocase=False,regexp=True)
                 if not pos:
                     break
                 else:
-                    self.textArea.tag_add(lineInfo["tagName"],pos,pos + "+" + countVar.get() + "c")
+                    self._textArea.tag_add(lineInfo["tagName"],pos,pos + "+" + countVar.get() + "c")
                     start = pos + "+1c"
 
+        # Search setup
+        self._search = search.Search(self._settings)
+        self._search.linkTextArea(self._textArea)
+        self._view.bind('<Control-f>', self._search.show)
 
-
-    # def linkWorkers(self,workers):
-    #     self._highlightWorker = workers.highlightWorker
-    #     self._guiWorker = workers.guiWorker
+        # Focus on new window
+        self._view.focus_set()
 
     def _onClosing(self):
-        
+
         # Close window
         self._view.destroy()
+
+
 

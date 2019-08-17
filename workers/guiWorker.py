@@ -7,20 +7,17 @@ import tkinter as tk
 from traceLog import traceLog,LogLevel
 import settings as Sets
 
-# Link import
-from search import Search
-
 class GuiWorker:
 
-    def __init__(self,settings,rootClass,search):
+    def __init__(self,settings,rootClass):
         self._settings = settings
         self._root = rootClass.root
+        self._textFrame = None
         self._textArea = None
         self._bottomFrame = None
-        self._search:Search = search
         self._highlightWorker = None
         self._logWriterWorker = None
-        
+
         self._scrollingEnabled = True
 
         self.guiQueue = queue.Queue()
@@ -43,6 +40,7 @@ class GuiWorker:
         self._logWriterWorker = workers.logWriterWorker
 
     def linkTextFrame(self,textFrame):
+        self._textFrame = textFrame
         self._textArea = textFrame.textArea
 
     def linkBottomFrame(self,bottomFrame):
@@ -65,16 +63,16 @@ class GuiWorker:
         "Will block until GUI worker is done. GUI queue is always emptied before stop."
 
         self._cancelGuiJob()
-        self._updateGuiFlag = False        
+        self._updateGuiFlag = False
         self.guiEvent.wait()
 
     def reloadGuiBuffer(self):
         self._reloadGuiBuffer = True
 
-    def enableScrolling(self):        
+    def enableScrolling(self):
         self._scrollingEnabled = True
 
-    def disableScrolling(self):        
+    def disableScrolling(self):
         self._scrollingEnabled = False
 
     ##############
@@ -110,7 +108,7 @@ class GuiWorker:
         receivedLines = list()
 
         if not self._highlightWorker.isReloadingLineBuffer:
-            
+
             lastline = 0
 
             lastLineAtStart = int(self._textArea.index("end-2c").split(".")[0])
@@ -124,7 +122,7 @@ class GuiWorker:
 
 
             except queue.Empty:
-                
+
                 # Open text widget for editing
                 self._textArea.config(state=tk.NORMAL)
 
@@ -146,7 +144,7 @@ class GuiWorker:
 
                     # Highlight/color text
                     lastline = self._textArea.index("end-2c").split(".")[0]
-                    for lineTag in msg.lineTags:                        
+                    for lineTag in msg.lineTags:
                         self._textArea.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
 
                 # Disable text widget edit
@@ -159,7 +157,7 @@ class GuiWorker:
                 self._bottomFrame.updateLogFileLineCount(self._logWriterWorker.linesInLogFile)
 
                 numberOfLinesDeleted = linesInserted - (lastLineAtEnd - lastLineAtStart)
-                self._search.searchLinesAdded(numberOfLinesAdded=linesInserted,numberOfLinesDeleted=numberOfLinesDeleted,lastLine=lastLineAtEnd)
+                self._textFrame.searchLinesAdded(numberOfLinesAdded=linesInserted,numberOfLinesDeleted=numberOfLinesDeleted,lastLine=lastLineAtEnd)
 
             if reloadInitiated:
                 self.guiReloadEvent.set()
@@ -174,8 +172,7 @@ class GuiWorker:
 
     def _waitForInput(self):
         self.guiEvent.clear()
-        if self._updateGuiFlag:            
-            self._updateGUI()            
+        if self._updateGuiFlag:
+            self._updateGUI()
             self._updateGuiJob = self._root.after(100,self._waitForInput)
         self.guiEvent.set()
-            

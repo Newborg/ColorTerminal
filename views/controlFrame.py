@@ -9,13 +9,12 @@ from customTypes import ConnectState
 
 class ControlFrame:
 
-    def __init__(self,settings,rootClass,search,optionsView):
+    def __init__(self,settings,rootClass,optionsView):
         self._settings = settings
         self._root = rootClass.root
         self._textFrame = None
         self._textArea = None
-        self._bottomFrame = None
-        self._search = search
+        self._bottomFrame = None        
         self._optionsView = optionsView
 
 
@@ -140,7 +139,7 @@ class ControlFrame:
 
     def _clearButtonCommand(self,*args):
 
-        self._search.close()
+        self._textFrame.closeSearch()
 
         self._highlightWorker.clearLineBuffer()
 
@@ -167,7 +166,7 @@ class ControlFrame:
             self._settings.setOption(Sets.TEXTAREA_LINE_WRAP,Sets.LINE_WRAP_ON)
 
     def _showOptionsView(self):
-        self._search.close()
+        self._textFrame.closeSearch()
         self._optionsView.show()
 
     def _scanSerialPorts(self):
