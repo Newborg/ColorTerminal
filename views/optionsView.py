@@ -12,14 +12,15 @@ from traceLog import traceLog,LogLevel
 import settings as Sets
 import spinner
 
-from frames import textFrame
+from frames import textFrame as TF
 
 class OptionsView:
 
-    def __init__(self,settings,root,iconPath):
+    def __init__(self,settings,root,iconPath,comController):
         self._settings = settings
         self._root = root
         self._iconPath = iconPath
+        self._comController = comController
 
         self._highlightWorker = None
         self._guiWorker = None
@@ -27,7 +28,7 @@ class OptionsView:
         self._showing = False
         self._saving = False
 
-        self._textFrame:textFrame.TextFrame = None
+        self._textFrame:TF.TextFrame = None
 
     def linkWorkers(self,workers):
         self._highlightWorker = workers.highlightWorker
@@ -355,39 +356,48 @@ class OptionsView:
         # Once settings have been saved, allow for reopen of options view
         self._showing = False
 
+        # Get registered textFrames
+        textFrames = self._comController.getTextFrames()
+        
         # Delete line color tags
         for deletedRowData in self._deletedLineColorRows:
-            self._textFrame.deleteTextTag(deletedRowData["tagName"])
+            for textFrame in textFrames:
+                textFrame.deleteTextTag(deletedRowData["tagName"])
 
         # Process added or updated line color rows
         for rowId in tempLineColorRows.keys():
             if tempLineColorRows[rowId].entries["regex"].isVarUpdated():
                 if tempLineColorRows[rowId].entries["regex"].data.entryVar:
-                    oldTagName = textFrame.createLineColorTagName(tempLineColorRows[rowId].entries["regex"].data.entryVar)
-                    self._textFrame.deleteTextTag(oldTagName)
+                    oldTagName = TF.createLineColorTagName(tempLineColorRows[rowId].entries["regex"].data.entryVar)
+                    for textFrame in textFrames:
+                        textFrame.deleteTextTag(oldTagName)
                     # print("Delete edited row id: " + rowId)
-                self._textFrame.createAndAddLineColorTag(tempLineColorRows[rowId].entries["regex"].var.get(),tempLineColorRows[rowId].entries["color"].var.get())
+                for textFrame in textFrames:
+                    textFrame.createAndAddLineColorTag(tempLineColorRows[rowId].entries["regex"].var.get(),tempLineColorRows[rowId].entries["color"].var.get())
                 # print("Added line color row: " + rowId)
 
             elif tempLineColorRows[rowId].entries["color"].isVarUpdated():
-                tagName = textFrame.createLineColorTagName(tempLineColorRows[rowId].entries["regex"].var.get())
-                self._textFrame.updateTagColor(tagName,tempLineColorRows[rowId].entries["color"].var.get())
+                tagName = TF.createLineColorTagName(tempLineColorRows[rowId].entries["regex"].var.get())
+                for textFrame in textFrames:                    
+                    textFrame.updateTagColor(tagName,tempLineColorRows[rowId].entries["color"].var.get())
 
 
         # Reorder line color tags
         rowIds = sorted(tempLineColorRows.keys())
         if rowIds:
-            preTagName = textFrame.createLineColorTagName(tempLineColorRows[rowIds[0]].entries["regex"].var.get())
+            preTagName = TF.createLineColorTagName(tempLineColorRows[rowIds[0]].entries["regex"].var.get())
             for rowId in rowIds[1:-1]:
-                tagName = textFrame.createLineColorTagName(tempLineColorRows[rowId].entries["regex"].var.get())
-                self._textFrame.textArea.tag_raise(tagName,aboveThis=preTagName)
+                tagName = TF.createLineColorTagName(tempLineColorRows[rowId].entries["regex"].var.get())
+                for textFrame in textFrames:                    
+                    textFrame.textArea.tag_raise(tagName,aboveThis=preTagName)
                 preTagName = tagName
 
         # print(*self._textFrame.textArea.tag_names(),sep=", ")
 
         # Reload main interface
-        self._textFrame.reloadLineColorMap()
-        self._textFrame.reloadTextFrame()
+        for textFrame in textFrames:
+            textFrame.reloadLineColorMap()
+            textFrame.reloadTextFrame()
 
         # Start workers
         self._highlightWorker.startWorker()
@@ -464,7 +474,7 @@ class OptionsView:
                         newRowNum = rowNum+1
                     elif edit == self.EDIT_DELETE:
                         deletedRowData = dict()
-                        deletedRowData["tagName"] = textFrame.createLineColorTagName(tempTextColorMap[0][0])
+                        deletedRowData["tagName"] = TF.createLineColorTagName(tempTextColorMap[0][0])
                         self._deletedLineColorRows.append(deletedRowData)
                         del tempTextColorMap[0]
 
@@ -746,7 +756,7 @@ class OptionsView:
                     lineInfo = dict()
                     lineInfo["regex"] = self._setsDict[rowId].entries["regex"].var.get()
                     lineInfo["color"] = self._setsDict[rowId].entries["color"].var.get()
-                    lineInfo["tagName"] = textFrame.createLineColorTagName(lineInfo["regex"])
+                    lineInfo["tagName"] = TF.createLineColorTagName(lineInfo["regex"])
                     tempLineColorMap.append(lineInfo)
 
             # Apply new line colors

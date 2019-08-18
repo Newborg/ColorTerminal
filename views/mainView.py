@@ -9,8 +9,9 @@ from frames import controlFrame, textFrame, bottomFrame
 
 class MainView:
 
-    def __init__(self,settings,iconPath,version):
+    def __init__(self,settings,iconPath,version,comController):
         self._settings = settings
+        self._comController = comController
 
         self.root = tk.Tk()
 
@@ -21,8 +22,8 @@ class MainView:
         self.root.title("Color Terminal v" + version)
         self.root.geometry(self._settings.get(Sets.DEFAULT_WINDOW_SIZE))
 
-        self.controlFrame = controlFrame.ControlFrame(self._settings,self.root,iconPath)
-        self.textFrame = textFrame.TextFrame(self._settings,self.root,iconPath)
+        self.controlFrame = controlFrame.ControlFrame(self._settings,self.root,iconPath,self._comController)
+        self.textFrame = textFrame.TextFrame(self._settings,self.root,iconPath,self._comController)
         self.bottomFrame = bottomFrame.BottomFrame(self._settings,self.root,iconPath)
 
         self._connectController = None
@@ -31,8 +32,6 @@ class MainView:
         self.controlFrame.linkTextFrame(self.textFrame)
         self.controlFrame.linkBottomFrame(self.bottomFrame)
 
-        # Key binding
-        self.root.bind('<Control-f>', self.textFrame.showSearch)
 
     def linkConnectController(self,connectController):
         self._connectController = connectController

@@ -1,5 +1,7 @@
+import os
 
 import tkinter as tk
+from tkinter import filedialog
 
 import serial.tools.list_ports
 
@@ -7,20 +9,21 @@ from traceLog import traceLog,LogLevel
 import settings as Sets
 from customTypes import ConnectState
 
-from views import optionsView
+from views import optionsView, fileView
 
 class ControlFrame:
 
-    def __init__(self,settings,root,iconPath):
+    def __init__(self,settings,root,iconPath,comController):
         self._settings = settings
         self._root = root
         self._iconPath = iconPath
+        self._comController = comController
 
         self._textFrame = None
         self._textArea = None
         self._bottomFrame = None        
         
-        self._optionsView = optionsView.OptionsView(self._settings,self._root,iconPath)
+        self._optionsView = optionsView.OptionsView(self._settings,self._root,iconPath,comController)
 
         self._serialPorts = dict()
         self._serialPortList = [""]
@@ -31,6 +34,7 @@ class ControlFrame:
 
         self._root.bind("<Alt-e>", self._goToEndButtonCommand)
         self._root.bind("<End>", self._goToEndButtonCommand)
+        self._root.bind('<Control-o>', self._openFileCommand)
 
         # Create widgets
         self._topFrame = tk.Frame(self._root)
@@ -41,10 +45,10 @@ class ControlFrame:
         self._statusLabelHeader = tk.Label(self._topFrame,text="   Status:", anchor=tk.W, fg=Sets.STATUS_TEXT_COLOR, bg=Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
         self._statusLabelHeader.pack(side=tk.RIGHT)
 
-        self._connectButton = tk.Button(self._topFrame,text="Connect", command=self._connectButtonCommand, width=10)
+        self._connectButton = tk.Button(self._topFrame,text="Connect", command=self._connectButtonCommand, width=8)
         self._connectButton.pack(side=tk.LEFT)
 
-        self._goToEndButton = tk.Button(self._topFrame,text="Go to end", command=self._goToEndButtonCommand, width=10, underline=6)
+        self._goToEndButton = tk.Button(self._topFrame,text="Go to end", command=self._goToEndButtonCommand, width=8, underline=6)
         self._goToEndButton.pack(side=tk.LEFT)
 
         # reloadBufferButton_ = tk.Button(topFrame_,text="Reload buffer", command=reloadBufferCommand, width=10)
@@ -56,11 +60,14 @@ class ControlFrame:
         # self._lineWrapToggleButton = tk.Button(self._topFrame,text="Line Wrap", command=self._lineWrapToggleCommmand, width=10)
         # self._lineWrapToggleButton.pack(side=tk.LEFT)
 
-        self._clearButton = tk.Button(self._topFrame,text="Clear", command=self._clearButtonCommand, width=10)
-        self._clearButton.pack(side=tk.LEFT,padx=(0,40))
+        self._clearButton = tk.Button(self._topFrame,text="Clear", command=self._clearButtonCommand, width=8)
+        self._clearButton.pack(side=tk.LEFT,padx=(0,30))
 
-        self._optionsButton = tk.Button(self._topFrame,text="Options", command=self._showOptionsView, width=10)
-        self._optionsButton.pack(side=tk.LEFT,padx=(0,40))
+        self._openFileButton = tk.Button(self._topFrame,text="Open File", command=self._openFileCommand, width=8)
+        self._openFileButton.pack(side=tk.LEFT,padx=(0,30))
+
+        self._optionsButton = tk.Button(self._topFrame,text="Options", command=self._showOptionsView, width=8)
+        self._optionsButton.pack(side=tk.LEFT,padx=(0,30))
 
         self._serialPortReloadButton = tk.Button(self._topFrame,text="Reload ports", command=self._reloadSerialPorts, width=10)
         self._serialPortReloadButton.pack(side=tk.LEFT)
@@ -170,6 +177,15 @@ class ControlFrame:
         else:
             self._textFrame.updateLineWrap(Sets.LINE_WRAP_ON)
             self._settings.setOption(Sets.TEXTAREA_LINE_WRAP,Sets.LINE_WRAP_ON)
+
+    def _openFileCommand(self,*args):
+        fileName = filedialog.askopenfilename(initialdir = self._settings.get(Sets.LOG_FILE_PATH),\
+                                            title = "Select log file",\
+                                            filetypes = (("Log files","*"+Sets.LOG_FILE_TYPE),))
+        
+        if fileName:
+            fileView.FileView(self._settings,self._root,self._iconPath,self._comController,fileName)
+
 
     def _showOptionsView(self):
         self._textFrame.closeSearch()

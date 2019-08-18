@@ -18,10 +18,11 @@ def createLineColorTagName(regex):
 
 class TextFrame:
 
-    def __init__(self,settings,root,iconPath):
+    def __init__(self,settings,root,iconPath,comController):
         self._settings = settings
         self._root = root
         self._iconPath = iconPath
+        self._comController = comController
 
         self._lineColorMap = dict()
 
@@ -66,13 +67,18 @@ class TextFrame:
         self.textArea.tag_bind(Sets.LOG_FILE_LINK_TAG, "<Button-1>", self._click_)        
 
         self._textFrame.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
-
+        
         self._search = search.Search(self._settings)
         self._search.linkTextArea(self.textArea)
+        self._root.bind('<Control-f>', self._search.show)
 
         self.reloadLineColorMap()
         self.createAllTextFrameLineColorTag()
 
+        self._comController.registerTextFrame(self)   
+
+    def close(self):
+        self._comController.unregisterTextFrame(self)
 
     def linkWorkers(self,workers):
         self._highlightWorker = workers.highlightWorker
@@ -84,8 +90,8 @@ class TextFrame:
     def searchLinesAdded(self,numberOfLinesAdded,numberOfLinesDeleted,lastLine):
         self._search.searchLinesAdded(numberOfLinesAdded,numberOfLinesDeleted,lastLine)
 
-    def showSearch(self,*args):
-        self._search.show()
+    # def showSearch(self,*args):
+    #     self._search.show()
 
     def closeSearch(self):
         self._search.close()
@@ -137,6 +143,10 @@ class TextFrame:
 
     def deleteTextTag(self,tagName):
         self.textArea.tag_delete(tagName)
+    
+    def addAllLineColorTagsToText(self):
+        for lineColorRowId in self._lineColorMap.keys():
+            self.addLineColorTagToText(self._lineColorMap[lineColorRowId]["regex"],self._lineColorMap[lineColorRowId]["tagName"])
 
     def addLineColorTagToText(self,regex,tagName):
         

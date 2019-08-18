@@ -17,8 +17,6 @@ from customTypes import ConnectState
 # import search
 from views import mainView, fileView, optionsView
 
-from frames import controlFrame, textFrame, bottomFrame
-
 from workers import readerWorker, processWorker, logWriterWorker, highlightWorker, guiWorker
 
 ################################
@@ -147,6 +145,26 @@ class ConnectController:
             self._mainView.controlFrame.setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
 
 ################################
+# Communication Controller
+
+class ComController:
+
+    def __init__(self):
+        pass
+        self.textFrames = list()
+
+    def registerTextFrame(self,textFrame):
+        if not textFrame in self.textFrames:
+             self.textFrames.append(textFrame)        
+
+    def unregisterTextFrame(self,textFrame):
+        if textFrame in self.textFrames:
+            self.textFrames.remove(textFrame)        
+
+    def getTextFrames(self):
+        return self.textFrames
+
+################################
 # Workers
 
 class Workers:
@@ -171,7 +189,7 @@ parser.add_argument("-c","--enableConsole",help="send stdout and stderr to conso
 args = parser.parse_args()
 
 if not args.enableConsole:
-    sys.stdout = sys.stderr = open(stdoutFile,"a")    
+    sys.stdout = sys.stderr = open(stdoutFile,"a")
 
 ################################################################
 ################################################################
@@ -181,24 +199,25 @@ if not args.enableConsole:
 iconPath_ = RELATIVE_ICON_PATH_
 
 if hasattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):
-    traceLog(LogLevel.INFO,"Running in a PyInstaller bundle")    
-    bundle_dir = getattr(sys,'_MEIPASS')    
-    iconPath_ = os.path.join(bundle_dir,RELATIVE_ICON_PATH_)    
-else:    
-    traceLog(LogLevel.INFO,"Running in a normal Python process")    
+    traceLog(LogLevel.INFO,"Running in a PyInstaller bundle")
+    bundle_dir = getattr(sys,'_MEIPASS')
+    iconPath_ = os.path.join(bundle_dir,RELATIVE_ICON_PATH_)
+else:
+    traceLog(LogLevel.INFO,"Running in a normal Python process")
 
 ################################################################
 ################################################################
-
-
 
 # Settings
 SETTINGS_FILE_NAME_ = "CTsettings.json"
 settings_ = Sets.Settings(SETTINGS_FILE_NAME_)
 settings_.reload()
 
+# Communication Controller
+comController_ = ComController()
+
 # Main View (root)
-mainView_ = mainView.MainView(settings_,iconPath_,VERSION_)
+mainView_ = mainView.MainView(settings_,iconPath_,VERSION_,comController_)
 
 # Main Controllers
 connectController_ = ConnectController(settings_,mainView_)
@@ -231,11 +250,11 @@ highlightWorker_.startWorker()
 guiWorker_.startWorker()
 
 # File View test
-def openFileView(*args):
-    testFile = r"_testing\SerialLog_2019.07.28_12.07.44.txt"
-    fileView.FileView(settings_,mainView_,iconPath_,testFile)
-   
-mainView_.root.bind('<Control-o>', openFileView)
+# def openFileView(*args):
+#     testFile = r"_testing\SerialLog_2019.07.28_12.07.44.txt"
+#     fileView.FileView(settings_,mainView_,iconPath_,comController_,testFile)
+
+# mainView_.root.bind('<Control-o>', openFileView)
 
 
 # TESTING
