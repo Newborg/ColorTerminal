@@ -4,7 +4,7 @@ import sys
 import argparse
 
 import tkinter as tk
-from tkinter import messagebox
+# from tkinter import messagebox
 
 import datetime
 
@@ -14,11 +14,10 @@ import threading
 from traceLog import traceLog,LogLevel
 import settings as Sets
 from customTypes import ConnectState
-import optionsView
 # import search
-import fileView
+from views import mainView, fileView, optionsView
 
-from views import controlFrame, textFrame, bottomFrame
+from frames import controlFrame, textFrame, bottomFrame
 
 from workers import readerWorker, processWorker, logWriterWorker, highlightWorker, guiWorker
 
@@ -37,10 +36,10 @@ RELATIVE_ICON_PATH_ = r"icons\Icon03.ico"
 
 class ConnectController:
 
-    def __init__(self,settings,rootClass):
+    def __init__(self,settings,mainView):
         self._settings = settings
-        self._rootClass = rootClass
-        self._root = rootClass.root
+        self._mainView = mainView
+        self._root = mainView.root
 
         self._closeProgram = False
 
@@ -50,8 +49,6 @@ class ConnectController:
         self._highlightWorker = None
         self._guiWorker = None
 
-        self._controlFrame = None
-
         self._appState = ConnectState.DISCONNECTED
 
     def linkWorkers(self,workers):
@@ -60,9 +57,6 @@ class ConnectController:
         self._logWriterWorker = workers.logWriterWorker
         self._highlightWorker = workers.highlightWorker
         self._guiWorker = workers.guiWorker
-
-    def linkControlFrame(self,controlFrame):
-        self._controlFrame = controlFrame
 
     def connectSerial(self):
 
@@ -117,7 +111,7 @@ class ConnectController:
             self._guiWorker.stopWorker()
 
             # Close tkinter window (close program)
-            self._root.after(100,self._rootClass.destroyWindow)
+            self._root.after(100,self._mainView.destroyWindow)
 
     def getAppState(self):
         return self._appState
@@ -127,61 +121,30 @@ class ConnectController:
         self._appState = newState
 
         if newState == ConnectState.CONNECTING:
-            self._controlFrame.setConnectButtonText("Disconnect")
-            self._controlFrame.disableConnectButtons()
-            self._controlFrame.disablePortButtons()
+            self._mainView.controlFrame.setConnectButtonText("Disconnect")
+            self._mainView.controlFrame.disableConnectButtons()
+            self._mainView.controlFrame.disablePortButtons()
             self.connectSerial()
-            self._controlFrame.setStatusLabel("CONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
+            self._mainView.controlFrame.setStatusLabel("CONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
 
         elif newState == ConnectState.CONNECTED:
-            self._controlFrame.setConnectButtonText("Disconnect")
-            self._controlFrame.enableConnectButtons()
-            self._controlFrame.disablePortButtons()
-            self._controlFrame.setStatusLabel("CONNECTED to " + str(extraInfo),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
+            self._mainView.controlFrame.setConnectButtonText("Disconnect")
+            self._mainView.controlFrame.enableConnectButtons()
+            self._mainView.controlFrame.disablePortButtons()
+            self._mainView.controlFrame.setStatusLabel("CONNECTED to " + str(extraInfo),Sets.STATUS_CONNECT_BACKGROUND_COLOR)
 
         elif newState == ConnectState.DISCONNECTING:
-            self._controlFrame.setConnectButtonText("Connect")
-            self._controlFrame.disableConnectButtons()
-            self._controlFrame.disablePortButtons()
+            self._mainView.controlFrame.setConnectButtonText("Connect")
+            self._mainView.controlFrame.disableConnectButtons()
+            self._mainView.controlFrame.disablePortButtons()
             self.disconnectSerial()
-            self._controlFrame.setStatusLabel("DISCONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
+            self._mainView.controlFrame.setStatusLabel("DISCONNECTING...",Sets.STATUS_WORKING_BACKGROUND_COLOR)
 
         elif newState == ConnectState.DISCONNECTED:
-            self._controlFrame.setConnectButtonText("Connect")
-            self._controlFrame.enableConnectButtons()
-            self._controlFrame.enablePortButtons()
-            self._controlFrame.setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
-
-
-################################
-# Root frame
-
-class RootClass:
-
-    def __init__(self,settings,iconPath):
-        self._settings_ = settings
-
-        self.root = tk.Tk()
-
-        self.root.iconbitmap(iconPath)
-
-        self._connectController_ = None
-
-        self.root.protocol("WM_DELETE_WINDOW", self._onClosing_)
-
-        self.root.title("Color Terminal v" + VERSION_)
-        self.root.geometry(self._settings_.get(Sets.DEFAULT_WINDOW_SIZE))
-
-    def linkConnectController(self,connectController):
-        self._connectController_ = connectController
-
-    def destroyWindow(self):
-        traceLog(LogLevel.INFO,"Closing main window")
-        self.root.destroy()
-
-    def _onClosing_(self):
-        if messagebox.askokcancel("Quit", "Do you want to quit?"):
-            self._connectController_.disconnectSerial(close=True)
+            self._mainView.controlFrame.setConnectButtonText("Connect")
+            self._mainView.controlFrame.enableConnectButtons()
+            self._mainView.controlFrame.enablePortButtons()
+            self._mainView.controlFrame.setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
 
 ################################
 # Workers
@@ -234,56 +197,32 @@ SETTINGS_FILE_NAME_ = "CTsettings.json"
 settings_ = Sets.Settings(SETTINGS_FILE_NAME_)
 settings_.reload()
 
-# Root
-rootClass_ = RootClass(settings_,iconPath_)
+# Main View (root)
+mainView_ = mainView.MainView(settings_,iconPath_,VERSION_)
 
 # Main Controllers
-connectController_ = ConnectController(settings_,rootClass_)
-
-# Views
-optionsView_ = optionsView.OptionsView(settings_,rootClass_,iconPath_)
-controlFrame_ = controlFrame.ControlFrame(settings_,rootClass_,optionsView_)
-textFrame_ = textFrame.TextFrame(settings_,rootClass_,iconPath_)
-bottomFrame_ = bottomFrame.BottomFrame(settings_,rootClass_)
+connectController_ = ConnectController(settings_,mainView_)
 
 # Workers
-readerWorker_ = readerWorker.ReaderWorker(settings_,rootClass_,controlFrame_)
+readerWorker_ = readerWorker.ReaderWorker(settings_,mainView_)
 processWorker_ = processWorker.ProcessWorker(settings_)
-logWriterWorker_ = logWriterWorker.LogWriterWorker(settings_)
-highlightWorker_ = highlightWorker.HighlightWorker(settings_)
-guiWorker_ = guiWorker.GuiWorker(settings_,rootClass_)
+logWriterWorker_ = logWriterWorker.LogWriterWorker(settings_,mainView_)
+highlightWorker_ = highlightWorker.HighlightWorker(settings_,mainView_)
+guiWorker_ = guiWorker.GuiWorker(settings_,mainView_)
 # Common class with link to all workers
 workers_ = Workers(readerWorker_,processWorker_,logWriterWorker_,highlightWorker_,guiWorker_)
 
 ################################
 # Link modules
-rootClass_.linkConnectController(connectController_)
+mainView_.linkConnectController(connectController_)
+mainView_.linkWorkers(workers_)
 
-optionsView_.linkTextFrame(textFrame_)
-optionsView_.linkWorkers(workers_)
-
-controlFrame_.linkTextFrame(textFrame_)
-controlFrame_.linkBottomFrame(bottomFrame_)
-controlFrame_.linkConnectController(connectController_)
-controlFrame_.linkWorkers(workers_)
-
-textFrame_.linkWorkers(workers_)
-
-connectController_.linkControlFrame(controlFrame_)
 connectController_.linkWorkers(workers_)
 
 readerWorker_.linkConnectController(connectController_)
 readerWorker_.linkWorkers(workers_)
-
 processWorker_.linkWorkers(workers_)
-
-logWriterWorker_.linkBottomFrame(bottomFrame_)
-
 highlightWorker_.linkWorkers(workers_)
-highlightWorker_.linkTextFrame(textFrame_)
-
-guiWorker_.linkTextFrame(textFrame_)
-guiWorker_.linkBottomFrame(bottomFrame_)
 guiWorker_.linkWorkers(workers_)
 
 ################################
@@ -291,17 +230,12 @@ guiWorker_.linkWorkers(workers_)
 highlightWorker_.startWorker()
 guiWorker_.startWorker()
 
-rootClass_.root.bind('<Control-f>', textFrame_.showSearch)
-
-
-import renameFileView
-
 # File View test
 def openFileView(*args):
     testFile = r"_testing\SerialLog_2019.07.28_12.07.44.txt"
-    fileView.FileView(settings_,rootClass_,iconPath_,textFrame_,testFile)
+    fileView.FileView(settings_,mainView_,iconPath_,testFile)
    
-rootClass_.root.bind('<Control-o>', openFileView)
+mainView_.root.bind('<Control-o>', openFileView)
 
 
 # TESTING
@@ -345,12 +279,12 @@ def addDataToProcessQueue(*args):
 
     print("Debug, lines added to view: " + str(loops*len(lines)))
 
-rootClass_.root.bind('<Control-n>', addDataToProcessQueue)
+mainView_.root.bind('<Control-n>', addDataToProcessQueue)
 
 
 traceLog(LogLevel.INFO,"Main loop started")
 
-rootClass_.root.mainloop()
+mainView_.root.mainloop()
 
 traceLog(LogLevel.INFO,"Main loop done")
 

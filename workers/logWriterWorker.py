@@ -12,20 +12,17 @@ import settings as Sets
 
 class LogWriterWorker:
 
-    def __init__(self,settings):
+    def __init__(self,settings,mainView):
         self._settings = settings
-        self._logFlag = False
+        self._mainView = mainView
 
-        self._bottomFrame = None
+        self._logFlag = False
 
         self._logThread = None
         self.logQueue = queue.Queue()
 
         self.linesInLogFile = 0
         self.lastLogFileInfo = ""
-
-    def linkBottomFrame(self,bottomFrame):
-        self._bottomFrame = bottomFrame
 
     def startWorker(self):
 
@@ -60,7 +57,7 @@ class LogWriterWorker:
 
         os.makedirs(os.path.dirname(fullFilename), exist_ok=True)
 
-        self._bottomFrame.updateLogFileInfo("Saving to log file: " + filename,"black",useRootAfter=True)
+        self._mainView.bottomFrame.updateLogFileInfo("Saving to log file: " + filename,"black",useRootAfter=True)
 
         self.linesInLogFile = 0
 
@@ -77,4 +74,4 @@ class LogWriterWorker:
         filesize = os.path.getsize(fullFilename)
         self.lastLogFileInfo = filename + " (Size " + "{:.3f}".format(filesize/1024) + "KB)"
 
-        self._bottomFrame.updateLogFileInfo("Log file saved: " + self.lastLogFileInfo,"green",useRootAfter=True)
+        self._mainView.bottomFrame.updateLogFileInfo("Log file saved: " + self.lastLogFileInfo,"green",useRootAfter=True)

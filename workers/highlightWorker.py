@@ -8,12 +8,13 @@ from traceLog import traceLog,LogLevel
 import settings as Sets
 from customTypes import PrintLine
 
-from views import textFrame
+# from frames import textFrame
 
 class HighlightWorker():
 
-    def __init__(self,settings):
+    def __init__(self,settings,mainView):
         self._settings = settings
+        self._mainView = mainView
 
         self._logFileBaseName = self._settings.get(Sets.LOG_FILE_BASE_NAME)
 
@@ -22,8 +23,6 @@ class HighlightWorker():
         self._lineBuffer = list()
 
         self._guiWorker = None
-
-        self._textFrame:textFrame.TextFrame = None
 
         self._consecutiveLinesHidden = 0
         self._hideLineMap = list()
@@ -46,12 +45,9 @@ class HighlightWorker():
     def linkWorkers(self,workers):
         self._guiWorker = workers.guiWorker
     
-    def linkTextFrame(self,textFrame):
-        self._textFrame = textFrame
-
     def startWorker(self):
 
-        if self._guiWorker != None and self._textFrame != None:
+        if self._guiWorker != None:
             if not self._highlightFlag:
 
                 self._reloadLineColorMap()
@@ -107,7 +103,7 @@ class HighlightWorker():
     # Internal
 
     def _reloadLineColorMap(self):
-        self._lineColorMap = self._textFrame.getLineColorMap()
+        self._lineColorMap = self._mainView.textFrame.getLineColorMap()
 
     def _locateLineTags(self,line):
         # Locate highlights

@@ -6,17 +6,17 @@ from tkinter.font import Font
 from traceLog import traceLog,LogLevel
 import settings as Sets
 from util import AutoScrollbar
-from views import textFrame
+from frames import textFrame
 import search
 import copy
 
 class FileView:
 
-    def __init__(self,settings,rootClass,iconPath,mainTextFrame,fileName):
+    def __init__(self,settings,mainView,iconPath,fileName):
         self._settings = settings
-        self._root = rootClass.root
+        self._root = mainView.root
         self._iconPath = iconPath
-        self._mainTextFrame = mainTextFrame
+        self._mainTextFrame = mainView.textFrame
 
         # View
         self._view = tk.Toplevel(self._root)

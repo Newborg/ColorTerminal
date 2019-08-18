@@ -5,7 +5,7 @@ from tkinter.font import Font
 
 from traceLog import traceLog,LogLevel
 import settings as Sets
-import renameFileView
+from views import renameFileView
 from util import AutoScrollbar
 import search
 
@@ -18,9 +18,9 @@ def createLineColorTagName(regex):
 
 class TextFrame:
 
-    def __init__(self,settings,rootClass,iconPath):
+    def __init__(self,settings,root,iconPath):
         self._settings = settings
-        self._root = rootClass.root
+        self._root = root
         self._iconPath = iconPath
 
         self._lineColorMap = dict()

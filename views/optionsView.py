@@ -12,13 +12,13 @@ from traceLog import traceLog,LogLevel
 import settings as Sets
 import spinner
 
-from views import textFrame
+from frames import textFrame
 
 class OptionsView:
 
-    def __init__(self,settings,rootClass,iconPath):
+    def __init__(self,settings,root,iconPath):
         self._settings = settings
-        self._root = rootClass.root
+        self._root = root
         self._iconPath = iconPath
 
         self._highlightWorker = None

@@ -7,16 +7,20 @@ from traceLog import traceLog,LogLevel
 import settings as Sets
 from customTypes import ConnectState
 
+from views import optionsView
+
 class ControlFrame:
 
-    def __init__(self,settings,rootClass,optionsView):
+    def __init__(self,settings,root,iconPath):
         self._settings = settings
-        self._root = rootClass.root
+        self._root = root
+        self._iconPath = iconPath
+
         self._textFrame = None
         self._textArea = None
         self._bottomFrame = None        
-        self._optionsView = optionsView
-
+        
+        self._optionsView = optionsView.OptionsView(self._settings,self._root,iconPath)
 
         self._serialPorts = dict()
         self._serialPortList = [""]
@@ -84,10 +88,12 @@ class ControlFrame:
     def linkWorkers(self,workers):
         self._highlightWorker = workers.highlightWorker
         self._guiWorker = workers.guiWorker
+        self._optionsView.linkWorkers(workers)
 
     def linkTextFrame(self,textFrame):
         self._textFrame = textFrame
         self._textArea = textFrame.textArea
+        self._optionsView.linkTextFrame(textFrame)
 
     def linkBottomFrame(self,bottomFrame):
         self._bottomFrame = bottomFrame

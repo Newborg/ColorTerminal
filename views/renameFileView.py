@@ -6,7 +6,7 @@ import settings as Sets
 from traceLog import traceLog,LogLevel
 
 # Import for intellisense
-# from views.textFrame import TextFrame
+# from frames.textFrame import TextFrame
 
 # Global
 _showing = False

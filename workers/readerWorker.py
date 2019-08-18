@@ -9,11 +9,11 @@ from customTypes import ConnectState,SerialLine
 
 class ReaderWorker:
 
-    def __init__(self,settings,rootClass,controlFrame):
+    def __init__(self,settings,mainView):
         self._settings = settings
-        self._root = rootClass.root
-        self._controlFrame = controlFrame
-
+        self._mainView = mainView
+        self._root = mainView.root
+        
         self._readFlag = False
 
         self._readerThread = None
@@ -62,7 +62,7 @@ class ReaderWorker:
     def _readerWorker(self):
 
         try:
-            with serial.Serial(self._controlFrame.getSerialPortVar(), 115200, timeout=1) as ser:
+            with serial.Serial(self._mainView.controlFrame.getSerialPortVar(), 115200, timeout=1) as ser:
                 
                 self._root.after(10,self._connectController.changeAppState,ConnectState.CONNECTED,str(ser.name))
 

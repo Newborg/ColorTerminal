@@ -9,12 +9,13 @@ import settings as Sets
 
 class GuiWorker:
 
-    def __init__(self,settings,rootClass):
+    def __init__(self,settings,mainView):
         self._settings = settings
-        self._root = rootClass.root
-        self._textFrame = None
-        self._textArea = None
-        self._bottomFrame = None
+        self._mainView = mainView
+        self._root = mainView.root
+        
+        self._textArea = mainView.textFrame.textArea
+        
         self._highlightWorker = None
         self._logWriterWorker = None
 
@@ -38,13 +39,6 @@ class GuiWorker:
     def linkWorkers(self,workers):
         self._highlightWorker = workers.highlightWorker
         self._logWriterWorker = workers.logWriterWorker
-
-    def linkTextFrame(self,textFrame):
-        self._textFrame = textFrame
-        self._textArea = textFrame.textArea
-
-    def linkBottomFrame(self,bottomFrame):
-        self._bottomFrame = bottomFrame
 
     def startWorker(self):
 
@@ -153,11 +147,11 @@ class GuiWorker:
             lastLineAtEnd = int(self._textArea.index("end-2c").split(".")[0])
 
             if receivedLines:
-                self._bottomFrame.updateWindowBufferLineCount(lastline)
-                self._bottomFrame.updateLogFileLineCount(self._logWriterWorker.linesInLogFile)
+                self._mainView.bottomFrame.updateWindowBufferLineCount(lastline)
+                self._mainView.bottomFrame.updateLogFileLineCount(self._logWriterWorker.linesInLogFile)
 
                 numberOfLinesDeleted = linesInserted - (lastLineAtEnd - lastLineAtStart)
-                self._textFrame.searchLinesAdded(numberOfLinesAdded=linesInserted,numberOfLinesDeleted=numberOfLinesDeleted,lastLine=lastLineAtEnd)
+                self._mainView.textFrame.searchLinesAdded(numberOfLinesAdded=linesInserted,numberOfLinesDeleted=numberOfLinesDeleted,lastLine=lastLineAtEnd)
 
             if reloadInitiated:
                 self.guiReloadEvent.set()
