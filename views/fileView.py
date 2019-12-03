@@ -26,22 +26,22 @@ class FileView:
         self._view.geometry(self._settings.get(Sets.DEFAULT_WINDOW_SIZE))
 
         # Control Frame
-        self._topFrame = tk.Frame(self._view)
+        # self._topFrame = tk.Frame(self._view)
 
-        self._connectButton = tk.Button(self._topFrame,text="Testing", width=10)
-        self._connectButton.pack(side=tk.LEFT)
+        # self._connectButton = tk.Button(self._topFrame,text="Testing", width=10)
+        # self._connectButton.pack(side=tk.LEFT)
 
-        self._topFrame.pack(side=tk.TOP, fill=tk.X)
+        # self._topFrame.pack(side=tk.TOP, fill=tk.X)
 
         # Text Frame
         self._textFrame = textFrame.TextFrame(self._settings,self._view,self._iconPath,self._comController)
 
 
         # Bottom Frame
-        self._bottomFrame = tk.Frame(self._view)
-        self._statLabel = tk.Label(self._bottomFrame,text="Testing", width=30, anchor=tk.W)
-        self._statLabel.pack(side=tk.LEFT)
-        self._bottomFrame.pack(side=tk.BOTTOM, fill=tk.X)
+        # self._bottomFrame = tk.Frame(self._view)
+        # self._statLabel = tk.Label(self._bottomFrame,text="Testing", width=30, anchor=tk.W)
+        # self._statLabel.pack(side=tk.LEFT)
+        # self._bottomFrame.pack(side=tk.BOTTOM, fill=tk.X)
 
 
         # Add file content

@@ -45,7 +45,7 @@ class ControlFrame:
         self._statusLabelHeader = tk.Label(self._topFrame,text="   Status:", anchor=tk.W, fg=Sets.STATUS_TEXT_COLOR, bg=Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
         self._statusLabelHeader.pack(side=tk.RIGHT)
 
-        self._connectButton = tk.Button(self._topFrame,text="Connect", command=self._connectButtonCommand, width=8)
+        self._connectButton = tk.Button(self._topFrame,text="Connect", command=self._connectButtonCommand, width=10)
         self._connectButton.pack(side=tk.LEFT)
 
         self._goToEndButton = tk.Button(self._topFrame,text="Go to end", command=self._goToEndButtonCommand, width=8, underline=6)
