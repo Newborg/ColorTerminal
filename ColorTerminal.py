@@ -249,14 +249,6 @@ guiWorker_.linkWorkers(workers_)
 highlightWorker_.startWorker()
 guiWorker_.startWorker()
 
-# File View test
-# def openFileView(*args):
-#     testFile = r"_testing\SerialLog_2019.07.28_12.07.44.txt"
-#     fileView.FileView(settings_,mainView_,iconPath_,comController_,testFile)
-
-# mainView_.root.bind('<Control-o>', openFileView)
-
-
 # TESTING
 # def down(e):
 #     print("DOWN raw: " + str(e))
@@ -276,29 +268,29 @@ guiWorker_.startWorker()
 
 # BULK DATA LOAD FOR DEBUG
 
-_logFile = r"_testing\log_example_small.txt"
+# _logFile = r"_testing\log_example_small.txt"
 
-from customTypes import SerialLine
+# from customTypes import SerialLine
 
-def addDataToProcessQueue(*args):
-    with open(_logFile,"r") as file:
-        lines = file.readlines()
+# def addDataToProcessQueue(*args):
+#     with open(_logFile,"r") as file:
+#         lines = file.readlines()
 
-    print("Debug, lines loaded: " + str(len(lines)))
+#     print("Debug, lines loaded: " + str(len(lines)))
 
-    linesToAdd = 3500
+#     linesToAdd = 3500
 
-    loops = int(linesToAdd / len(lines))
+#     loops = int(linesToAdd / len(lines))
 
-    for _ in range(loops):
-        for line in lines:
-            timestamp = datetime.datetime.now()
-            inLine = SerialLine(line,timestamp)
-            processWorker_.processQueue.put(inLine)
+#     for _ in range(loops):
+#         for line in lines:
+#             timestamp = datetime.datetime.now()
+#             inLine = SerialLine(line,timestamp)
+#             processWorker_.processQueue.put(inLine)
 
-    print("Debug, lines added to view: " + str(loops*len(lines)))
+#     print("Debug, lines added to view: " + str(loops*len(lines)))
 
-mainView_.root.bind('<Control-n>', addDataToProcessQueue)
+# mainView_.root.bind('<Control-n>', addDataToProcessQueue)
 
 
 traceLog(LogLevel.INFO,"Main loop started")
