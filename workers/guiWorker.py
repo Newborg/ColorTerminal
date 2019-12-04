@@ -26,12 +26,9 @@ class GuiWorker:
         self.guiEvent = threading.Event()
         self.guiEvent.set() # wait will not block
 
-        self.guiReloadEvent = threading.Event()
-        self.guiReloadEvent.set()
         self._updateGuiJob = None
 
-        self._updateGuiFlag = False
-        self._reloadGuiBuffer = False
+        self._updateGuiFlag = False        
 
     ##############
     # Public Interface
@@ -59,9 +56,6 @@ class GuiWorker:
         self._cancelGuiJob()
         self._updateGuiFlag = False
         self.guiEvent.wait()
-
-    def reloadGuiBuffer(self):
-        self._reloadGuiBuffer = True
 
     def enableScrolling(self):
         self._scrollingEnabled = True
@@ -97,67 +91,48 @@ class GuiWorker:
 
     def _updateGUI(self):
 
-        reloadInitiated = False
-
         receivedLines = list()
 
-        if not self._highlightWorker.isReloadingLineBuffer:
+        lastline = 0
 
-            lastline = 0
+        lastLineAtStart = int(self._textArea.index("end-2c").split(".")[0])
+        linesInserted = 0
 
-            lastLineAtStart = int(self._textArea.index("end-2c").split(".")[0])
-            linesInserted = 0
-
-            try:
-                # We have to make sure that the queue is empty before continuing
-                while True:
-                    receivedLines.append(self.guiQueue.get_nowait())
-                    self.guiQueue.task_done()
+        try:
+            # We make sure that the queue is empty before continuing (was used with reloadLineBuffer. Likely not needed anymore)
+            while True:
+                receivedLines.append(self.guiQueue.get_nowait())
+                self.guiQueue.task_done()
 
 
-            except queue.Empty:
+        except queue.Empty:
 
-                # Open text widget for editing
-                self._textArea.config(state=tk.NORMAL)
+            # Open text widget for editing
+            self._textArea.config(state=tk.NORMAL)
 
-                if self._reloadGuiBuffer:
-                    self._reloadGuiBuffer = False
-                    reloadInitiated = True
-                    linesToReload = len(receivedLines)
-                    traceLog(LogLevel.DEBUG,"Reload GUI buffer (Len " + str(linesToReload) + ")")
+            for msg in receivedLines:
+                if msg.updatePreviousLine:
+                    self._updateLastLine(msg.line)
+                else:
+                    self._insertLine(msg.line)
+                    linesInserted += 1
 
-                    # Clear window
-                    self._textArea.delete(1.0,tk.END)
+                # Highlight/color text
+                lastline = self._textArea.index("end-2c").split(".")[0]
+                for lineTag in msg.lineTags:
+                    self._textArea.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
 
-                for msg in receivedLines:
-                    if msg.updatePreviousLine:
-                        self._updateLastLine(msg.line)
-                    else:
-                        self._insertLine(msg.line)
-                        linesInserted += 1
+            # Disable text widget edit
+            self._textArea.config(state=tk.DISABLED)
 
-                    # Highlight/color text
-                    lastline = self._textArea.index("end-2c").split(".")[0]
-                    for lineTag in msg.lineTags:
-                        self._textArea.tag_add(lineTag[0],lastline + "." + str(lineTag[1]),lastline + "." + str(lineTag[2]))
+        lastLineAtEnd = int(self._textArea.index("end-2c").split(".")[0])
 
-                # Disable text widget edit
-                self._textArea.config(state=tk.DISABLED)
+        if receivedLines:
+            self._mainView.bottomFrame.updateWindowBufferLineCount(lastline)
+            self._mainView.bottomFrame.updateLogFileLineCount(self._logWriterWorker.linesInLogFile)
 
-            lastLineAtEnd = int(self._textArea.index("end-2c").split(".")[0])
-
-            if receivedLines:
-                self._mainView.bottomFrame.updateWindowBufferLineCount(lastline)
-                self._mainView.bottomFrame.updateLogFileLineCount(self._logWriterWorker.linesInLogFile)
-
-                numberOfLinesDeleted = linesInserted - (lastLineAtEnd - lastLineAtStart)
-                self._mainView.textFrame.searchLinesAdded(numberOfLinesAdded=linesInserted,numberOfLinesDeleted=numberOfLinesDeleted,lastLine=lastLineAtEnd)
-
-            if reloadInitiated:
-                self.guiReloadEvent.set()
-                traceLog(LogLevel.DEBUG,"Reload GUI buffer done")
-
-
+            numberOfLinesDeleted = linesInserted - (lastLineAtEnd - lastLineAtStart)
+            self._mainView.textFrame.searchLinesAdded(numberOfLinesAdded=linesInserted,numberOfLinesDeleted=numberOfLinesDeleted,lastLine=lastLineAtEnd)
 
     def _cancelGuiJob(self):
         if self._updateGuiJob:

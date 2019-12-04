@@ -162,12 +162,9 @@ class ControlFrame:
 
         self._bottomFrame.updateWindowBufferLineCount(0)
 
-    def _reloadBufferCommand(self):
-        self._highlightWorker.reloadLineBuffer()
-
     def _hideLinesCommand(self):
         self._highlightWorker.toggleHideLines()
-        self._reloadBufferCommand()
+        # self._reloadBufferCommand() # Must be replaced with Elided tags
 
     def _lineWrapToggleCommmand(self):
         lineWrapState = self._settings.get(Sets.TEXTAREA_LINE_WRAP)
