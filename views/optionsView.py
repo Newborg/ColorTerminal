@@ -11,6 +11,7 @@ import threading
 from traceLog import traceLog,LogLevel
 import settings as Sets
 import spinner
+import util
 
 from frames import textFrame as TF
 
@@ -158,7 +159,9 @@ class OptionsView:
             # TAB CONTROL
 
             self._tabsFrame = tk.Frame(self._view)
-            self._tabsFrame.grid(row=0,column=0)
+            self._tabsFrame.grid(row=0,column=0,sticky="nsew")
+            self._view.columnconfigure(0,weight=1)
+            self._view.rowconfigure(0,weight=1)
 
             self._tabControl = Notebook(self._tabsFrame,padding=10)
 
@@ -169,14 +172,14 @@ class OptionsView:
             # TEXT EXAMPLE
 
             logExample = self._loadLogExample()
-            exampleTextFrameHeightMin = 280
-            exampleTextFrameWidth = 600
+            exampleTextFrameHeightMin = 400
+            exampleTextFrameWidth = 650
 
             self._exampleTextFrame = tk.Frame(self._tabsFrame,height=exampleTextFrameHeightMin,width=exampleTextFrameWidth)
-            self._exampleTextFrame.grid(row=0,column=1, padx=(0,10), pady=(10,10), sticky=tk.N+tk.S)
+            self._exampleTextFrame.grid(row=0,column=1, padx=(0,10), pady=(10,10), sticky="nsew")
             self._exampleTextFrame.grid_propagate(False)
-            self._exampleTextFrame.grid_columnconfigure(0,weight=1)
-            self._exampleTextFrame.grid_rowconfigure(0,weight=1)
+            self._tabsFrame.columnconfigure(1,weight=1)
+            self._tabsFrame.rowconfigure(0,weight=1)
 
             tFont = Font(family=self._settings.get(Sets.TEXTAREA_FONT_FAMILY), size=self._settings.get(Sets.TEXTAREA_FONT_SIZE))
             self._exampleText = tk.Text(self._exampleTextFrame,height=1, width=2,\
@@ -184,7 +187,9 @@ class OptionsView:
                                             selectbackground=self._settings.get(Sets.TEXTAREA_SELECT_BACKGROUND_COLOR),\
                                             foreground=self._settings.get(Sets.TEXTAREA_COLOR),\
                                             font=tFont)
-            self._exampleText.grid(row=0,column=0, padx=(0,0), pady=(10,0),sticky=tk.E+tk.W+tk.N+tk.S)
+            self._exampleText.grid(row=0,column=0, padx=(0,0), pady=(10,0),sticky="nsew")
+            self._exampleTextFrame.columnconfigure(0,weight=1)
+            self._exampleTextFrame.rowconfigure(0,weight=1)
 
             self._updateExampleTextLineWrap(self._settings.get(Sets.TEXTAREA_LINE_WRAP))
 
@@ -717,11 +722,17 @@ class OptionsView:
         elif group == self.GROUP_SEARCH:
 
             searchString = "Main"
-
-            # Create search tags
-            self._exampleText.tag_configure(Sets.SEARCH_SELECTED_LINE_COLOR, background=self._setsDict[Sets.SEARCH_SELECTED_LINE_COLOR].entries[entryName].var.get())
-            self._exampleText.tag_configure(Sets.SEARCH_MATCH_COLOR, background=self._setsDict[Sets.SEARCH_MATCH_COLOR].entries[entryName].var.get())
-            self._exampleText.tag_configure(Sets.SEARCH_SELECTED_COLOR, background=self._setsDict[Sets.SEARCH_SELECTED_COLOR].entries[entryName].var.get())
+            
+            # Create search tags            
+            self._exampleText.tag_configure(Sets.SEARCH_SELECTED_LINE_COLOR, \
+                                            background=self._setsDict[Sets.SEARCH_SELECTED_LINE_COLOR].entries[entryName].var.get(),\
+                                            selectbackground=util.lightOrDarkenColor(self._setsDict[Sets.SEARCH_SELECTED_LINE_COLOR].entries[entryName].var.get(),Sets.SELECTED_LINE_DARKEN_COLOR))
+            self._exampleText.tag_configure(Sets.SEARCH_MATCH_COLOR, \
+                                            background=self._setsDict[Sets.SEARCH_MATCH_COLOR].entries[entryName].var.get(),\
+                                            selectbackground=util.lightOrDarkenColor(self._setsDict[Sets.SEARCH_MATCH_COLOR].entries[entryName].var.get(),Sets.SELECTED_LINE_DARKEN_COLOR))
+            self._exampleText.tag_configure(Sets.SEARCH_SELECTED_COLOR, \
+                                            background=self._setsDict[Sets.SEARCH_SELECTED_COLOR].entries[entryName].var.get(), \
+                                            selectbackground=util.lightOrDarkenColor(self._setsDict[Sets.SEARCH_SELECTED_COLOR].entries[entryName].var.get(),Sets.SELECTED_LINE_DARKEN_COLOR))
 
             # Do search
             countVar = tk.StringVar()

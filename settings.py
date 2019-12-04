@@ -39,6 +39,8 @@ STATUS_WORKING_BACKGROUND_COLOR = "gray"
 STATUS_DISCONNECT_BACKGROUND_COLOR = "#CC0000"
 STATUS_TEXT_COLOR = "white"
 
+SELECTED_LINE_DARKEN_COLOR = -30 # darken 8bit RGB color by this amount
+
 # Connect Status Lines
 CONNECT_LINE_TEXT = " Connected to port\n"
 connectLineRegex = "\\" + timeStampBracket[0] + ".{8}\\" + timeStampBracket[1] + CONNECT_LINE_TEXT
