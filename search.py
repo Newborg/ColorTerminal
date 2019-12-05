@@ -14,8 +14,6 @@ class Search:
 
         self._searchJob = None
 
-        # self._topResults = list()
-        # self._bottomResults = list()
         self._results = list()
 
         self._selectedResultIndex = -1
@@ -23,6 +21,8 @@ class Search:
 
         self._bottomLinesSearched = False
         self._searchStartIndex = 0
+
+        self._searchHasFocus = False
 
     def linkTextArea(self,textArea):
         self._textField = textArea
@@ -79,17 +79,20 @@ class Search:
 
             self._view = tk.Frame(self._textField,highlightthickness=2,highlightcolor=self._settings.get(Sets.THEME_COLOR))
             self._view.place(relx=1,x=-5,y=5,anchor=tk.NE)
-            
+
             self._textField.tag_configure(self.TAG_SEARCH_SELECT_BG, \
                                             background=self._settings.get(Sets.SEARCH_SELECTED_LINE_COLOR), \
-                                            selectbackground=util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_SELECTED_LINE_COLOR),Sets.SELECTED_LINE_DARKEN_COLOR))            
+                                            selectbackground=util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_SELECTED_LINE_COLOR),Sets.SELECTED_LINE_DARKEN_COLOR))
             self._textField.tag_configure(self.TAG_SEARCH, \
                                             background=self._settings.get(Sets.SEARCH_MATCH_COLOR), \
                                             selectbackground=util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_MATCH_COLOR),Sets.SELECTED_LINE_DARKEN_COLOR))
             self._textField.tag_configure(self.TAG_SEARCH_SELECT, \
                                             background=self._settings.get(Sets.SEARCH_SELECTED_COLOR),\
                                             selectbackground=util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_SELECTED_COLOR),Sets.SELECTED_LINE_DARKEN_COLOR))
-            
+
+            # Due to focusIn, focusOut and opening and closing of search view, tags are sometimes not created in the right order.
+            self._textField.tag_raise(self.TAG_SEARCH_SELECT,aboveThis=self.TAG_SEARCH)
+
             self._var = tk.StringVar(self._view)
             self._var.set("")
             self._var.trace("w",self._searchStringUpdated)
@@ -192,11 +195,19 @@ class Search:
 
             self._updateResultInfo()
 
-    def _focusIn(self,*args):        
-        # self._disableGuiScrolling()
-        pass
+    def _focusIn(self,*args):
+        self._searchHasFocus = True
+        # Remove cursor based text selection
+        self._textField.tag_remove("sel",1.0,tk.END)
+        # Show tag of selected result when search gets focus again
+        self._updateSelectedResultTags()
 
     def _focusOut(self,*args):
+        self._searchHasFocus = False
+
+        self._textField.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
+        self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
+
         self._enableGuiScrolling()
 
     def _searchStringUpdated(self,*args):
@@ -311,23 +322,24 @@ class Search:
 
     def _updateSelectedResultTags(self,*args):
 
-        if self._selectedResultIndex > -1 and self._selectedResultIndex < len(self._results):
+        if self._searchHasFocus:
+            if self._selectedResultIndex > -1 and self._selectedResultIndex < len(self._results):
 
-            # Selected result tag
-            selected = self._textField.tag_ranges(self.TAG_SEARCH_SELECT)
-            if selected:
-                self._textField.tag_remove(self.TAG_SEARCH_SELECT,selected[0],selected[1])
-            self._addTag(self.TAG_SEARCH_SELECT,self._results[self._selectedResultIndex])
+                # Selected result tag
+                selected = self._textField.tag_ranges(self.TAG_SEARCH_SELECT)
+                if selected:
+                    self._textField.tag_remove(self.TAG_SEARCH_SELECT,selected[0],selected[1])
+                self._addTag(self.TAG_SEARCH_SELECT,self._results[self._selectedResultIndex])
 
-            # Background of selected line
-            selectedBg = self._textField.tag_ranges(self.TAG_SEARCH_SELECT_BG)
-            if selectedBg:
-                self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,selectedBg[0],selectedBg[1])
-            selectLine = self._results[self._selectedResultIndex].originalLineNumber - self._lineNumberDeleteOffset
-            self._textField.tag_add(self.TAG_SEARCH_SELECT_BG, str(selectLine) + ".0", str(selectLine) + ".0+1l")
+                # Background of selected line
+                selectedBg = self._textField.tag_ranges(self.TAG_SEARCH_SELECT_BG)
+                if selectedBg:
+                    self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,selectedBg[0],selectedBg[1])
+                selectLine = self._results[self._selectedResultIndex].originalLineNumber - self._lineNumberDeleteOffset
+                self._textField.tag_add(self.TAG_SEARCH_SELECT_BG, str(selectLine) + ".0", str(selectLine) + ".0+1l")
 
-            # Focus window on selected result
-            self._textField.see(self._results[self._selectedResultIndex].getStartAndEndIndex(self._lineNumberDeleteOffset)[0])
+                # Focus window on selected result
+                self._textField.see(self._results[self._selectedResultIndex].getStartAndEndIndex(self._lineNumberDeleteOffset)[0])
 
 
     def _selectPriorResultButton(self,*args):
@@ -338,7 +350,7 @@ class Search:
     def _selectNextResultButton(self,*args):
         self._disableGuiScrolling()
         # self._guiWorker.disableScrolling()
-        self._selectNextResult()  
+        self._selectNextResult()
 
     def _selectPriorResult(self,*args):
         self._decrementResultIndex()
@@ -353,7 +365,7 @@ class Search:
         self._updateSelectedResultTags()
 
         self._updateResultInfo()
-    
+
     def _decrementResultIndex(self):
         if self._results:
             self._selectedResultIndex -= 1
@@ -375,9 +387,7 @@ class Search:
     def _enableGuiScrolling(self):
         if self._guiWorker:
             self._guiWorker.enableScrolling()
-    
+
     def _disableGuiScrolling(self):
         if self._guiWorker:
             self._guiWorker.disableScrolling()
-
-        
