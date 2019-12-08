@@ -1,0 +1,8 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\shell\PythonTest]
+@="Open PYTHON STUFF Here"
+"Icon"="C:\\Stuff\\Foss\\ColorTerminal\\_testing\\PythonTesting\\dist\\PythonTest\\PythonTest.exe,0"
+
+[HKEY_CLASSES_ROOT\Directory\shell\PythonTest\command]
+@="\"C:\\Stuff\\Foss\\ColorTerminal\\_testing\\PythonTesting\\dist\\PythonTest\\PythonTest.exe\" \"%1\""

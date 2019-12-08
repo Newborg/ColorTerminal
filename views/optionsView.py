@@ -681,6 +681,7 @@ class OptionsView:
 
     def _tabChanged(self,event):
         self._view.focus_set()
+        self._exampleText.tag_remove("sel",1.0,tk.END)
         self._updateExampleText(self._tabList[self._tabControl.index("current")])
 
     def _updateExampleText(self,group):
