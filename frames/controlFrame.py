@@ -154,8 +154,6 @@ class ControlFrame:
 
         self._textFrame.closeSearch()
 
-        self._highlightWorker.clearLineBuffer()
-
         self._textArea.config(state=tk.NORMAL)
         self._textArea.delete(1.0,tk.END)
         self._textArea.config(state=tk.DISABLED)
