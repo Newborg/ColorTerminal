@@ -2,8 +2,8 @@ Windows Registry Editor Version 5.00
 
 [HKEY_CLASSES_ROOT\*\shell\PythonTest]
 @="Open PYTHON STUFF Here"
-"Icon"="C:\\Stuff\\Foss\\ColorTerminal\\_testing\\PythonTesting\\dist\\PythonTest\\PythonTest.exe,0"
-"AppliesTo"=".txt"
+"Icon"="%ColorTerminalPath%\\_testing\\PythonTesting\\dist\\PythonTest\\PythonTest.exe,0"
+"AppliesTo"="AppliesTo"="System.FileName:\"*.txt\" OR System.FileName:\"*.log\""
 
 [HKEY_CLASSES_ROOT\*\shell\PythonTest\command]
-@="\"C:\\Stuff\\Foss\\ColorTerminal\\_testing\\PythonTesting\\dist\\PythonTest\\PythonTest.exe\" \"%1\""
+@="\"%ColorTerminalPath%\\_testing\\PythonTesting\\dist\\PythonTest\\PythonTest.exe\" \"%1\""

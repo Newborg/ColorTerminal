@@ -186,6 +186,7 @@ stdoutFile = "CTstdout.txt"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c","--enableConsole",help="send stdout and stderr to console, otherwise this is written to " + stdoutFile,action="store_true")
+parser.add_argument("logFilePath",metavar="Path",nargs="?",help="(optional) path of logfile to open ",default="")
 args = parser.parse_args()
 
 if not args.enableConsole:
@@ -204,6 +205,12 @@ if hasattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):
     iconPath_ = os.path.join(bundle_dir,RELATIVE_ICON_PATH_)
 else:
     traceLog(LogLevel.INFO,"Running in a normal Python process")
+
+################################################################
+################################################################
+
+# Check if ColorTerminal process is already running
+
 
 ################################################################
 ################################################################

@@ -1,0 +1,7 @@
+Add reg edit from cmd
+https://serverfault.com/questions/858132/variable-path-in-reg-file
+
+Get current folder in cmd
+
+Add environment var in cmd
+setx TESTVAR "hello"
