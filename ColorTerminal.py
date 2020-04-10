@@ -215,6 +215,14 @@ else:
 ################################################################
 ################################################################
 
+# Process "open log file" request
+
+if (args.logFilePath):
+    print("File: " + args.logFilePath)
+
+################################################################
+################################################################
+
 # Settings
 SETTINGS_FILE_NAME_ = "CTsettings.json"
 settings_ = Sets.Settings(SETTINGS_FILE_NAME_)
