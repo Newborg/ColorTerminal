@@ -2,6 +2,9 @@ import os
 import sys
 import argparse
 import psutil
+# from datetime import datetime
+import time
+
 
 stdoutFile = "Testing"
 
@@ -19,23 +22,28 @@ if (args.logFilePath):
 if (args.enableConsole):
     print("Console enabled!")
 
-# found = ""
-# pythonScript = list()
-# for proc in psutil.process_iter():
-#     # print(str(proc.name()))
-#     try:
-#         if "color" in proc.name().lower():
-#             found = proc.name()
-#         if "python" in proc.name().lower():
-#             pythonScript.append(proc.cmdline())
-#     except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-#         pass
+found = ""
+pythonScript = list()
+for proc in psutil.process_iter():
+    # print(str(proc.name()))
+    try:
+        if "color" in proc.name().lower():
+            found = proc.name()            
+        if "python" in proc.name().lower():
+            pythonScript.append([proc.name(), proc.cmdline(), proc.children(), proc.create_time()])
+    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+        pass
 
-# if found:
-#     print("FOUND: " + str(found))
+if found:
+    print("FOUND: " + str(found))
 
-# for cmdline in pythonScript:
-#     print(cmdline)
+for name, cmdline, children, create_time in pythonScript:
+    print(name)
+    print(cmdline)
+    # print(children)
+    print(create_time)
+    print("*********")
 
+print(time.time())
 
-input("Press Enter to continue...")
+# input("Press Enter to continue...")

@@ -17,11 +17,11 @@ from frames import textFrame as TF
 
 class OptionsView:
 
-    def __init__(self,settings,root,iconPath,comController):
+    def __init__(self,settings,root,iconPath,textFrameManager):
         self._settings = settings
         self._root = root
         self._iconPath = iconPath
-        self._comController = comController
+        self._textFrameManager = textFrameManager
 
         self._highlightWorker = None
         self._guiWorker = None
@@ -362,7 +362,7 @@ class OptionsView:
         self._showing = False
 
         # Get registered textFrames
-        textFrames = self._comController.getTextFrames()
+        textFrames = self._textFrameManager.getTextFrames()
         
         # Delete line color tags
         for deletedRowData in self._deletedLineColorRows:

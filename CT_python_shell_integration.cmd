@@ -16,3 +16,7 @@ set pythonpath=
 for /f %%i in ('where python') do if not defined pythonpath set pythonpath=%%i
 
 reg add "HKCR\*\shell\ColorTerminal\command" /t REG_SZ /d "\"%pythonpath%\" \"%~dp0ColorTerminal.py\" \"-c\" \"%%1\"" /f
+
+setx CT_HOMEPATH %~dp0
+
+pause

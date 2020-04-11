@@ -10,6 +10,9 @@ import datetime
 
 import threading
 
+# import multiprocessing.connection as multi_con
+
+
 # ColorTerminal
 from traceLog import traceLog,LogLevel
 import settings as Sets
@@ -18,6 +21,8 @@ from customTypes import ConnectState
 from views import mainView, fileView, optionsView
 
 from workers import readerWorker, processWorker, logWriterWorker, highlightWorker, guiWorker
+
+import comManager
 
 ################################
 # Version information
@@ -145,9 +150,9 @@ class ConnectController:
             self._mainView.controlFrame.setStatusLabel("DISCONNECTED",Sets.STATUS_DISCONNECT_BACKGROUND_COLOR)
 
 ################################
-# Communication Controller
+# Text frame manager
 
-class ComController:
+class TextFrameManager:
 
     def __init__(self):
         pass
@@ -155,11 +160,11 @@ class ComController:
 
     def registerTextFrame(self,textFrame):
         if not textFrame in self.textFrames:
-             self.textFrames.append(textFrame)        
+             self.textFrames.append(textFrame)
 
     def unregisterTextFrame(self,textFrame):
         if textFrame in self.textFrames:
-            self.textFrames.remove(textFrame)        
+            self.textFrames.remove(textFrame)
 
     def getTextFrames(self):
         return self.textFrames
@@ -195,6 +200,21 @@ if not args.enableConsole:
 ################################################################
 ################################################################
 
+# ColorTerminal home
+
+homePath_ = os.getcwd()
+print(homePath_)
+ctHomeEnvVariable = "CT_HOMEPATH"
+if ctHomeEnvVariable in os.environ:
+    homePath_ = os.environ[ctHomeEnvVariable]
+    traceLog(LogLevel.INFO,"Environment var CT_HOMEPATH found: " + str(homePath_))
+else:
+    traceLog(LogLevel.INFO,"Environment var CT_HOMEPATH not found. Assuming home is: " + str(homePath_))
+
+
+################################################################
+################################################################
+
 # PyInstaller bundle check
 
 iconPath_ = RELATIVE_ICON_PATH_
@@ -209,16 +229,16 @@ else:
 ################################################################
 ################################################################
 
-# Check if ColorTerminal process is already running
+if args.logFilePath:
+    print(args.logFilePath)
 
 
-################################################################
-################################################################
 
-# Process "open log file" request
-
-if (args.logFilePath):
-    print("File: " + args.logFilePath)
+# Open message listener
+comManager_ = comManager.ComManager(iconPath_,args.logFilePath)
+if not comManager_.isListenerRegistered():
+    # Application already running, exit
+    exit()
 
 ################################################################
 ################################################################
@@ -229,10 +249,10 @@ settings_ = Sets.Settings(SETTINGS_FILE_NAME_)
 settings_.reload()
 
 # Communication Controller (used to communicate update to text frames)
-comController_ = ComController()
+textFrameManager_ = TextFrameManager()
 
 # Main View (root)
-mainView_ = mainView.MainView(settings_,iconPath_,VERSION_,comController_)
+mainView_ = mainView.MainView(settings_,iconPath_,VERSION_,textFrameManager_)
 
 # Main Controllers
 connectController_ = ConnectController(settings_,mainView_)
@@ -250,6 +270,8 @@ workers_ = Workers(readerWorker_,processWorker_,logWriterWorker_,highlightWorker
 # Link modules
 mainView_.linkConnectController(connectController_)
 mainView_.linkWorkers(workers_)
+
+comManager_.linkExternalConnectors(settings_,mainView_,textFrameManager_)
 
 connectController_.linkWorkers(workers_)
 
@@ -313,6 +335,10 @@ traceLog(LogLevel.INFO,"Main loop started")
 mainView_.root.mainloop()
 
 traceLog(LogLevel.INFO,"Main loop done")
+
+################################
+# Cleanup
+
 
 if not args.enableConsole:
     sys.stdout.close()

@@ -9,9 +9,9 @@ from frames import controlFrame, textFrame, bottomFrame
 
 class MainView:
 
-    def __init__(self,settings,iconPath,version,comController):
+    def __init__(self,settings,iconPath,version,textFrameManager):
         self._settings = settings
-        self._comController = comController
+        self._textFrameManager = textFrameManager
 
         self.root = tk.Tk()
 
@@ -22,8 +22,8 @@ class MainView:
         self.root.title("Color Terminal v" + version)
         self.root.geometry(self._settings.get(Sets.DEFAULT_WINDOW_SIZE))
 
-        self.controlFrame = controlFrame.ControlFrame(self._settings,self.root,iconPath,self._comController)
-        self.textFrame = textFrame.TextFrame(self._settings,self.root,iconPath,self._comController)
+        self.controlFrame = controlFrame.ControlFrame(self._settings,self.root,iconPath,self._textFrameManager)
+        self.textFrame = textFrame.TextFrame(self._settings,self.root,iconPath,self._textFrameManager)
         self.bottomFrame = bottomFrame.BottomFrame(self._settings,self.root,iconPath)
 
         self._connectController = None

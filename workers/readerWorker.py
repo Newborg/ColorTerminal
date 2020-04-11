@@ -13,7 +13,7 @@ class ReaderWorker:
         self._settings = settings
         self._mainView = mainView
         self._root = mainView.root
-        
+
         self._readFlag = False
 
         self._readerThread = None
@@ -63,7 +63,7 @@ class ReaderWorker:
 
         try:
             with serial.Serial(self._mainView.controlFrame.getSerialPortVar(), 115200, timeout=1) as ser:
-                
+
                 self._root.after(10,self._connectController.changeAppState,ConnectState.CONNECTED,str(ser.name))
 
                 try:

@@ -13,17 +13,17 @@ from views import optionsView, fileView
 
 class ControlFrame:
 
-    def __init__(self,settings,root,iconPath,comController):
+    def __init__(self,settings,root,iconPath,textFrameManager):
         self._settings = settings
         self._root = root
         self._iconPath = iconPath
-        self._comController = comController
+        self._textFrameManager = textFrameManager
 
         self._textFrame = None
         self._textArea = None
         self._bottomFrame = None        
         
-        self._optionsView = optionsView.OptionsView(self._settings,self._root,iconPath,comController)
+        self._optionsView = optionsView.OptionsView(self._settings,self._root,iconPath,textFrameManager)
 
         self._serialPorts = dict()
         self._serialPortList = [""]
@@ -179,7 +179,7 @@ class ControlFrame:
                                             filetypes = (("Log files","*"+Sets.LOG_FILE_TYPE),))
         
         if fileName:
-            fileView.FileView(self._settings,self._root,self._iconPath,self._comController,fileName)
+            fileView.FileView(self._settings,self._root,self._iconPath,self._textFrameManager,fileName)
 
 
     def _showOptionsView(self):
