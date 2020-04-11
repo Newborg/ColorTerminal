@@ -5,10 +5,9 @@ import settings as Sets
 
 class BottomFrame:
 
-    def __init__(self,settings,root,iconPath):
+    def __init__(self,settings,root):
         self._settings = settings
         self._root = root
-        self._iconPath = iconPath
 
         self._bottomFrame = tk.Frame(self._root)
 

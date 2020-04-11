@@ -9,22 +9,22 @@ from frames import controlFrame, textFrame, bottomFrame
 
 class MainView:
 
-    def __init__(self,settings,iconPath,version,textFrameManager):
+    def __init__(self,settings,version,textFrameManager):
         self._settings = settings
         self._textFrameManager = textFrameManager
 
         self.root = tk.Tk()
 
-        self.root.iconbitmap(iconPath)
+        self.root.iconbitmap(self._settings.get(Sets.ICON_PATH_FULL))
 
         self.root.protocol("WM_DELETE_WINDOW", self._onClosing_)
 
         self.root.title("Color Terminal v" + version)
         self.root.geometry(self._settings.get(Sets.DEFAULT_WINDOW_SIZE))
 
-        self.controlFrame = controlFrame.ControlFrame(self._settings,self.root,iconPath,self._textFrameManager)
-        self.textFrame = textFrame.TextFrame(self._settings,self.root,iconPath,self._textFrameManager)
-        self.bottomFrame = bottomFrame.BottomFrame(self._settings,self.root,iconPath)
+        self.controlFrame = controlFrame.ControlFrame(self._settings,self.root,self._textFrameManager)
+        self.textFrame = textFrame.TextFrame(self._settings,self.root,self._textFrameManager)
+        self.bottomFrame = bottomFrame.BottomFrame(self._settings,self.root)
 
         self._connectController = None
 

@@ -7,10 +7,10 @@ from views import fileView
 
 class ComManager:
 
-    def __init__(self,iconPath,inputFileName):
-        self._settings = None
+    def __init__(self,settings,ctHomeEnvVarFound,inputFileName):
+        self._settings = settings
+        self._homeFound = ctHomeEnvVarFound
         self._root = None
-        self._iconPath = iconPath
 
         self._filePath = inputFileName
 
@@ -27,11 +27,11 @@ class ComManager:
         self._listenerThread = threading.Thread(target=self._listenerProcess,daemon=True,name="ComListener")
         self._listenerThread.start()
 
+        # Wait for initial setup to finish (will check if listener is already running)
         self._comManagerInitEvent.wait()
-        
 
-    def linkExternalConnectors(self,settings,mainView,textFrameManager):
-        self._settings = settings
+
+    def linkExternalConnectors(self,mainView,textFrameManager):
         self._root = mainView.root
         self._textFrameManager = textFrameManager
 
@@ -46,14 +46,13 @@ class ComManager:
                 self._listenerRegistered = True
                 self._comManagerInitEvent.set()
                 traceLog(LogLevel.DEBUG,"ComManager: Listener registered")
-                
+
                 self._externalConnectorsLinkedEvent.wait()
                 traceLog(LogLevel.DEBUG,"ComManager: Listener started")
 
                 # TODO: If filename is received at start of program, also start text view
-                # if self._filePath:
-                    # print("File Path: " + str(self._filePath))
-                    # self._root.after(10,self._openFile,self._filePath)
+                if self._filePath:
+                    self._root.after(10,self._openFile,self._filePath)
 
                 while self._listenerFlag:
 
@@ -61,8 +60,7 @@ class ComManager:
 
                     try:
                         msg = conn.recv() # blocking until something is received
-                        print(msg)
-                        # self._root.after(10,self._openFile,msg)
+                        self._root.after(10,self._openFile,msg)
                     except EOFError:
                         pass
 
@@ -72,7 +70,7 @@ class ComManager:
 
         except OSError:
             traceLog(LogLevel.INFO,"ComManager: Socket address already used. Com listener likely already running")
-            self._clientSend(self._filePath)            
+            self._clientSend(self._filePath)
         except multi_con.AuthenticationError:
             traceLog(LogLevel.WARNING,"ComManager: Listener authentication error")
         except Exception as e:
@@ -93,4 +91,8 @@ class ComManager:
             traceLog(LogLevel.ERROR,"ComManager: Client exception [%s]: %s" % (str(type(e).__name__), str(e)))
 
     def _openFile(self,filePath):
-        fileView.FileView(self._settings,self._root,self._iconPath,self._textFrameManager,filePath)
+        if self._homeFound:
+            traceLog(LogLevel.INFO,"ComManager: Open file %s from explorer" % filePath)
+            fileView.FileView(self._settings,self._root,self._textFrameManager,filePath)
+        else:
+            traceLog(LogLevel.WARNING,"ComManager: CT home path not found in env var. Not able to open file")

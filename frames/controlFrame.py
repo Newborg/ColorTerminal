@@ -13,17 +13,16 @@ from views import optionsView, fileView
 
 class ControlFrame:
 
-    def __init__(self,settings,root,iconPath,textFrameManager):
+    def __init__(self,settings,root,textFrameManager):
         self._settings = settings
         self._root = root
-        self._iconPath = iconPath
         self._textFrameManager = textFrameManager
 
         self._textFrame = None
         self._textArea = None
-        self._bottomFrame = None        
-        
-        self._optionsView = optionsView.OptionsView(self._settings,self._root,iconPath,textFrameManager)
+        self._bottomFrame = None
+
+        self._optionsView = optionsView.OptionsView(self._settings,self._root,textFrameManager)
 
         self._serialPorts = dict()
         self._serialPortList = [""]
@@ -138,9 +137,9 @@ class ControlFrame:
 
         if appState == ConnectState.DISCONNECTED:
             # Save default port
-            self._settings.setOption(Sets.CONNECTION_DEFAULT_PORT,self._serialPortVar.get())            
+            self._settings.setOption(Sets.CONNECTION_DEFAULT_PORT,self._serialPortVar.get())
             # Connect to serial
-            self._connectController.changeAppState(ConnectState.CONNECTING)            
+            self._connectController.changeAppState(ConnectState.CONNECTING)
 
         elif appState == ConnectState.CONNECTED:
             # Close down reader
@@ -174,12 +173,12 @@ class ControlFrame:
             self._settings.setOption(Sets.TEXTAREA_LINE_WRAP,Sets.LINE_WRAP_ON)
 
     def _openFileCommand(self,*args):
-        fileName = filedialog.askopenfilename(initialdir = self._settings.get(Sets.LOG_FILE_PATH),\
+        fileName = filedialog.askopenfilename(initialdir = os.path.join(self._settings.get(Sets.CT_HOMEPATH_FULL),self._settings.get(Sets.LOG_FILE_PATH)),\
                                             title = "Select log file",\
                                             filetypes = (("Log files","*"+Sets.LOG_FILE_TYPE),))
-        
+
         if fileName:
-            fileView.FileView(self._settings,self._root,self._iconPath,self._textFrameManager,fileName)
+            fileView.FileView(self._settings,self._root,self._textFrameManager,fileName)
 
 
     def _showOptionsView(self):

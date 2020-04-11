@@ -25,6 +25,9 @@ LOG_FILE_TIMESTAMP          = "LogFile_logFileTimestamp"
 
 LINE_COLOR_MAP              = "LineColorMap"
 
+CT_HOMEPATH_FULL            = "_TEMP_CTHomePathFull"
+ICON_PATH_FULL              = "_TEMP_IconPathFull"
+
 
 # Static for now
 
@@ -68,8 +71,8 @@ LINE_WRAP_OFF = "off"
 
 class Settings:
 
-    def __init__(self,jsonFileName):
-        self.jsonFileName = jsonFileName
+    def __init__(self,jsonFileFullPath):
+        self.jsonFileFullPath = jsonFileFullPath
         self.settings = dict()
 
     def reload(self):
@@ -77,14 +80,14 @@ class Settings:
         settingsJson = dict()
 
         try:
-            with open(self.jsonFileName,"r") as jsonFile:
+            with open(self.jsonFileFullPath,"r") as jsonFile:
                 settingsJson = json.load(jsonFile)
         except FileNotFoundError:
             traceLog(LogLevel.WARNING,"Settings file not found. Using default values")
             pass
 
         # Connection
-        self.settings[CONNECTION_DEFAULT_PORT]          = settingsJson.get(CONNECTION_DEFAULT_PORT,"")
+        self.settings[CONNECTION_DEFAULT_PORT]      = settingsJson.get(CONNECTION_DEFAULT_PORT,"")
 
         # Main Window
         self.settings[DEFAULT_WINDOW_SIZE]          = settingsJson.get(DEFAULT_WINDOW_SIZE,"1100x600")
@@ -100,20 +103,25 @@ class Settings:
         self.settings[TEXTAREA_LINE_WRAP]               = settingsJson.get(TEXTAREA_LINE_WRAP,LINE_WRAP_ON)
 
         # Search
-        self.settings[SEARCH_MATCH_COLOR]          = settingsJson.get(SEARCH_MATCH_COLOR,"#9e6209")
-        self.settings[SEARCH_SELECTED_COLOR]       = settingsJson.get(SEARCH_SELECTED_COLOR,"#06487f")
-        self.settings[SEARCH_SELECTED_LINE_COLOR]  = settingsJson.get(SEARCH_SELECTED_LINE_COLOR,"#303030")
+        self.settings[SEARCH_MATCH_COLOR]           = settingsJson.get(SEARCH_MATCH_COLOR,"#9e6209")
+        self.settings[SEARCH_SELECTED_COLOR]        = settingsJson.get(SEARCH_SELECTED_COLOR,"#06487f")
+        self.settings[SEARCH_SELECTED_LINE_COLOR]   = settingsJson.get(SEARCH_SELECTED_LINE_COLOR,"#303030")
 
         # Log File
-        self.settings[LOG_FILE_PATH]               = settingsJson.get(LOG_FILE_PATH,"Logs")
-        self.settings[LOG_FILE_BASE_NAME]          = settingsJson.get(LOG_FILE_BASE_NAME,"SerialLog_")
-        self.settings[LOG_FILE_TIMESTAMP]          = settingsJson.get(LOG_FILE_TIMESTAMP,"%Y.%m.%d_%H.%M.%S")
+        self.settings[LOG_FILE_PATH]                = settingsJson.get(LOG_FILE_PATH,"Logs")
+        self.settings[LOG_FILE_BASE_NAME]           = settingsJson.get(LOG_FILE_BASE_NAME,"SerialLog_")
+        self.settings[LOG_FILE_TIMESTAMP]           = settingsJson.get(LOG_FILE_TIMESTAMP,"%Y.%m.%d_%H.%M.%S")
 
         # Line Color Map
-        self.settings[LINE_COLOR_MAP]              = settingsJson.get(LINE_COLOR_MAP,{})
+        self.settings[LINE_COLOR_MAP]               = settingsJson.get(LINE_COLOR_MAP,{})
+
+        # Temp settings used at runtime (should not be saved to file)
+        self.settings[CT_HOMEPATH_FULL]             = settingsJson.get(CT_HOMEPATH_FULL,"")
+        self.settings[ICON_PATH_FULL]               = settingsJson.get(ICON_PATH_FULL,"")
+        # TODO: Better way to save temp settings?
 
         try:
-            with open(self.jsonFileName,"w") as jsonFile:
+            with open(self.jsonFileFullPath,"w") as jsonFile:
                 json.dump(self.settings,jsonFile,indent=4)
         except:
             traceLog(LogLevel.WARNING,"Error updating settings file")
@@ -121,7 +129,7 @@ class Settings:
 
 
     def get(self,option):
-        # No keycheck, should fail if wrong key        
+        # No keycheck, should fail if wrong key
         return copy.deepcopy(self.settings[option])
 
     def setOption(self,option,value):
@@ -131,9 +139,10 @@ class Settings:
         # print("Saving option " + str(option) + " with value " + str(value))
 
         try:
-            with open(self.jsonFileName,"w") as jsonFile:
+            with open(self.jsonFileFullPath,"w") as jsonFile:
                 json.dump(self.settings,jsonFile,indent=4)
         except FileNotFoundError:
             traceLog(LogLevel.WARNING,"Settings file not found. Not able to save setting")
             pass
+
 

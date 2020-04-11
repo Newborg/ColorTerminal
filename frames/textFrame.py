@@ -9,7 +9,7 @@ from views import renameFileView
 from util import AutoScrollbar
 import search
 
-# Import for intellisense 
+# Import for intellisense
 from workers.highlightWorker import HighlightWorker
 
 
@@ -18,10 +18,9 @@ def createLineColorTagName(regex):
 
 class TextFrame:
 
-    def __init__(self,settings,root,iconPath,comController):
+    def __init__(self,settings,root,comController):
         self._settings = settings
         self._root = root
-        self._iconPath = iconPath
         self._comController = comController
 
         self._lineColorMap = dict()
@@ -30,7 +29,7 @@ class TextFrame:
 
         self._textFrame = tk.Frame(self._root)
 
-        fontList = tk.font.families()        
+        fontList = tk.font.families()
         if not self._settings.get(Sets.TEXTAREA_FONT_FAMILY) in fontList:
             traceLog(LogLevel.WARNING,"Font \"" + self._settings.get(Sets.TEXTAREA_FONT_FAMILY) + "\" not found in system")
 
@@ -53,7 +52,7 @@ class TextFrame:
         xscrollbar=AutoScrollbar(self._textFrame, orient=tk.HORIZONTAL, command=self.textArea.xview)
         xscrollbar.pack(side=tk.BOTTOM, fill=tk.X)
         self.textArea["xscrollcommand"]=xscrollbar.set
-        
+
         self.textArea.pack(anchor=tk.W, fill=tk.BOTH, expand = tk.YES)
 
 
@@ -64,10 +63,10 @@ class TextFrame:
 
         self.textArea.tag_bind(Sets.LOG_FILE_LINK_TAG, "<Enter>", self._enter_)
         self.textArea.tag_bind(Sets.LOG_FILE_LINK_TAG, "<Leave>", self._leave_)
-        self.textArea.tag_bind(Sets.LOG_FILE_LINK_TAG, "<Button-1>", self._click_)        
+        self.textArea.tag_bind(Sets.LOG_FILE_LINK_TAG, "<Button-1>", self._click_)
 
         self._textFrame.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
-        
+
         self._search = search.Search(self._settings)
         self._search.linkTextArea(self.textArea)
         self._root.bind('<Control-f>', self._search.show)
@@ -75,7 +74,7 @@ class TextFrame:
         self.reloadLineColorMap()
         self.createAllTextFrameLineColorTag()
 
-        self._comController.registerTextFrame(self)   
+        self._comController.registerTextFrame(self)
 
     def close(self):
         self._comController.unregisterTextFrame(self)
@@ -97,7 +96,7 @@ class TextFrame:
         self._search.close()
 
     ##############
-    # Miscellaneous 
+    # Miscellaneous
 
     def reloadTextFrame(self):
 
@@ -121,7 +120,7 @@ class TextFrame:
     # Line Color Map and Tag
 
     def reloadLineColorMap(self):
-        
+
         self._lineColorMap.clear()
         self._lineColorMap = self._settings.get(Sets.LINE_COLOR_MAP)
         # Add tag names to line color map
@@ -131,25 +130,25 @@ class TextFrame:
     def getLineColorMap(self):
         return self._lineColorMap
 
-    def createAllTextFrameLineColorTag(self):        
-        for key in sorted(self._lineColorMap.keys()):            
+    def createAllTextFrameLineColorTag(self):
+        for key in sorted(self._lineColorMap.keys()):
              self.createTextFrameLineColorTag(self._lineColorMap[key]["tagName"], self._lineColorMap[key]["color"])
 
     def createTextFrameLineColorTag(self,tagName,color):
         self.textArea.tag_configure(tagName, foreground=color)
 
     def updateTagColor(self,tagName,color): # TODO the same as the above function?
-        self.textArea.tag_config(tagName,foreground=color)   
+        self.textArea.tag_config(tagName,foreground=color)
 
     def deleteTextTag(self,tagName):
         self.textArea.tag_delete(tagName)
-    
+
     def addAllLineColorTagsToText(self):
         for lineColorRowId in self._lineColorMap.keys():
             self.addLineColorTagToText(self._lineColorMap[lineColorRowId]["regex"],self._lineColorMap[lineColorRowId]["tagName"])
 
     def addLineColorTagToText(self,regex,tagName):
-        
+
         #### A lot slower! ####
         # lastline = int(self.textArea.index("end-2c").split(".")[0])
 
@@ -179,7 +178,7 @@ class TextFrame:
         self.addLineColorTagToText(regex,tagName)
 
 
-    ##############    
+    ##############
     # Hyberlink
 
     def _enter_(self, event):
@@ -191,7 +190,7 @@ class TextFrame:
     def _click_(self, event):
 
         index = self.textArea.index("@" + str(event.x) + "," + str(event.y))
-        
+
         lineNumber = index.split(".")[0]
 
         fileNameRegex = self._settings.get(Sets.LOG_FILE_BASE_NAME) + ".*" + Sets.LOG_FILE_TYPE
@@ -203,19 +202,19 @@ class TextFrame:
         pos = self.textArea.search(fileNameRegex,startIndex,stopindex=stopIndex,count=countVar,nocase=True,regexp=True)
         if pos:
             fileName = self.textArea.get(pos,pos + "+" + countVar.get() + "c")
-            
-            renameFileView.RenameFile(self._settings,self,self._root,self._iconPath,fileName)            
+
+            renameFileView.RenameFile(self._settings,self,self._root,fileName)
         else:
             traceLog(LogLevel.ERROR, "Internal problem. No valid file name found in line")
 
     def updateDisconnectLineFileName(self,oldFileName,newFileName):
-        
+
         # Update filename in line buffer
         self._highlightWorker.replaceLineBufferString(oldFileName,newFileName)
 
         countVar = tk.StringVar()
         pos = self.textArea.search(oldFileName,"1.0",stopindex=tk.END,count=countVar,nocase=True,regexp=False)
-        
+
         if pos:
             lineNumber = pos.split(".")[0]
 

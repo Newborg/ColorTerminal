@@ -17,10 +17,9 @@ from frames import textFrame as TF
 
 class OptionsView:
 
-    def __init__(self,settings,root,iconPath,textFrameManager):
+    def __init__(self,settings,root,textFrameManager):
         self._settings = settings
         self._root = root
-        self._iconPath = iconPath
         self._textFrameManager = textFrameManager
 
         self._highlightWorker = None
@@ -151,7 +150,7 @@ class OptionsView:
             self._view.title("Options")
             self._view.protocol("WM_DELETE_WINDOW", self._onClosing)
 
-            self._view.iconbitmap(self._iconPath)
+            self._view.iconbitmap(self._settings.get(Sets.ICON_PATH_FULL))
 
             self._setsDict = dict()
 
@@ -363,7 +362,7 @@ class OptionsView:
 
         # Get registered textFrames
         textFrames = self._textFrameManager.getTextFrames()
-        
+
         # Delete line color tags
         for deletedRowData in self._deletedLineColorRows:
             for textFrame in textFrames:
@@ -383,7 +382,7 @@ class OptionsView:
 
             elif tempLineColorRows[rowId].entries["color"].isVarUpdated():
                 tagName = TF.createLineColorTagName(tempLineColorRows[rowId].entries["regex"].var.get())
-                for textFrame in textFrames:                    
+                for textFrame in textFrames:
                     textFrame.updateTagColor(tagName,tempLineColorRows[rowId].entries["color"].var.get())
 
 
@@ -393,7 +392,7 @@ class OptionsView:
             preTagName = TF.createLineColorTagName(tempLineColorRows[rowIds[0]].entries["regex"].var.get())
             for rowId in rowIds[1:-1]:
                 tagName = TF.createLineColorTagName(tempLineColorRows[rowId].entries["regex"].var.get())
-                for textFrame in textFrames:                    
+                for textFrame in textFrames:
                     textFrame.textArea.tag_raise(tagName,aboveThis=preTagName)
                 preTagName = tagName
 
@@ -607,7 +606,7 @@ class OptionsView:
                 onButton.grid(row=0,column=0,sticky=tk.E+tk.W)
                 offButton = tk.Radiobutton(toggleButtonFrame,text="Off",variable=entry.var, indicatoron=False,value="off")
                 offButton.grid(row=0,column=1,sticky=tk.E+tk.W)
-            else:                
+            else:
                 # TODO Find better solution for entry width
                 entry.input = tk.Entry(parent,textvariable=entry.var,width=int(maxLen*1.5),takefocus=False)
                 entry.input.grid(row=row,column=1)
@@ -716,15 +715,15 @@ class OptionsView:
                     self._updateExampleTextLineWrap(Sets.LINE_WRAP_ON)
                 elif lineWrapString == "off":
                     self._updateExampleTextLineWrap(Sets.LINE_WRAP_OFF)
-                    
+
             except tk.TclError:
                 pass
 
         elif group == self.GROUP_SEARCH:
 
             searchString = "Main"
-            
-            # Create search tags            
+
+            # Create search tags
             self._exampleText.tag_configure(Sets.SEARCH_SELECTED_LINE_COLOR, \
                                             background=self._setsDict[Sets.SEARCH_SELECTED_LINE_COLOR].entries[entryName].var.get(),\
                                             selectbackground=util.lightOrDarkenColor(self._setsDict[Sets.SEARCH_SELECTED_LINE_COLOR].entries[entryName].var.get(),Sets.SELECTED_LINE_DARKEN_COLOR))
@@ -786,7 +785,7 @@ class OptionsView:
                         start = pos + "+1c"
 
     def _updateExampleTextLineWrap(self,lineWrapState):
-        
+
         if lineWrapState == Sets.LINE_WRAP_ON:
             self._exampleText.config(wrap=tk.CHAR)
         else:
@@ -820,8 +819,8 @@ class OptionsView:
                     validationStatus = self.ENTRY_VALIDATION_FAILED
 
             # Check regex
-            if entry.data.entryType == self.ENTRY_TYPE_REGEX:  
-              
+            if entry.data.entryType == self.ENTRY_TYPE_REGEX:
+
                 # Validate regex
                 if self._isValidRegex(varIn):
                     entry.data.validation.status = self.ENTRY_VALIDATION_OK
@@ -829,7 +828,7 @@ class OptionsView:
                     entry.data.validation.status = self.ENTRY_VALIDATION_FAILED
 
                 self._updateAllRegexEntries()
-                
+
                 validationStatus = entry.data.validation.status
 
 
@@ -847,7 +846,7 @@ class OptionsView:
                 else:
                     validationStatus = self.ENTRY_VALIDATION_FAILED
 
-        
+
         #######
         # Update validation info
 
@@ -871,7 +870,7 @@ class OptionsView:
                     if infoText:
                         infoText += "\n"
                     infoText += entryId + ": " + entryItem.data.validation.infoText
-        
+
         if infoText:
             self._optionsInfoLabel.config(text=infoText)
             self._setSaveButtonState(tk.DISABLED)
@@ -880,8 +879,8 @@ class OptionsView:
             self._setSaveButtonState(tk.NORMAL)
             self._updateExampleText(settingsLine.group)
 
-   
-   
+
+
 
     def _isValidColor(self,colorString):
         isValid = True
@@ -920,7 +919,7 @@ class OptionsView:
         return isValid
 
     def _updateAllRegexEntries(self):
-        # Get all regex                
+        # Get all regex
         regexList = list()
         for key in self._setsDict.keys():
             try:
@@ -940,7 +939,7 @@ class OptionsView:
                 # Only update status if entry validation status is not currently failed
                 if regexEntry.data.validation.status != self.ENTRY_VALIDATION_FAILED:
                     # Mark duplicates
-                    if regexEntry.var.get() in regexDuplicateList:                                                            
+                    if regexEntry.var.get() in regexDuplicateList:
                         # print("New duplicate: " + regexEntry.var.get())
                         regexEntry.data.validation.status = self.ENTRY_VALIDATION_DUPLICATE
                         regexEntry.data.validation.backgroundColor = "yellow"

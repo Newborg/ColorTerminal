@@ -11,18 +11,17 @@ from frames import textFrame
 
 class FileView:
 
-    def __init__(self,settings,root,iconPath,comController,fileName):
+    def __init__(self,settings,root,comController,filePathFull):
         self._settings = settings
         self._root = root
-        self._iconPath = iconPath        
         self._comController = comController
 
         # View
         self._view = tk.Toplevel(self._root)
-        self._view.title(os.path.basename(fileName))
+        self._view.title(os.path.basename(filePathFull))
         self._view.protocol("WM_DELETE_WINDOW", self._onClosing)
 
-        self._view.iconbitmap(self._iconPath)
+        self._view.iconbitmap(self._settings.get(Sets.ICON_PATH_FULL))
         self._view.geometry(self._settings.get(Sets.DEFAULT_WINDOW_SIZE))
 
         # Control Frame
@@ -34,7 +33,7 @@ class FileView:
         # self._topFrame.pack(side=tk.TOP, fill=tk.X)
 
         # Text Frame
-        self._textFrame = textFrame.TextFrame(self._settings,self._view,self._iconPath,self._comController)
+        self._textFrame = textFrame.TextFrame(self._settings,self._view,self._comController)
 
 
         # Bottom Frame
@@ -47,7 +46,7 @@ class FileView:
         # Add file content
         lines = ""
         try:
-            with open(fileName,"r") as file:
+            with open(filePathFull,"r") as file:
                 lines = file.read()
         except FileNotFoundError:
             traceLog(LogLevel.WARNING,"File not found")
@@ -59,18 +58,18 @@ class FileView:
             self._textFrame.textArea.config(state=tk.NORMAL)
             self._textFrame.textArea.insert(tk.END, lines)
             self._textFrame.textArea.config(state=tk.DISABLED)
-            
+
             self._textFrame.addAllLineColorTagsToText()
 
             # Focus on new window
             self._view.focus_set()
         else:
             self._onClosing()
-        
+
 
     def _onClosing(self):
-    
-        self._textFrame.close()       
+
+        self._textFrame.close()
 
         # Close window
         self._view.destroy()

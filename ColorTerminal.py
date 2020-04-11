@@ -202,15 +202,28 @@ if not args.enableConsole:
 
 # ColorTerminal home
 
-homePath_ = os.getcwd()
-print(homePath_)
-ctHomeEnvVariable = "CT_HOMEPATH"
-if ctHomeEnvVariable in os.environ:
-    homePath_ = os.environ[ctHomeEnvVariable]
-    traceLog(LogLevel.INFO,"Environment var CT_HOMEPATH found: " + str(homePath_))
+homePathFull_ = os.getcwd()
+CT_HOME_ENV_VARIABLE = "CT_HOMEPATH"
+ctHomeEnvVarFound_ = CT_HOME_ENV_VARIABLE in os.environ
+if ctHomeEnvVarFound_:
+    homePathFull_ = os.environ[CT_HOME_ENV_VARIABLE]
+    traceLog(LogLevel.INFO,"Environment variable CT_HOMEPATH found: " + str(homePathFull_))
 else:
-    traceLog(LogLevel.INFO,"Environment var CT_HOMEPATH not found. Assuming home is: " + str(homePath_))
+    traceLog(LogLevel.INFO,"Environment variable CT_HOMEPATH not found. Assuming home is: " + str(homePathFull_))
+    traceLog(LogLevel.INFO,"    Not able to launch file viewer from explorer")
 
+# Check of ColorTerminal can be found in home path
+mainApplicationFound = False
+for file in os.listdir(homePathFull_):
+    if file.startswith("ColorTerminal."):
+        mainApplicationFound = True
+        traceLog(LogLevel.INFO,"Main application found in home path")
+        break
+
+if not mainApplicationFound:
+    traceLog(LogLevel.ERROR,"ColorTerminal application not found at home path: " + str(homePathFull_))
+    input("Press Enter to exit...")
+    exit()
 
 ################################################################
 ################################################################
@@ -226,16 +239,25 @@ if hasattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):
 else:
     traceLog(LogLevel.INFO,"Running in a normal Python process")
 
+iconPathFull_ = os.path.join(homePathFull_,iconPath_)
+
 ################################################################
 ################################################################
 
-if args.logFilePath:
-    print(args.logFilePath)
+# Settings
+SETTINGS_FILE_NAME_ = "CTsettings.json"
+settingsFileFullPath = os.path.join(homePathFull_,SETTINGS_FILE_NAME_)
+settings_ = Sets.Settings(settingsFileFullPath)
+settings_.reload()
 
+settings_.setOption(Sets.CT_HOMEPATH_FULL,homePathFull_)
+settings_.setOption(Sets.ICON_PATH_FULL,iconPathFull_)
 
+################################################################
+################################################################
 
 # Open message listener
-comManager_ = comManager.ComManager(iconPath_,args.logFilePath)
+comManager_ = comManager.ComManager(settings_,ctHomeEnvVarFound_,args.logFilePath)
 if not comManager_.isListenerRegistered():
     # Application already running, exit
     exit()
@@ -243,16 +265,13 @@ if not comManager_.isListenerRegistered():
 ################################################################
 ################################################################
 
-# Settings
-SETTINGS_FILE_NAME_ = "CTsettings.json"
-settings_ = Sets.Settings(SETTINGS_FILE_NAME_)
-settings_.reload()
+
 
 # Communication Controller (used to communicate update to text frames)
 textFrameManager_ = TextFrameManager()
 
 # Main View (root)
-mainView_ = mainView.MainView(settings_,iconPath_,VERSION_,textFrameManager_)
+mainView_ = mainView.MainView(settings_,VERSION_,textFrameManager_)
 
 # Main Controllers
 connectController_ = ConnectController(settings_,mainView_)
@@ -271,7 +290,7 @@ workers_ = Workers(readerWorker_,processWorker_,logWriterWorker_,highlightWorker
 mainView_.linkConnectController(connectController_)
 mainView_.linkWorkers(workers_)
 
-comManager_.linkExternalConnectors(settings_,mainView_,textFrameManager_)
+comManager_.linkExternalConnectors(mainView_,textFrameManager_)
 
 connectController_.linkWorkers(workers_)
 
