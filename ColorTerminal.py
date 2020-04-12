@@ -1,5 +1,6 @@
 
 import os
+import io
 import sys
 import argparse
 
@@ -187,15 +188,32 @@ class Workers:
 
 # Input arguments and stdout control
 
-stdoutFile = "CTstdout.txt"
+stdoutFilePath_ = "CTstdout.txt"
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-c","--enableConsole",help="send stdout and stderr to console, otherwise this is written to " + stdoutFile,action="store_true")
+parser.add_argument("-c","--enableConsole",help="send stdout and stderr to console, otherwise this is written to " + stdoutFilePath_,action="store_true")
 parser.add_argument("logFilePath",metavar="Path",nargs="?",help="(optional) path of logfile to open ",default="")
 args = parser.parse_args()
 
 if not args.enableConsole:
-    sys.stdout = sys.stderr = open(stdoutFile,"a")
+    tempStdout_ = io.StringIO()
+    sys.stdout = sys.stderr = tempStdout_
+
+################################################################
+################################################################
+
+# PyInstaller bundle check
+
+iconPath_ = RELATIVE_ICON_PATH_
+isRunningPython_ = True
+
+if hasattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):
+    traceLog(LogLevel.INFO,"Running in a PyInstaller bundle")
+    bundle_dir = getattr(sys,'_MEIPASS')
+    iconPath_ = os.path.join(bundle_dir,RELATIVE_ICON_PATH_)
+    isRunningPython_ = False
+else:
+    traceLog(LogLevel.INFO,"Running in a normal Python process")
 
 ################################################################
 ################################################################
@@ -203,13 +221,17 @@ if not args.enableConsole:
 # ColorTerminal home
 
 homePathFull_ = os.getcwd()
-CT_HOME_ENV_VARIABLE = "CT_HOMEPATH"
+if isRunningPython_:
+    CT_HOME_ENV_VARIABLE = "CT_HOME_PYTHON"
+else:
+    CT_HOME_ENV_VARIABLE = "CT_HOME"
+
 ctHomeEnvVarFound_ = CT_HOME_ENV_VARIABLE in os.environ
 if ctHomeEnvVarFound_:
     homePathFull_ = os.environ[CT_HOME_ENV_VARIABLE]
-    traceLog(LogLevel.INFO,"Environment variable CT_HOMEPATH found: " + str(homePathFull_))
+    traceLog(LogLevel.INFO,"Environment variable %s found: %s" % (CT_HOME_ENV_VARIABLE, str(homePathFull_)))
 else:
-    traceLog(LogLevel.INFO,"Environment variable CT_HOMEPATH not found. Assuming home is: " + str(homePathFull_))
+    traceLog(LogLevel.INFO,"Environment variable %s not found. Assuming home is: %s" % (CT_HOME_ENV_VARIABLE, str(homePathFull_)))
     traceLog(LogLevel.INFO,"    Not able to launch file viewer from explorer")
 
 # Check of ColorTerminal can be found in home path
@@ -223,23 +245,21 @@ for file in os.listdir(homePathFull_):
 if not mainApplicationFound:
     traceLog(LogLevel.ERROR,"ColorTerminal application not found at home path: " + str(homePathFull_))
     input("Press Enter to exit...")
-    exit()
+    sys.exit()
 
-################################################################
-################################################################
-
-# PyInstaller bundle check
-
-iconPath_ = RELATIVE_ICON_PATH_
-
-if hasattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):
-    traceLog(LogLevel.INFO,"Running in a PyInstaller bundle")
-    bundle_dir = getattr(sys,'_MEIPASS')
-    iconPath_ = os.path.join(bundle_dir,RELATIVE_ICON_PATH_)
-else:
-    traceLog(LogLevel.INFO,"Running in a normal Python process")
-
+# Setup requiring home path
 iconPathFull_ = os.path.join(homePathFull_,iconPath_)
+
+if not args.enableConsole:
+    stdoutFilePathFull_ = os.path.join(homePathFull_,stdoutFilePath_)
+    stdoutFile = open(stdoutFilePathFull_,"a")
+
+    # Copy temp output to file
+    stdoutFile.write(tempStdout_.getvalue())
+    tempStdout_.close()
+
+    sys.stdout = sys.stderr = stdoutFile
+
 
 ################################################################
 ################################################################
@@ -260,7 +280,7 @@ settings_.setOption(Sets.ICON_PATH_FULL,iconPathFull_)
 comManager_ = comManager.ComManager(settings_,ctHomeEnvVarFound_,args.logFilePath)
 if not comManager_.isListenerRegistered():
     # Application already running, exit
-    exit()
+    sys.exit()
 
 ################################################################
 ################################################################

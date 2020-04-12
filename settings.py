@@ -25,8 +25,8 @@ LOG_FILE_TIMESTAMP          = "LogFile_logFileTimestamp"
 
 LINE_COLOR_MAP              = "LineColorMap"
 
-CT_HOMEPATH_FULL            = "_TEMP_CTHomePathFull"
-ICON_PATH_FULL              = "_TEMP_IconPathFull"
+CT_HOMEPATH_FULL            = "__TEMP_CTHomePathFull"
+ICON_PATH_FULL              = "__TEMP_IconPathFull"
 
 
 # Static for now
@@ -74,6 +74,7 @@ class Settings:
     def __init__(self,jsonFileFullPath):
         self.jsonFileFullPath = jsonFileFullPath
         self.settings = dict()
+        self.settingsTemp = dict() # These settings will not be saved to file
 
     def reload(self):
 
@@ -116,9 +117,9 @@ class Settings:
         self.settings[LINE_COLOR_MAP]               = settingsJson.get(LINE_COLOR_MAP,{})
 
         # Temp settings used at runtime (should not be saved to file)
-        self.settings[CT_HOMEPATH_FULL]             = settingsJson.get(CT_HOMEPATH_FULL,"")
-        self.settings[ICON_PATH_FULL]               = settingsJson.get(ICON_PATH_FULL,"")
-        # TODO: Better way to save temp settings?
+        self.settingsTemp[CT_HOMEPATH_FULL]             = settingsJson.get(CT_HOMEPATH_FULL,"")
+        self.settingsTemp[ICON_PATH_FULL]               = settingsJson.get(ICON_PATH_FULL,"")
+        
 
         try:
             with open(self.jsonFileFullPath,"w") as jsonFile:
@@ -130,19 +131,25 @@ class Settings:
 
     def get(self,option):
         # No keycheck, should fail if wrong key
-        return copy.deepcopy(self.settings[option])
+        if "__TEMP" in option:
+            return copy.deepcopy(self.settingsTemp[option])
+        else:
+            return copy.deepcopy(self.settings[option])
 
     def setOption(self,option,value):
 
-        self.settings[option] = value
+        if "__TEMP" in option:
+            self.settingsTemp[option] = value
+        else:
+            self.settings[option] = value
 
-        # print("Saving option " + str(option) + " with value " + str(value))
+            # print("Saving option " + str(option) + " with value " + str(value))
 
-        try:
-            with open(self.jsonFileFullPath,"w") as jsonFile:
-                json.dump(self.settings,jsonFile,indent=4)
-        except FileNotFoundError:
-            traceLog(LogLevel.WARNING,"Settings file not found. Not able to save setting")
-            pass
+            try:
+                with open(self.jsonFileFullPath,"w") as jsonFile:
+                    json.dump(self.settings,jsonFile,indent=4)
+            except FileNotFoundError:
+                traceLog(LogLevel.WARNING,"Settings file not found. Not able to save setting")
+                pass
 
 
