@@ -1,3 +1,5 @@
+import os
+
 import tkinter as tk
 from tkinter.font import Font
 from tkinter.colorchooser import askcolor
@@ -130,7 +132,7 @@ class OptionsView:
     def _loadLogExample(self):
         log = "[12:34:56.789] Main::test\n[12:34:56.789] Main::TestTwo"
         try:
-            with open(self.LOG_EXAMPLE_FILE,"r") as file:
+            with open(os.path.join(self._settings.get(Sets.CT_HOMEPATH_FULL),self.LOG_EXAMPLE_FILE),"r") as file:
                 log = file.read()
         except FileNotFoundError:
             traceLog(LogLevel.WARNING,"Log example file not found. Using default example")
