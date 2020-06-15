@@ -33,7 +33,7 @@ VERSION_ = "1.2.0"
 ################################
 # Icon
 
-RELATIVE_ICON_PATH_ = r"icons\Icon03.ico"
+RELATIVE_ICON_PATH_ = r"..\icons\Icon03.ico"
 
 ################################
 # Connection Controller

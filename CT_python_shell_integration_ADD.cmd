@@ -14,14 +14,14 @@ REM Get python path
 set pythonpath=
 for /f %%i in ('where python') do if not defined pythonpath set pythonpath=%%i
 
-reg add "HKCR\*\shell\ColorTerminalPython\command" /t REG_SZ /d "\"%pythonpath%\" \"%~dp0ColorTerminal.py\" \"-c\" \"%%1\"" /f
+reg add "HKCR\*\shell\ColorTerminalPython\command" /t REG_SZ /d "\"%pythonpath%\" \"%~dp0src\ColorTerminal.py\" \"-c\" \"%%1\"" /f
 
 echo *****
 echo Adding environment variable CT_HOME_PYTHON:
 
 REM TODO: Check if application exists in path
 
-setx CT_HOME_PYTHON %~dp0
+setx CT_HOME_PYTHON %~dp0src
 
 echo *************************************
 
