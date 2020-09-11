@@ -4,8 +4,7 @@ import io
 import sys
 import argparse
 
-import tkinter as tk
-# from tkinter import messagebox
+from tkinter import messagebox
 
 import datetime
 
@@ -183,6 +182,8 @@ class Workers:
         self.guiWorker = guiWorker
 
 
+
+
 ################################################################
 ################################################################
 
@@ -237,14 +238,27 @@ else:
 # Check of ColorTerminal can be found in home path
 mainApplicationFound = False
 for item in os.listdir(homePathFull_):
-    if item == "colorterminal":
-        mainApplicationFound = True
-        traceLog(LogLevel.INFO,"Main application found in home path")
-        break
+    if isRunningPython_:
+        if os.path.isdir(os.path.join(homePathFull_,item)):
+            if item == "colorterminal":
+                mainApplicationFound = True
+                traceLog(LogLevel.INFO,"Main python application found in home path")
+                break
+    else:
+        if item == "ColorTerminal.exe":
+            mainApplicationFound = True
+            traceLog(LogLevel.INFO,"Main exe application found in home path")
+            break
 
 if not mainApplicationFound:
-    traceLog(LogLevel.ERROR,"ColorTerminal application not found at home path: " + str(homePathFull_))
-    input("Press Enter to exit...")
+
+    message = "ColorTerminal application not found in home path: %s" % homePathFull_
+
+    if args.enableConsole:
+        traceLog(LogLevel.ERROR,message)
+
+    extendedMessage = message + "\n\nPlease launch application from the correct folder or set the %s environment variable\n\nStartup cancelled" % CT_HOME_ENV_VARIABLE
+    messagebox.showerror(title="ColorTerminal Error", message=extendedMessage)
     sys.exit()
 
 # Setup requiring home path
@@ -252,7 +266,7 @@ iconPathFull_ = os.path.join(homePathFull_,iconPath_)
 
 if not args.enableConsole:
     stdoutFilePathFull_ = os.path.join(homePathFull_,stdoutFilePath_)
-    stdoutFile = open(stdoutFilePathFull_,"a")
+    stdoutFile = open(stdoutFilePathFull_,"a",buffering=1)
 
     # Copy temp output to file
     stdoutFile.write(tempStdout_.getvalue())

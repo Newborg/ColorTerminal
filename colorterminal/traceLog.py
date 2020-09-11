@@ -10,6 +10,6 @@ class LogLevel(Enum):
 def traceLog(level,msg):
     timestamp = datetime.datetime.now()
     micros = int(timestamp.microsecond/1000)
-    timeString = timestamp.strftime("%H:%M:%S") + "." + '{:03d}'.format(micros)
+    timeString = timestamp.strftime("%Y-%m-%d %H:%M:%S") + "." + '{:03d}'.format(micros)
 
     print(timeString + " [" + level.name + "] " + msg)

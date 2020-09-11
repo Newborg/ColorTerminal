@@ -1,1 +1,1 @@
-python src\ColorTerminal.py -c
+python colorterminal -c

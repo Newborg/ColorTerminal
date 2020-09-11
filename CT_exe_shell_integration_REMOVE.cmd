@@ -1,6 +1,6 @@
 @echo off
 echo *************************************
-echo ColorTerminal shell integration setup
+echo ColorTerminal shell integration removal
 echo *****
 echo Removing following folders in registry:
 echo "HKEY_CLASSES_ROOT\*\shell\ColorTerminal" (contains 3 keys)

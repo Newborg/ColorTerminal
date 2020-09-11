@@ -61,6 +61,7 @@ class LogWriterWorker:
 
         self.linesInLogFile = 0
 
+        # line buffering can be enabled with "buffering=1". Not sure if it is too much IO
         with open(fullFilename,"a") as file:
             while self._logFlag:
                 try:
