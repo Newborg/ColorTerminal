@@ -33,7 +33,7 @@ VERSION_ = "1.2.0"
 ################################
 # Icon
 
-RELATIVE_ICON_PATH_ = r"..\icons\Icon03.ico"
+RELATIVE_ICON_PATH_ = r"resources\Icon03.ico"
 
 ################################
 # Connection Controller
@@ -236,8 +236,8 @@ else:
 
 # Check of ColorTerminal can be found in home path
 mainApplicationFound = False
-for file in os.listdir(homePathFull_):
-    if file.startswith("ColorTerminal."):
+for item in os.listdir(homePathFull_):
+    if item == "colorterminal":
         mainApplicationFound = True
         traceLog(LogLevel.INFO,"Main application found in home path")
         break

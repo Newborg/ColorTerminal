@@ -127,7 +127,7 @@ class OptionsView:
 
     ROW_HIGHLIGHT_COLOR = "gray"
 
-    LOG_EXAMPLE_FILE = "log_example.txt"
+    LOG_EXAMPLE_FILE = r"data\log_example.txt"
 
     def _loadLogExample(self):
         log = "[12:34:56.789] Main::test\n[12:34:56.789] Main::TestTwo"

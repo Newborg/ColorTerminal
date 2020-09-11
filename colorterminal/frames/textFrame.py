@@ -209,9 +209,6 @@ class TextFrame:
 
     def updateDisconnectLineFileName(self,oldFileName,newFileName):
 
-        # Update filename in line buffer
-        self._highlightWorker.replaceLineBufferString(oldFileName,newFileName)
-
         countVar = tk.StringVar()
         pos = self.textArea.search(oldFileName,"1.0",stopindex=tk.END,count=countVar,nocase=True,regexp=False)
 
