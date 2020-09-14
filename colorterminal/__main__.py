@@ -27,7 +27,7 @@ import comManager
 ################################
 # Version information
 
-VERSION_ = "1.2.0"
+VERSION_ = "1.2.1"
 
 ################################
 # Icon
