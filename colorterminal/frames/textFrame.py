@@ -6,7 +6,7 @@ from tkinter.font import Font
 from traceLog import traceLog,LogLevel
 import settings as Sets
 from views import renameFileView
-from util import AutoScrollbar
+import spinner
 import search
 
 # Import for intellisense
@@ -47,7 +47,7 @@ class TextFrame:
         self.textArea["yscrollcommand"]=yscrollbar.set
 
         # Xscrollbar will be hidden if line wrap is on
-        self._xscrollbar=tk.Scrollbar(self._textFrame, orient=tk.HORIZONTAL, command=self.textArea.xview)        
+        self._xscrollbar=tk.Scrollbar(self._textFrame, orient=tk.HORIZONTAL, command=self.textArea.xview)
         self.textArea["xscrollcommand"]=self._xscrollbar.set
 
         self.updateLineWrap(self._settings.get(Sets.TEXTAREA_LINE_WRAP))
@@ -72,6 +72,8 @@ class TextFrame:
 
         self.reloadLineColorMap()
         self.createAllTextFrameLineColorTag()
+
+        self._infoSpinner = None
 
         self._comController.registerTextFrame(self)
 
@@ -116,6 +118,13 @@ class TextFrame:
         else:
             self.textArea.config(wrap=tk.NONE)
             self._xscrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+
+    def showSpinner(self,text):
+        self._infoSpinner = spinner.Spinner(self._textFrame)
+        self._infoSpinner.show(indicators=False,message=text)
+
+    def closeSpinner(self):
+        self._infoSpinner.close()
 
     ##############
     # Line Color Map and Tag

@@ -20,7 +20,7 @@ def writer():
 
     customOutFreq = 5
 
-    with serial.Serial('COM2', 115200, timeout=2, write_timeout=2) as ser:
+    with serial.Serial('COM3', 115200, timeout=2, write_timeout=2) as ser:
 
         print(ser)
 

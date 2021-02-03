@@ -331,9 +331,12 @@ class OptionsView:
         # Close options view
         self._root.after(10,self._onClosing,True)
 
+        # Get registered textFrames
+        textFrames = self._textFrameManager.getTextFrames()
+
         # Show saving message
-        saveSpinner = spinner.Spinner(self._root)
-        saveSpinner.show(indicators=False,message="Reloading View")
+        for textFrame in textFrames:
+            textFrame.showSpinner("Reloading View")
 
         # Stop workers using the settings
         self._highlightWorker.stopWorker(emptyQueue=False)
@@ -360,9 +363,6 @@ class OptionsView:
 
         # Once settings have been saved, allow for reopen of options view
         self._showing = False
-
-        # Get registered textFrames
-        textFrames = self._textFrameManager.getTextFrames()
 
         # Delete line color tags
         for deletedRowData in self._deletedLineColorRows:
@@ -408,8 +408,9 @@ class OptionsView:
         self._highlightWorker.startWorker()
         self._guiWorker.startWorker()
 
-        # Remove spinner
-        saveSpinner.close()
+        # Remove spinners
+        for textFrame in textFrames:
+            textFrame.closeSpinner()
 
         # Update save button, if window has been opened again
         self._root.after(10,self._setSaveButtonState,tk.NORMAL)

@@ -78,9 +78,7 @@ class FileView:
             # Focus on new window
             self._view.focus_set()
 
-            # add spinner
-            self._loadSpinner = spinner.Spinner(self._view)
-            self._loadSpinner.show(indicators=False,message="Loading File...")
+            self._textFrame.showSpinner("Loading File...")
 
             self._root.after(5,self._drawRemainingLines)
 
@@ -95,7 +93,7 @@ class FileView:
 
         self._textFrame.addAllLineColorTagsToText()
 
-        self._loadSpinner.close()
+        self._textFrame.closeSpinner()
 
     def _onClosing(self):
 
