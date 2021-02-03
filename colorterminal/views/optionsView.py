@@ -127,7 +127,7 @@ class OptionsView:
 
     ROW_HIGHLIGHT_COLOR = "gray"
 
-    LOG_EXAMPLE_FILE = r"data\log_example.txt"
+    LOG_EXAMPLE_FILE = r"appdata\log_example.txt"
 
     def _loadLogExample(self):
         log = "[12:34:56.789] Main::test\n[12:34:56.789] Main::TestTwo"
@@ -136,7 +136,6 @@ class OptionsView:
                 log = file.read()
         except FileNotFoundError:
             traceLog(LogLevel.WARNING,"Log example file not found. Using default example")
-            pass
         return log
 
     def show(self):
