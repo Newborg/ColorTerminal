@@ -420,7 +420,7 @@ class OptionsView:
     ####################################
     # View Creation
 
-    def _addNewEmptyLineColor(self,parent):
+    def _addNewEmptyLineColor(self):
         # print("New Button " + str(self.newButtonRow))
 
         self._newButton.grid(row=self._newButtonRow+1)

@@ -17,8 +17,7 @@ import threading
 from traceLog import traceLog,LogLevel
 import settings as Sets
 from customTypes import ConnectState
-# import search
-from views import mainView, fileView, optionsView
+from views import mainView
 
 from workers import readerWorker, processWorker, logWriterWorker, highlightWorker, guiWorker
 
@@ -32,17 +31,17 @@ VERSION_ = "1.2.1"
 ################################
 # Icon
 
-RELATIVE_ICON_PATH_ = r"resources\Icon03.ico"
+RELATIVE_ICON_PATH = r"resources\Icon03.ico"
 
 ################################
 # Connection Controller
 
 class ConnectController:
 
-    def __init__(self,settings,mainView):
+    def __init__(self,settings,mainView_):
         self._settings = settings
-        self._mainView = mainView
-        self._root = mainView.root
+        self._mainView = mainView_
+        self._root = mainView_.root
 
         self._closeProgram = False
 
@@ -154,8 +153,7 @@ class ConnectController:
 
 class TextFrameManager:
 
-    def __init__(self):
-        pass
+    def __init__(self):        
         self.textFrames = list()
 
     def registerTextFrame(self,textFrame):
@@ -174,12 +172,12 @@ class TextFrameManager:
 
 class Workers:
 
-    def __init__(self,readerWorker,processWorker,logWriterWorker,highlightWorker,guiWorker):
-        self.readerWorker = readerWorker
-        self.processWorker = processWorker
-        self.logWriterWorker = logWriterWorker
-        self.highlightWorker = highlightWorker
-        self.guiWorker = guiWorker
+    def __init__(self,readerWorker_,processWorker_,logWriterWorker_,highlightWorker_,guiWorker_):
+        self.readerWorker = readerWorker_
+        self.processWorker = processWorker_
+        self.logWriterWorker = logWriterWorker_
+        self.highlightWorker = highlightWorker_
+        self.guiWorker = guiWorker_
 
 
 
@@ -189,30 +187,30 @@ class Workers:
 
 # Input arguments and stdout control
 
-stdoutFilePath_ = "CTstdout.txt"
+stdoutFilePath = "CTstdout.txt"
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-c","--enableConsole",help="send stdout and stderr to console, otherwise this is written to " + stdoutFilePath_,action="store_true")
+parser.add_argument("-c","--enableConsole",help="send stdout and stderr to console, otherwise this is written to " + stdoutFilePath,action="store_true")
 parser.add_argument("logFilePath",metavar="Path",nargs="?",help="(optional) path of logfile to open ",default="")
 args = parser.parse_args()
 
 if not args.enableConsole:
-    tempStdout_ = io.StringIO()
-    sys.stdout = sys.stderr = tempStdout_
+    tempStdout = io.StringIO()
+    sys.stdout = sys.stderr = tempStdout
 
 ################################################################
 ################################################################
 
 # PyInstaller bundle check
 
-iconPath_ = RELATIVE_ICON_PATH_
-isRunningPython_ = True
+iconPath_ = RELATIVE_ICON_PATH
+isRunningPython = True
 
 if hasattr(sys, 'frozen') and hasattr(sys, '_MEIPASS'):
     traceLog(LogLevel.INFO,"Running in a PyInstaller bundle")
     bundle_dir = getattr(sys,'_MEIPASS')
-    iconPath_ = os.path.join(bundle_dir,RELATIVE_ICON_PATH_)
-    isRunningPython_ = False
+    iconPath_ = os.path.join(bundle_dir,RELATIVE_ICON_PATH)
+    isRunningPython = False
 else:
     traceLog(LogLevel.INFO,"Running in a normal Python process")
 
@@ -221,25 +219,25 @@ else:
 
 # ColorTerminal home
 
-homePathFull_ = os.getcwd()
-if isRunningPython_:
+homePathFull = os.getcwd()
+if isRunningPython:
     CT_HOME_ENV_VARIABLE = "CT_HOME_PYTHON"
 else:
     CT_HOME_ENV_VARIABLE = "CT_HOME"
 
 ctHomeEnvVarFound_ = CT_HOME_ENV_VARIABLE in os.environ
 if ctHomeEnvVarFound_:
-    homePathFull_ = os.environ[CT_HOME_ENV_VARIABLE]
-    traceLog(LogLevel.INFO,"Environment variable %s found: %s" % (CT_HOME_ENV_VARIABLE, str(homePathFull_)))
+    homePathFull = os.environ[CT_HOME_ENV_VARIABLE]
+    traceLog(LogLevel.INFO,"Environment variable %s found: %s" % (CT_HOME_ENV_VARIABLE, str(homePathFull)))
 else:
-    traceLog(LogLevel.INFO,"Environment variable %s not found. Assuming home is: %s" % (CT_HOME_ENV_VARIABLE, str(homePathFull_)))
+    traceLog(LogLevel.INFO,"Environment variable %s not found. Assuming home is: %s" % (CT_HOME_ENV_VARIABLE, str(homePathFull)))
     traceLog(LogLevel.INFO,"    Not able to launch file viewer from explorer")
 
 # Check of ColorTerminal can be found in home path
 mainApplicationFound = False
-for item in os.listdir(homePathFull_):
-    if isRunningPython_:
-        if os.path.isdir(os.path.join(homePathFull_,item)):
+for item in os.listdir(homePathFull):
+    if isRunningPython:
+        if os.path.isdir(os.path.join(homePathFull,item)):
             if item == "colorterminal":
                 mainApplicationFound = True
                 traceLog(LogLevel.INFO,"Main python application found in home path")
@@ -252,7 +250,7 @@ for item in os.listdir(homePathFull_):
 
 if not mainApplicationFound:
 
-    message = "ColorTerminal application not found in home path: %s" % homePathFull_
+    message = "ColorTerminal application not found in home path: %s" % homePathFull
 
     if args.enableConsole:
         traceLog(LogLevel.ERROR,message)
@@ -262,15 +260,15 @@ if not mainApplicationFound:
     sys.exit()
 
 # Setup requiring home path
-iconPathFull_ = os.path.join(homePathFull_,iconPath_)
+iconPathFull = os.path.join(homePathFull,iconPath_)
 
 if not args.enableConsole:
-    stdoutFilePathFull_ = os.path.join(homePathFull_,stdoutFilePath_)
+    stdoutFilePathFull_ = os.path.join(homePathFull,stdoutFilePath)
     stdoutFile = open(stdoutFilePathFull_,"a",buffering=1)
 
     # Copy temp output to file
-    stdoutFile.write(tempStdout_.getvalue())
-    tempStdout_.close()
+    stdoutFile.write(tempStdout.getvalue())
+    tempStdout.close()
 
     sys.stdout = sys.stderr = stdoutFile
 
@@ -279,19 +277,19 @@ if not args.enableConsole:
 ################################################################
 
 # Settings
-SETTINGS_FILE_NAME_ = "CTsettings.json"
-settingsFileFullPath = os.path.join(homePathFull_,SETTINGS_FILE_NAME_)
-settings_ = Sets.Settings(settingsFileFullPath)
-settings_.reload()
+settingsObjFILE_NAME_ = "CTsettings.json"
+settingsFileFullPath = os.path.join(homePathFull,settingsObjFILE_NAME_)
+settingsObj = Sets.Settings(settingsFileFullPath)
+settingsObj.reload()
 
-settings_.setOption(Sets.CT_HOMEPATH_FULL,homePathFull_)
-settings_.setOption(Sets.ICON_PATH_FULL,iconPathFull_)
+settingsObj.setOption(Sets.CT_HOMEPATH_FULL,homePathFull)
+settingsObj.setOption(Sets.ICON_PATH_FULL,iconPathFull)
 
 ################################################################
 ################################################################
 
 # Open message listener
-comManager_ = comManager.ComManager(settings_,ctHomeEnvVarFound_,args.logFilePath)
+comManager_ = comManager.ComManager(settingsObj,ctHomeEnvVarFound_,args.logFilePath)
 if not comManager_.isListenerRegistered():
     # Application already running, exit
     sys.exit()
@@ -302,42 +300,42 @@ if not comManager_.isListenerRegistered():
 
 
 # Communication Controller (used to communicate update to text frames)
-textFrameManager_ = TextFrameManager()
+textFrameManagerObj = TextFrameManager()
 
 # Main View (root)
-mainView_ = mainView.MainView(settings_,VERSION_,textFrameManager_)
+mainViewObj = mainView.MainView(settingsObj,VERSION_,textFrameManagerObj)
 
 # Main Controllers
-connectController_ = ConnectController(settings_,mainView_)
+connectControllerObj = ConnectController(settingsObj,mainViewObj)
 
 # Workers
-readerWorker_ = readerWorker.ReaderWorker(settings_,mainView_)
-processWorker_ = processWorker.ProcessWorker(settings_)
-logWriterWorker_ = logWriterWorker.LogWriterWorker(settings_,mainView_)
-highlightWorker_ = highlightWorker.HighlightWorker(settings_,mainView_)
-guiWorker_ = guiWorker.GuiWorker(settings_,mainView_)
+readerWorkerObj = readerWorker.ReaderWorker(settingsObj,mainViewObj)
+processWorkerObj = processWorker.ProcessWorker(settingsObj)
+logWriterWorkerObj = logWriterWorker.LogWriterWorker(settingsObj,mainViewObj)
+highlightWorkerObj = highlightWorker.HighlightWorker(settingsObj,mainViewObj)
+guiWorkerObj = guiWorker.GuiWorker(settingsObj,mainViewObj)
 # Common class with link to all workers
-workers_ = Workers(readerWorker_,processWorker_,logWriterWorker_,highlightWorker_,guiWorker_)
+workersObj = Workers(readerWorkerObj,processWorkerObj,logWriterWorkerObj,highlightWorkerObj,guiWorkerObj)
 
 ################################
 # Link modules
-mainView_.linkConnectController(connectController_)
-mainView_.linkWorkers(workers_)
+mainViewObj.linkConnectController(connectControllerObj)
+mainViewObj.linkWorkers(workersObj)
 
-comManager_.linkExternalConnectors(mainView_,textFrameManager_)
+comManager_.linkExternalConnectors(mainViewObj,textFrameManagerObj)
 
-connectController_.linkWorkers(workers_)
+connectControllerObj.linkWorkers(workersObj)
 
-readerWorker_.linkConnectController(connectController_)
-readerWorker_.linkWorkers(workers_)
-processWorker_.linkWorkers(workers_)
-highlightWorker_.linkWorkers(workers_)
-guiWorker_.linkWorkers(workers_)
+readerWorkerObj.linkConnectController(connectControllerObj)
+readerWorkerObj.linkWorkers(workersObj)
+processWorkerObj.linkWorkers(workersObj)
+highlightWorkerObj.linkWorkers(workersObj)
+guiWorkerObj.linkWorkers(workersObj)
 
 ################################
 # Start
-highlightWorker_.startWorker()
-guiWorker_.startWorker()
+highlightWorkerObj.startWorker()
+guiWorkerObj.startWorker()
 
 # TESTING
 # def down(e):
@@ -376,16 +374,16 @@ guiWorker_.startWorker()
 #         for line in lines:
 #             timestamp = datetime.datetime.now()
 #             inLine = SerialLine(line,timestamp)
-#             processWorker_.processQueue.put(inLine)
+#             processWorkerObj.processQueue.put(inLine)
 
 #     print("Debug, lines added to view: " + str(loops*len(lines)))
 
-# mainView_.root.bind('<Control-n>', addDataToProcessQueue)
+# mainViewObj.root.bind('<Control-n>', addDataToProcessQueue)
 
 
 traceLog(LogLevel.INFO,"Main loop started")
 
-mainView_.root.mainloop()
+mainViewObj.root.mainloop()
 
 traceLog(LogLevel.INFO,"Main loop done")
 

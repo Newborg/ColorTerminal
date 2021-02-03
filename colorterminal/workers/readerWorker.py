@@ -4,7 +4,6 @@ import serial.tools.list_ports
 import datetime
 
 from traceLog import traceLog,LogLevel
-import settings as Sets
 from customTypes import ConnectState,SerialLine
 
 class ReaderWorker:

@@ -1,7 +1,6 @@
 import os
 
 import tkinter as tk
-from tkinter.font import Font
 
 from traceLog import traceLog,LogLevel
 import settings as Sets
@@ -42,6 +41,7 @@ class FileView:
         # self._statLabel.pack(side=tk.LEFT)
         # self._bottomFrame.pack(side=tk.BOTTOM, fill=tk.X)
 
+        readError = False
 
         # Add file content
         lines = ""
@@ -50,9 +50,11 @@ class FileView:
                 lines = file.read()
         except FileNotFoundError:
             traceLog(LogLevel.WARNING,"File not found")
+            readError = True
         except UnicodeDecodeError:
             traceLog(LogLevel.ERROR,"File format is wrong")
             lines = ""
+            readError = True
 
         if lines:
             self._textFrame.textArea.config(state=tk.NORMAL)
@@ -63,7 +65,8 @@ class FileView:
 
             # Focus on new window
             self._view.focus_set()
-        else:
+
+        if readError:
             self._onClosing()
 
 
