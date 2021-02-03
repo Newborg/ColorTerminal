@@ -39,8 +39,6 @@ class TextFrame:
                                 selectbackground=self._settings.get(Sets.TEXTAREA_SELECT_BACKGROUND_COLOR),\
                                 foreground=self._settings.get(Sets.TEXTAREA_COLOR), font=tFont)
 
-        self.updateLineWrap(self._settings.get(Sets.TEXTAREA_LINE_WRAP))
-
         self.textArea.config(state=tk.DISABLED)
 
         # Set up scroll bars
@@ -48,10 +46,11 @@ class TextFrame:
         yscrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.textArea["yscrollcommand"]=yscrollbar.set
 
-        # AutoScrollbar will hide itself when not needed
-        xscrollbar=AutoScrollbar(self._textFrame, orient=tk.HORIZONTAL, command=self.textArea.xview)
-        xscrollbar.pack(side=tk.BOTTOM, fill=tk.X)
-        self.textArea["xscrollcommand"]=xscrollbar.set
+        # Xscrollbar will be hidden if line wrap is on
+        self._xscrollbar=tk.Scrollbar(self._textFrame, orient=tk.HORIZONTAL, command=self.textArea.xview)        
+        self.textArea["xscrollcommand"]=self._xscrollbar.set
+
+        self.updateLineWrap(self._settings.get(Sets.TEXTAREA_LINE_WRAP))
 
         self.textArea.pack(anchor=tk.W, fill=tk.BOTH, expand = tk.YES)
 
@@ -113,8 +112,10 @@ class TextFrame:
     def updateLineWrap(self,lineWrapState):
         if lineWrapState == Sets.LINE_WRAP_ON:
             self.textArea.config(wrap=tk.CHAR)
+            self._xscrollbar.pack_forget()
         else:
             self.textArea.config(wrap=tk.NONE)
+            self._xscrollbar.pack(side=tk.BOTTOM, fill=tk.X)
 
     ##############
     # Line Color Map and Tag

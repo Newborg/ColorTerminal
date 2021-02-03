@@ -26,7 +26,7 @@ import comManager
 ################################
 # Version information
 
-VERSION_ = "1.2.1"
+VERSION_ = "1.2.3"
 
 ################################
 # Icon
@@ -158,7 +158,7 @@ class TextFrameManager:
 
     def registerTextFrame(self,textFrame):
         if not textFrame in self.textFrames:
-             self.textFrames.append(textFrame)
+            self.textFrames.append(textFrame)
 
     def unregisterTextFrame(self,textFrame):
         if textFrame in self.textFrames:
