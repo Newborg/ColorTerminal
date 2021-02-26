@@ -45,7 +45,7 @@ class LogWriterWorker:
             self._logFlag = False
 
             if self._logThread:
-                if self._logThread.isAlive():
+                if self._logThread.is_alive():
                     self._logThread.join()
 
     def _logWriterWorker(self):

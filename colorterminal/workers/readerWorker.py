@@ -45,7 +45,7 @@ class ReaderWorker:
             self._readFlag = False
 
             if self._readerThread:
-                if self._readerThread.isAlive():
+                if self._readerThread.is_alive():
                     self._readerThread.join()
 
     def linkConnectController(self,connectController):

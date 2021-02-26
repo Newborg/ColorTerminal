@@ -48,7 +48,7 @@ class ProcessWorker:
             self._processFlag = False
 
             if self._processThread:
-                if self._processThread.isAlive():
+                if self._processThread.is_alive():
                     self._processThread.join()
 
     def linkWorkers(self,workers):

@@ -67,7 +67,7 @@ while True:
 
 print("Quitting...")
 
-if writerThread.isAlive():
+if writerThread.is_alive():
     writerThread.join()
 
 print("Done writing")

@@ -68,7 +68,7 @@ class HighlightWorker():
 
             self._highlightFlag = False
 
-            if self._highlightThread.isAlive():
+            if self._highlightThread.is_alive():
                 self._highlightThread.join()
 
     def toggleHideLines(self):
