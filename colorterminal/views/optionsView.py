@@ -225,7 +225,7 @@ class OptionsView:
             self._lastFocusOutRowId = ""
 
             self._newButtonRow = len(self._lineColorMap)
-            self._newButton  = tk.Button(self._lineColoringFrame,text="New Line",command=partial(self._addNewEmptyLineColor,self._lineColoringFrame))
+            self._newButton  = tk.Button(self._lineColoringFrame,text="New Line",command=partial(self._addNewEmptyLineColor))
             self._newButton.grid(row=self._newButtonRow,column=0,sticky=tk.W,padx=(2,100),pady=2)
 
             self._deletedLineColorRows = list()
