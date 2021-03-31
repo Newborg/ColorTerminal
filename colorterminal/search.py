@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter.font import Font
 import time
 import util
 
@@ -93,11 +94,13 @@ class Search:
             # Due to focusIn, focusOut and opening and closing of search view, tags are sometimes not created in the right order.
             self._textField.tag_raise(self.TAG_SEARCH_SELECT,aboveThis=self.TAG_SEARCH)
 
+            tFont = Font(size=self._settings.get(Sets.TEXTAREA_FONT_SIZE))
+
             self._var = tk.StringVar(self._view)
             self._var.set("")
             self._var.trace("w",self._searchStringUpdated)
 
-            self._entry = tk.Entry(self._view,textvariable=self._var)
+            self._entry = tk.Entry(self._view,textvariable=self._var,width=30,font=tFont)
             self._entry.pack(side=tk.LEFT,padx=(4,2))
             self._entry.bind("<Return>",self._selectNextResultButton) # Enter key
             self._entry.bind("<Next>",self._selectNextResultButton) # Page down
@@ -108,22 +111,22 @@ class Search:
 
             self._entry.focus_set()
 
-            self._label = tk.Label(self._view,text=self.NO_RESULT_STRING,width=10,anchor=tk.W)
+            self._label = tk.Label(self._view,text=self.NO_RESULT_STRING,width=10,anchor=tk.W,font=tFont)
             self._label.pack(side=tk.LEFT,anchor=tk.E)
 
             self._caseVar = tk.StringVar(self._view)
             self._caseVar.trace("w",self._searchStringUpdated)
-            caseButton = tk.Checkbutton(self._view,text="Aa",variable=self._caseVar,cursor="arrow",onvalue=self.STRING_FALSE,offvalue=self.STRING_TRUE)
+            caseButton = tk.Checkbutton(self._view,text="Aa",variable=self._caseVar,cursor="arrow",onvalue=self.STRING_FALSE,offvalue=self.STRING_TRUE,font=tFont)
             caseButton.pack(side=tk.LEFT)
             caseButton.deselect()
 
             self._regexVar = tk.StringVar(self._view)
             self._regexVar.trace("w",self._searchStringUpdated)
-            regexButton = tk.Checkbutton(self._view,text=".*",variable=self._regexVar,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)
+            regexButton = tk.Checkbutton(self._view,text=".*",variable=self._regexVar,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE,font=tFont)
             regexButton.pack(side=tk.LEFT)
             regexButton.deselect()
 
-            closeButton = tk.Button(self._view,text="X",command=self.close,cursor="arrow",relief=tk.FLAT)
+            closeButton = tk.Button(self._view,text="X",command=self.close,cursor="arrow",relief=tk.FLAT,font=tFont)
             closeButton.pack(side=tk.LEFT)
 
             # Bind escape to close view
