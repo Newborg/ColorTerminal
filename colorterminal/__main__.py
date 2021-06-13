@@ -356,29 +356,29 @@ guiWorkerObj.startWorker()
 
 # BULK DATA LOAD FOR DEBUG
 
-# _logFile = r"_testing\log_example_small.txt"
+_logFile = r"testing\log_example_small.txt"
 
-# from customTypes import SerialLine
+from customTypes import SerialLine
 
-# def addDataToProcessQueue(*args):
-#     with open(_logFile,"r") as file:
-#         lines = file.readlines()
+def addDataToProcessQueue(*args):
+    with open(_logFile,"r") as file:
+        lines = file.readlines()
 
-#     print("Debug, lines loaded: " + str(len(lines)))
+    print("Debug, lines loaded: " + str(len(lines)))
 
-#     linesToAdd = 3500
+    linesToAdd = 500
 
-#     loops = int(linesToAdd / len(lines))
+    loops = int(linesToAdd / len(lines))
 
-#     for _ in range(loops):
-#         for line in lines:
-#             timestamp = datetime.datetime.now()
-#             inLine = SerialLine(line,timestamp)
-#             processWorkerObj.processQueue.put(inLine)
+    for _ in range(loops):
+        for line in lines:
+            timestamp = datetime.datetime.now()
+            inLine = SerialLine(line,timestamp)
+            processWorkerObj.processQueue.put(inLine)
 
-#     print("Debug, lines added to view: " + str(loops*len(lines)))
+    print("Debug, lines added to view: " + str(loops*len(lines)))
 
-# mainViewObj.root.bind('<Control-n>', addDataToProcessQueue)
+mainViewObj.root.bind('<Control-n>', addDataToProcessQueue)
 
 
 traceLog(LogLevel.INFO,"Main loop started")

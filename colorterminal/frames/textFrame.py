@@ -66,7 +66,7 @@ class TextFrame:
 
         self._textFrame.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
 
-        self._search = search.Search(self._settings)
+        self._search = search.Search(self._settings, yscrollbar.cget("width"))
         self._search.linkTextArea(self.textArea)
         self._root.bind('<Control-f>', self._search.show)
 
