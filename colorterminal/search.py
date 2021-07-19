@@ -8,7 +8,8 @@ import settings as Sets
 
 class Search:
 
-    def __init__(self, settings, scrollbarWidth):
+    def __init__(self, root, settings, scrollbarWidth):
+        self._root = root
         self._settings = settings
         self._scrollbarWidth = int(scrollbarWidth)
         self._textField = None
@@ -49,7 +50,8 @@ class Search:
 
             self._entry.unbind("<Escape>")
             self._textField.unbind("<Escape>")
-            self._textField.unbind("<Configure>")
+            # self._textField.unbind("<Configure>")
+            self._root.unbind("<Configure>")
 
             try:
                 self._view.destroy()
@@ -84,16 +86,20 @@ class Search:
 
             self._showing = True
 
+            # Result markers
             # self._resultMarkerFrame = tk.Frame(self._textField,width=self._resultMarkerWidthPx,bg=self._settings.get(Sets.TEXTAREA_BACKGROUND_COLOR))
             self._resultMarkerFrame = tk.Frame(self._textField, width=self._resultMarkerWidthPx, bg="green")
             self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=(self._scrollbarWidth, 0))
             self._resultMarkerList = list()
 
-            self._textField.bind("<Configure>", self._onWindowSizeChange)
+            self._root.bind("<Configure>", self._onWindowSizeChange)
+            # self._textField.bind("<Configure>", self._onWindowSizeChange)
+            self._lastResultFramePadding = 0
             self._resultMarkerUpdateJob = None
 
+            # Input view
             self._view = tk.Frame(self._textField, highlightthickness=2, highlightcolor=self._settings.get(Sets.THEME_COLOR))
-            self._view.place(relx=1, x=-5, y=5, anchor=tk.NE)
+            self._view.place(relx=1, x=(-5-self._resultMarkerWidthPx), y=5, anchor=tk.NE)
 
             self._textField.tag_configure(self.TAG_SEARCH_SELECT_BG,
                                           background=self._settings.get(Sets.SEARCH_SELECTED_LINE_COLOR),
@@ -428,6 +434,7 @@ class Search:
     def _onWindowSizeChange(self, event):
         if self._resultMarkerUpdateJob:
             self._textField.after_cancel(self._resultMarkerUpdateJob)
+            print("**** Cancel update job")
         self._resultMarkerUpdateJob = self._textField.after(1000, self._updateResultMarkersOnResize)
 
     def _updateResultMarkersOnResize(self):
@@ -436,59 +443,66 @@ class Search:
         self._drawResultMarkers()
 
     def _removeResultMarkers(self):
-        for label in self._resultMarkerList:
-            label.destroy()
-        self._resultMarkerList.clear()
-        self._resultMarkerVisible = False
+        if not self._resultMarkerUpdateJob:
+            for label in self._resultMarkerList:
+                label.destroy()
+            self._resultMarkerList.clear()
+            self._resultMarkerVisible = False
 
-        print("Remove result markers")
+            print("Remove result markers")
 
     def _drawResultMarkers(self):
+        
+        # TODO Problem. Not able to resize window as we redraw a lot
 
         if self._showing:
-            if len(self._results) < self._resultMarkerLimit:
 
-                print("Redraw result markers")
+            # If windows resize is ongoing we should not try to update result markers, as it will block the resize.
+            # TODO not a good solution :( Update <Configure> called way too often when bound to root
+            if not self._resultMarkerUpdateJob:
+                if len(self._results) < self._resultMarkerLimit:
 
-                # Add result label to scrollbar
-                # Get total number of lines
-                lastline = int(self._textField.index("end-2c").split(".")[0])
+                    print("Redraw result markers")
 
-                resultMarkerFrameHeight = self._resultMarkerFrame.winfo_height()
+                    # Add result label to scrollbar
+                    # Get total number of lines
+                    lastline = int(self._textField.index("end-2c").split(".")[0])
 
-                self._repackResultMarkerFrame()
+                    resultMarkerFrameHeight = self._resultMarkerFrame.winfo_height()
 
-                # markerColor = util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_MATCH_COLOR), Sets.SELECTED_LINE_DARKEN_COLOR)
-                markerColor = self._settings.get(Sets.SEARCH_MATCH_COLOR)
+                    self._repackResultMarkerFrame()
 
-                # markerYOffset = self._resultMarkerHighPx/2 # Not used for now.
-                markerYOffset = 0
-                # print("Line offset: " + str(self._lineNumberDeleteOffset))
+                    # markerColor = util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_MATCH_COLOR), Sets.SELECTED_LINE_DARKEN_COLOR)
+                    markerColor = self._settings.get(Sets.SEARCH_MATCH_COLOR)
 
-                # resultMarker = tk.Label(self._resultMarkerFrame, bg="red")
-                # resultMarker.place(relx=1, rely=0, x=2, y=markerYOffset, width=self._resultMarkerWidthPx, height=self._resultMarkerHighPx, anchor=tk.SE)
-                # print("Marker y pos: " + str(resultMarker.winfo_y()))
+                    # markerYOffset = self._resultMarkerHighPx/2 # Not used for now.
+                    markerYOffset = 0
+                    # print("Line offset: " + str(self._lineNumberDeleteOffset))
 
-                #     width = widget.winfo_width()
-                #     height = widget.winfo_height()
-                #     posx = widget.winfo_x()
-                #     posy = widget.winfo_y()
+                    # resultMarker = tk.Label(self._resultMarkerFrame, bg="red")
+                    # resultMarker.place(relx=1, rely=0, x=2, y=markerYOffset, width=self._resultMarkerWidthPx, height=self._resultMarkerHighPx, anchor=tk.SE)
+                    # print("Marker y pos: " + str(resultMarker.winfo_y()))
 
-                minimumRatio = (self._resultMarkerHighPx-markerYOffset)/resultMarkerFrameHeight
+                    #     width = widget.winfo_width()
+                    #     height = widget.winfo_height()
+                    #     posx = widget.winfo_x()
+                    #     posy = widget.winfo_y()
 
-                for result in self._results:
+                    minimumRatio = (self._resultMarkerHighPx-markerYOffset)/resultMarkerFrameHeight
 
-                    resultMarker = tk.Label(self._resultMarkerFrame, bg=markerColor)
+                    for result in self._results:
 
-                    location = (result.originalLineNumber - self._lineNumberDeleteOffset)/lastline
-                    if location < minimumRatio:
-                        location = minimumRatio
+                        resultMarker = tk.Label(self._resultMarkerFrame, bg=markerColor)
 
-                    resultMarker.place(relx=1, rely=location, x=0, y=markerYOffset, width=self._resultMarkerWidthPx,
-                                       height=self._resultMarkerHighPx, anchor=tk.SE)
-                    self._resultMarkerList.append(resultMarker)
+                        location = (result.originalLineNumber - self._lineNumberDeleteOffset)/lastline
+                        if location < minimumRatio:
+                            location = minimumRatio
 
-                    self._resultMarkerVisible = True
+                        resultMarker.place(relx=1, rely=location, x=0, y=markerYOffset, width=self._resultMarkerWidthPx,
+                                        height=self._resultMarkerHighPx, anchor=tk.SE)
+                        self._resultMarkerList.append(resultMarker)
+
+                        self._resultMarkerVisible = True
 
     def _repackResultMarkerFrame(self):
 
@@ -507,9 +521,15 @@ class Search:
             sliderRealSizePx = round((visibleLines/lastline) * resultMarkerFrameHeight)
             print("Slider real size: " + str(sliderRealSizePx))
 
+            
             if sliderRealSizePx < self._scrollbarWidth:
                 resultFramePadding = round((self._scrollbarWidth - sliderRealSizePx)/2) - 1  # TODO The 1 could be adjusted later maybe?
             else:
                 resultFramePadding = 0
 
-            self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=((self._scrollbarWidth+int(resultFramePadding)), resultFramePadding))
+            if self._lastResultFramePadding != resultFramePadding:
+                self._lastResultFramePadding = resultFramePadding  
+
+                self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=((self._scrollbarWidth+int(resultFramePadding)), resultFramePadding))
+
+                print("Repack result marker frame")
