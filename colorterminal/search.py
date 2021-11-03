@@ -92,11 +92,11 @@ class Search:
             self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=(self._scrollbarWidth, 0))
             self._resultMarkerList = list()
 
-            self._root.bind("<Configure>", self._onWindowSizeChange)
-            # self._textField.bind("<Configure>", self._onWindowSizeChange)
+            self._root.bind("<Configure>", self._onWindowSizeChange) # Called very often
+            # self._textField.bind("<Configure>", self._onWindowSizeChange) # Not able to move window with this
             self._lastResultFramePadding = 0
             self._resultMarkerUpdateJob = None
-
+            
             # Input view
             self._view = tk.Frame(self._textField, highlightthickness=2, highlightcolor=self._settings.get(Sets.THEME_COLOR))
             self._view.place(relx=1, x=(-5-self._resultMarkerWidthPx), y=5, anchor=tk.NE)
@@ -432,6 +432,8 @@ class Search:
     # Result Markers
 
     def _onWindowSizeChange(self, event):
+
+        print("**** Window Size Change")
         if self._resultMarkerUpdateJob:
             self._textField.after_cancel(self._resultMarkerUpdateJob)
             print("**** Cancel update job")
@@ -458,7 +460,7 @@ class Search:
         if self._showing:
 
             # If windows resize is ongoing we should not try to update result markers, as it will block the resize.
-            # TODO not a good solution :( Update <Configure> called way too often when bound to root
+            # TODO not a good solution :( Update <Configure> called way too often when bound to root. IF not bound to root, it is not possible to move the window 
             if not self._resultMarkerUpdateJob:
                 if len(self._results) < self._resultMarkerLimit:
 
@@ -497,6 +499,11 @@ class Search:
                         location = (result.originalLineNumber - self._lineNumberDeleteOffset)/lastline
                         if location < minimumRatio:
                             location = minimumRatio
+
+                        # If window has been resized during draw, cancel draw.
+                        if self._resultMarkerUpdateJob:
+                            print("Break draw ****") # Is this needed?
+                            break
 
                         resultMarker.place(relx=1, rely=location, x=0, y=markerYOffset, width=self._resultMarkerWidthPx,
                                         height=self._resultMarkerHighPx, anchor=tk.SE)
