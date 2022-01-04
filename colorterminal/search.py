@@ -1,14 +1,16 @@
 import tkinter as tk
+from tkinter.font import Font
 import time
 import util
 
 import settings as Sets
 
+
 class Search:
 
-    def __init__(self,settings):
+    def __init__(self, settings):
         self._settings = settings
-        self._textField = None
+        self._textField: tk.Text = None
         self._guiWorker = None
         self._showing = False
 
@@ -16,21 +18,26 @@ class Search:
 
         self._results = list()
 
-        self._selectedResultIndex = -1
+        self._selectedResultListIndex = -1
         self._lineNumberDeleteOffset = 0
 
+        # The index in the result list of the first search result found during the search job
+        self._searchJobFirstResultListIndex = 0
+
+        self._searchJobResultSelected = False
         self._bottomLinesSearched = False
-        self._searchStartIndex = 0
+
+        self._searchSelectTextIndexRange = None
 
         self._searchHasFocus = False
 
-    def linkTextArea(self,textArea):
+    def linkTextArea(self, textArea):
         self._textField = textArea
 
-    def linkWorkers(self,workers):
+    def linkWorkers(self, workers):
         self._guiWorker = workers.guiWorker
 
-    def close(self,*event):
+    def close(self, *event):
 
         if self._showing:
 
@@ -39,7 +46,6 @@ class Search:
             self._textField.tag_delete(self.TAG_SEARCH_SELECT_BG)
 
             self._focusOut()
-
 
             self._entry.unbind("<Escape>")
             self._textField.unbind("<Escape>")
@@ -60,85 +66,102 @@ class Search:
     NO_RESULT_STRING = "No result"
 
     class Result:
-        def __init__(self,line,startColumn,length):
+        def __init__(self, line, startColumn, length):
             self.originalLineNumber = line
             self.startColumn = startColumn
             self.length = length
 
-        def getStartAndEndIndex(self,deletedLines):
+        def getStartAndEndIndex(self, deletedLines):
             pos = str(self.originalLineNumber - deletedLines) + "." + str(self.startColumn)
             endPos = pos + "+" + str(self.length) + "c"
-            return (pos,endPos)
+            return (pos, endPos)
 
-
-    def show(self,*args):
-
+    def show(self, *args):
+        
         if not self._showing:
 
             self._showing = True
 
-            self._view = tk.Frame(self._textField,highlightthickness=2,highlightcolor=self._settings.get(Sets.THEME_COLOR))
-            self._view.place(relx=1,x=-5,y=5,anchor=tk.NE)
+            self._view = tk.Frame(self._textField, highlightthickness=2, highlightcolor=self._settings.get(Sets.THEME_COLOR))
+            self._view.place(relx=1, x=-5, y=5, anchor=tk.NE)
 
-            self._textField.tag_configure(self.TAG_SEARCH_SELECT_BG, \
-                                            background=self._settings.get(Sets.SEARCH_SELECTED_LINE_COLOR), \
-                                            selectbackground=util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_SELECTED_LINE_COLOR),Sets.SELECTED_LINE_DARKEN_COLOR))
-            self._textField.tag_configure(self.TAG_SEARCH, \
-                                            background=self._settings.get(Sets.SEARCH_MATCH_COLOR), \
-                                            selectbackground=util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_MATCH_COLOR),Sets.SELECTED_LINE_DARKEN_COLOR))
-            self._textField.tag_configure(self.TAG_SEARCH_SELECT, \
-                                            background=self._settings.get(Sets.SEARCH_SELECTED_COLOR),\
-                                            selectbackground=util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_SELECTED_COLOR),Sets.SELECTED_LINE_DARKEN_COLOR))
+            self._textField.tag_configure(self.TAG_SEARCH_SELECT_BG,
+                                          background=self._settings.get(Sets.SEARCH_SELECTED_LINE_COLOR),
+                                          selectbackground=util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_SELECTED_LINE_COLOR), Sets.SELECTED_LINE_DARKEN_COLOR))
+            self._textField.tag_configure(self.TAG_SEARCH,
+                                          background=self._settings.get(Sets.SEARCH_MATCH_COLOR),
+                                          selectbackground=util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_MATCH_COLOR), Sets.SELECTED_LINE_DARKEN_COLOR))
+            self._textField.tag_configure(self.TAG_SEARCH_SELECT,
+                                          background=self._settings.get(Sets.SEARCH_SELECTED_COLOR),
+                                          selectbackground=util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_SELECTED_COLOR), Sets.SELECTED_LINE_DARKEN_COLOR))
 
             # Due to focusIn, focusOut and opening and closing of search view, tags are sometimes not created in the right order.
-            self._textField.tag_raise(self.TAG_SEARCH_SELECT,aboveThis=self.TAG_SEARCH)
+            self._textField.tag_raise(self.TAG_SEARCH_SELECT, aboveThis=self.TAG_SEARCH)
+
+            tFont = Font(size=self._settings.get(Sets.TEXTAREA_FONT_SIZE))
 
             self._var = tk.StringVar(self._view)
-            self._var.set("")
-            self._var.trace("w",self._searchStringUpdated)
+            
+            self._entry = tk.Entry(self._view, textvariable=self._var, width=30, font=tFont)
+            self._entry.pack(side=tk.LEFT, padx=(4, 2))
+            self._entry.bind("<Return>", self._selectNextResultButton)  # Enter key
+            self._entry.bind("<Next>", self._selectNextResultButton)  # Page down
+            self._entry.bind("<Prior>", self._selectPriorResultButton)  # Page up
 
-            self._entry = tk.Entry(self._view,textvariable=self._var)
-            self._entry.pack(side=tk.LEFT,padx=(4,2))
-            self._entry.bind("<Return>",self._selectNextResultButton) # Enter key
-            self._entry.bind("<Next>",self._selectNextResultButton) # Page down
-            self._entry.bind("<Prior>",self._selectPriorResultButton) # Page up
-
-            self._entry.bind("<FocusIn>",self._focusIn)
-            self._entry.bind("<FocusOut>",self._focusOut)
+            self._entry.bind("<FocusIn>", self._focusIn)
+            self._entry.bind("<FocusOut>", self._focusOut)
 
             self._entry.focus_set()
+            self._var.trace("w", self._searchStringUpdated)
 
-            self._label = tk.Label(self._view,text=self.NO_RESULT_STRING,width=10,anchor=tk.W)
-            self._label.pack(side=tk.LEFT,anchor=tk.E)
+            self._label = tk.Label(self._view, text=self.NO_RESULT_STRING, width=10, anchor=tk.W, font=tFont)
+            self._label.pack(side=tk.LEFT, anchor=tk.E)
 
-            self._caseVar = tk.StringVar(self._view)
-            self._caseVar.trace("w",self._searchStringUpdated)
-            caseButton = tk.Checkbutton(self._view,text="Aa",variable=self._caseVar,cursor="arrow",onvalue=self.STRING_FALSE,offvalue=self.STRING_TRUE)
+            self._caseVar = tk.StringVar(self._view)            
+            caseButton = tk.Checkbutton(self._view, text="Aa", variable=self._caseVar, cursor="arrow",
+                                        onvalue=self.STRING_FALSE, offvalue=self.STRING_TRUE, font=tFont)
             caseButton.pack(side=tk.LEFT)
             caseButton.deselect()
+            self._caseVar.trace("w", self._searchStringUpdated)
 
-            self._regexVar = tk.StringVar(self._view)
-            self._regexVar.trace("w",self._searchStringUpdated)
-            regexButton = tk.Checkbutton(self._view,text=".*",variable=self._regexVar,cursor="arrow",onvalue=self.STRING_TRUE,offvalue=self.STRING_FALSE)
+            self._regexVar = tk.StringVar(self._view)            
+            regexButton = tk.Checkbutton(self._view, text=".*", variable=self._regexVar, cursor="arrow",
+                                         onvalue=self.STRING_TRUE, offvalue=self.STRING_FALSE, font=tFont)
             regexButton.pack(side=tk.LEFT)
             regexButton.deselect()
+            self._regexVar.trace("w", self._searchStringUpdated)
 
-            closeButton = tk.Button(self._view,text="X",command=self.close,cursor="arrow",relief=tk.FLAT)
+            closeButton = tk.Button(self._view, text="X", command=self.close, cursor="arrow", relief=tk.FLAT, font=tFont)
             closeButton.pack(side=tk.LEFT)
 
             # Bind escape to close view
-            self._textField.bind("<Escape>",self.close)
-            self._entry.bind("<Escape>",self.close)
+            self._textField.bind("<Escape>", self.close)
+            self._entry.bind("<Escape>", self.close)
 
             # Init search settings
             self._nocase = self._caseVar.get() == self.STRING_TRUE
             self._regexp = self._regexVar.get() == self.STRING_TRUE
 
+            # Init search field
+            if self._textField.tag_ranges(tk.SEL):
+                self._var.set(self._textField.get(tk.SEL_FIRST, tk.SEL_LAST))
+            else:
+                self._var.set("")
+
+            self._entry.icursor(tk.END)
+
         else:
 
             self._entry.focus_set()
 
-    def searchLinesAdded(self,numberOfLinesAdded,numberOfLinesDeleted,lastLine):
+            # Copy select text to field
+            if self._textField.tag_ranges(tk.SEL):
+                self._var.set(self._textField.get(tk.SEL_FIRST, tk.SEL_LAST))
+
+            # Select all text
+            self._entry.select_range(0, tk.END)
+
+    def searchLinesAdded(self, numberOfLinesAdded, numberOfLinesDeleted, lastLine):
 
         if self._showing:
 
@@ -154,15 +177,15 @@ class Search:
                 searchStartIndex = str(lastLine - numberOfLinesAdded + 1) + ".0"
                 countVar = tk.StringVar()
                 while True:
-                    pos = self._textField.search(string,searchStartIndex,stopindex=tk.END,count=countVar,nocase=self._nocase,regexp=self._regexp)
+                    pos = self._textField.search(string, searchStartIndex, stopindex=tk.END, count=countVar, nocase=self._nocase, regexp=self._regexp)
                     if not pos:
                         break
                     else:
-                        posSplit = pos.split(".")
-                        newLine = int(posSplit[0]) + self._lineNumberDeleteOffset # Add number of deleted line to line number to match existing results in result list
+                        posSplit = pos.split(".")  # Add number of deleted line to line number to match existing results in result list
+                        newLine = int(posSplit[0]) + self._lineNumberDeleteOffset
                         column = int(posSplit[1])
 
-                        result = self.Result(newLine,column,int(countVar.get()))
+                        result = self.Result(newLine, column, int(countVar.get()))
                         self._results.append(result)
                         self._addTag(self.TAG_SEARCH, result)
 
@@ -181,36 +204,38 @@ class Search:
                         del self._results[0]
 
                     # Update index of the selected result
-                    self._selectedResultIndex = self._selectedResultIndex - resultsDeleted
+                    self._selectedResultListIndex = self._selectedResultListIndex - resultsDeleted
 
                     if self._results:
                         # If new selected result is no longer pointing to a valid result, selected first result in list (line with selected result has been deleted)
-                        if self._selectedResultIndex < 0 or self._selectedResultIndex >= len(self._results):
-                            self._selectedResultIndex = 0
+                        if self._selectedResultListIndex < 0 or self._selectedResultListIndex >= len(self._results):
+                            self._selectedResultListIndex = 0
 
                     else:
-                        self._selectedResultIndex = -1
+                        self._selectedResultListIndex = -1
 
                     self._updateSelectedResultTags()
 
             self._updateResultInfo()
 
-    def _focusIn(self,*args):
+    def _focusIn(self, *args):
         self._searchHasFocus = True
         # Remove cursor based text selection
-        self._textField.tag_remove("sel",1.0,tk.END)
+        self._textField.tag_remove(tk.SEL, 1.0, tk.END)
         # Show tag of selected result when search gets focus again
         self._updateSelectedResultTags()
 
-    def _focusOut(self,*args):
+    def _focusOut(self, *args):
         self._searchHasFocus = False
 
-        self._textField.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
-        self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
+        self._textField.tag_remove(self.TAG_SEARCH_SELECT, 1.0, tk.END)
+        self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG, 1.0, tk.END)
 
         self._enableGuiScrolling()
 
-    def _searchStringUpdated(self,*args):
+    def _searchStringUpdated(self, *args):
+
+        # print("Search string updated")
 
         if self._showing:
 
@@ -224,13 +249,15 @@ class Search:
                     if self._guiWorker:
                         self._guiWorker.startWorker()
 
-            self._textField.tag_remove(self.TAG_SEARCH_SELECT,1.0,tk.END)
-            self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,1.0,tk.END)
-            self._textField.tag_remove(self.TAG_SEARCH,1.0,tk.END)
+            self._textField.tag_remove(self.TAG_SEARCH_SELECT, 1.0, tk.END)
+            self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG, 1.0, tk.END)
+            self._textField.tag_remove(self.TAG_SEARCH, 1.0, tk.END)
 
-
-            # Start search at first visible line
-            self._searchStartIndex = self._textField.index("@0,0")
+            # Start search at selection or first visible line            
+            if self._textField.tag_ranges(tk.SEL):
+                self._searchJobStartTextIndex = self._textField.index(tk.SEL_FIRST)
+            else:
+                self._searchJobStartTextIndex = self._textField.index("@0,0")
 
             # Reset result lists
             self._results = list()
@@ -249,11 +276,11 @@ class Search:
                 if self._guiWorker:
                     self._guiWorker.stopWorker()
 
-                self._searchJob = self._textField.after(0,self._searchProcess,string,self._searchStartIndex)
+                self._searchJob = self._textField.after(0, self._searchProcess, string, self._searchJobStartTextIndex)
 
             self._updateResultInfo()
 
-    def _searchProcess(self,string,start):
+    def _searchProcess(self, string, startTextIndex):
 
         countVar = tk.StringVar()
         loopMax = 500
@@ -262,26 +289,27 @@ class Search:
         searchCompleted = False
         tempResults = list()
 
-        # If lines below start index has been search (first part of search) then set stopIndex to line above start index
+        # If all lines below initial start index (_searchJobStartTextIndex) has been searched (first part of search)
+        # then set stopIndex to line above _searchJobStartTextIndex to search all lines above _searchJobStartTextIndex.
         if not self._bottomLinesSearched:
-            stopIndex = tk.END
+            stopTextIndex = tk.END
         else:
-            stopIndex = self._searchStartIndex + "-1l"
+            stopTextIndex = self._searchJobStartTextIndex
 
         for _ in range(loopMax):
-            pos = self._textField.search(string,start,stopindex=stopIndex,count=countVar,nocase=self._nocase,regexp=self._regexp)
+            pos = self._textField.search(string, startTextIndex, stopindex=stopTextIndex, count=countVar, nocase=self._nocase, regexp=self._regexp)
             if not pos:
                 if not self._bottomLinesSearched:
                     self._bottomLinesSearched = True
                     loopStoppedAtBottom = True
-                    start = "1.0"
+                    startTextIndex = "1.0"
                 else:
                     searchCompleted = True
                 break
             else:
                 posSplit = pos.split(".")
-                tempResults.append(self.Result(int(posSplit[0]),int(posSplit[1]),int(countVar.get())))
-                start = pos + "+1c"
+                tempResults.append(self.Result(int(posSplit[0]), int(posSplit[1]), int(countVar.get())))
+                startTextIndex = pos + "+1c"
 
         for result in tempResults:
             self._addTag(self.TAG_SEARCH, result)
@@ -289,18 +317,25 @@ class Search:
         # Add temp results to result list and keep result list sorted by line number
         if (not self._bottomLinesSearched) or loopStoppedAtBottom:
             self._results.extend(tempResults)
-            self._selectedResultIndex = -1
         else:
             tempResultCount = len(tempResults)
-            self._results[self._selectedResultIndex:self._selectedResultIndex] = tempResults
-            self._selectedResultIndex = self._selectedResultIndex + tempResultCount - 1
+            self._results[self._searchJobFirstResultListIndex:self._searchJobFirstResultListIndex] = tempResults
+            self._searchJobFirstResultListIndex = self._searchJobFirstResultListIndex + tempResultCount
+            self._selectedResultListIndex = self._selectedResultListIndex + tempResultCount
 
-        self._selectNextResult()
+        if tempResults and not self._searchJobResultSelected:
+            self._selectedResultListIndex = self._searchJobFirstResultListIndex
+            self._updateSelectedResultTags()
+            self._searchJobResultSelected = True
 
         self._updateResultInfo()
 
         if searchCompleted:
             # self._searchTime = time.time()
+
+            # Reset search variables
+            self._searchJobFirstResultListIndex = 0
+            self._searchJobResultSelected = False
 
             if self._results:
                 # Disable scrolling of window if a result has been found. Otherwise we will quickly move past the selected result.
@@ -314,52 +349,49 @@ class Search:
             # print("Search time: " + str(self._searchTime-self._startTime))
 
         else:
-            self._searchJob = self._textField.after(1,self._searchProcess,string,start)
+            self._searchJob = self._textField.after(1, self._searchProcess, string, startTextIndex)
 
-    def _addTag(self,tag,searchResult:Result):
-        (pos,endPos) = searchResult.getStartAndEndIndex(self._lineNumberDeleteOffset)
+    def _addTag(self, tag, searchResult: Result):
+        (pos, endPos) = searchResult.getStartAndEndIndex(self._lineNumberDeleteOffset)
         self._textField.tag_add(tag, pos, endPos)
 
-    def _updateSelectedResultTags(self,*args):
+    def _updateSelectedResultTags(self, *args):
 
         if self._searchHasFocus:
-            if self._selectedResultIndex > -1 and self._selectedResultIndex < len(self._results):
+            if self._selectedResultListIndex > -1 and self._selectedResultListIndex < len(self._results):
 
                 # Selected result tag
                 selected = self._textField.tag_ranges(self.TAG_SEARCH_SELECT)
                 if selected:
-                    self._textField.tag_remove(self.TAG_SEARCH_SELECT,selected[0],selected[1])
-                self._addTag(self.TAG_SEARCH_SELECT,self._results[self._selectedResultIndex])
+                    self._textField.tag_remove(self.TAG_SEARCH_SELECT, selected[0], selected[1])
+                self._addTag(self.TAG_SEARCH_SELECT, self._results[self._selectedResultListIndex])
 
                 # Background of selected line
                 selectedBg = self._textField.tag_ranges(self.TAG_SEARCH_SELECT_BG)
                 if selectedBg:
-                    self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG,selectedBg[0],selectedBg[1])
-                selectLine = self._results[self._selectedResultIndex].originalLineNumber - self._lineNumberDeleteOffset
+                    self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG, selectedBg[0], selectedBg[1])
+                selectLine = self._results[self._selectedResultListIndex].originalLineNumber - self._lineNumberDeleteOffset
                 self._textField.tag_add(self.TAG_SEARCH_SELECT_BG, str(selectLine) + ".0", str(selectLine) + ".0+1l")
 
                 # Focus window on selected result
-                self._textField.see(self._results[self._selectedResultIndex].getStartAndEndIndex(self._lineNumberDeleteOffset)[0])
+                self._textField.see(self._results[self._selectedResultListIndex].getStartAndEndIndex(self._lineNumberDeleteOffset)[0])
 
-
-    def _selectPriorResultButton(self,*args):
+    def _selectPriorResultButton(self, *args):
         self._disableGuiScrolling()
-        # self._guiWorker.disableScrolling()
         self._selectPriorResult()
 
-    def _selectNextResultButton(self,*args):
+    def _selectNextResultButton(self, *args):
         self._disableGuiScrolling()
-        # self._guiWorker.disableScrolling()
         self._selectNextResult()
 
-    def _selectPriorResult(self,*args):
+    def _selectPriorResult(self, *args):
         self._decrementResultIndex()
 
         self._updateSelectedResultTags()
 
         self._updateResultInfo()
 
-    def _selectNextResult(self,*args):
+    def _selectNextResult(self, *args):
         self._incrementResultIndex()
 
         self._updateSelectedResultTags()
@@ -368,21 +400,21 @@ class Search:
 
     def _decrementResultIndex(self):
         if self._results:
-            self._selectedResultIndex -= 1
-            if self._selectedResultIndex < 0:
-                self._selectedResultIndex = len(self._results) - 1
+            self._selectedResultListIndex -= 1
+            if self._selectedResultListIndex < 0:
+                self._selectedResultListIndex = len(self._results) - 1
 
     def _incrementResultIndex(self):
         if self._results:
-            self._selectedResultIndex += 1
-            if self._selectedResultIndex >= len(self._results):
-                self._selectedResultIndex = 0
+            self._selectedResultListIndex += 1
+            if self._selectedResultListIndex >= len(self._results):
+                self._selectedResultListIndex = 0
 
     def _updateResultInfo(self):
         if not self._results:
             self._label.config(text=self.NO_RESULT_STRING)
         else:
-            self._label.config(text=str(self._selectedResultIndex+1) + " of " + str(len(self._results)))
+            self._label.config(text=str(self._selectedResultListIndex+1) + " of " + str(len(self._results)))
 
     def _enableGuiScrolling(self):
         if self._guiWorker:
