@@ -5,6 +5,9 @@ import util
 
 import settings as Sets
 
+import win32api
+#import win32.lib.win32con as win32con
+
 
 class Search:
 
@@ -53,6 +56,10 @@ class Search:
             # self._textField.unbind("<Configure>")
             self._root.unbind("<Configure>")
 
+            # self._root.unbind("<Button-1>")
+            # self._root.unbind("<ButtonRelease-1>")
+            # self._root.unbind("<B1-Motion>")
+
             try:
                 self._view.destroy()
                 self._resultMarkerFrame.destroy()
@@ -92,8 +99,16 @@ class Search:
             self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=(self._scrollbarWidth, 0))
             self._resultMarkerList = list()
 
-            self._root.bind("<Configure>", self._onWindowSizeChange) # Called very often
+            self._root.bind("<Configure>", self._onWindowSizeChange) # Called very often (no it is bund to too many things! :O)
             # self._textField.bind("<Configure>", self._onWindowSizeChange) # Not able to move window with this
+            # self._textField.bind_all("<Configure>", self._onWindowSizeChange) # Same as bind to root
+
+            # self._root.bind("<Button-1>", self._onButtonPressed) # Does not catch button press on the window frame :(
+            # self._root.bind("<ButtonRelease-1>", self._onButtonReleased) # Does not catch button press on the window frame :(
+            # self._root.bind("<B1-Motion>", self._onButtonDownMove) # Does not catch button press on the window frame :(
+
+            ## self._root.protocol("WM_EXITSIZEMOVE", self._onButtonReleased) # Not working it seems.
+
             self._lastResultFramePadding = 0
             self._resultMarkerUpdateJob = None
             
@@ -432,17 +447,43 @@ class Search:
     # Result Markers
 
     def _onWindowSizeChange(self, event):
+        
+        
+        if isinstance(event.widget,tk.Tk):
+            print("**** Window Size Change")
+            print(event)
+            if self._resultMarkerUpdateJob:
+                self._textField.after_cancel(self._resultMarkerUpdateJob)
+                print("**** Cancel update job")
+            self._resultMarkerUpdateJob = self._textField.after(1000, self._updateResultMarkersOnResize)
+        # self._resultMarkerUpdateJob = self._textField.after_idle(self._updateResultMarkersOnResize) # not the solution
 
-        print("**** Window Size Change")
-        if self._resultMarkerUpdateJob:
-            self._textField.after_cancel(self._resultMarkerUpdateJob)
-            print("**** Cancel update job")
-        self._resultMarkerUpdateJob = self._textField.after(1000, self._updateResultMarkersOnResize)
+    # def _onButtonPressed(self, event):
+    #     print("## Button down ##")
+    #     print(win32api.GetKeyState(0x01))
+    #     print(win32api.GetAsyncKeyState(0x01))
+    #     print(win32api.GetAsyncKeyState(0x02))
+        
+
+    # def _onButtonReleased(self, event):
+    #     print("## Button released ##")
+    #     print(win32api.GetKeyState(0x01))
+    #     print(win32api.GetAsyncKeyState(0x01))
+    #     print(win32api.GetAsyncKeyState(0x02))
+
+    # def _onButtonDownMove(self, event):
+    #     print("## Button dowm move ##")
 
     def _updateResultMarkersOnResize(self):
         self._resultMarkerUpdateJob = None
-        self._removeResultMarkers()
-        self._drawResultMarkers()
+        
+        # check if left mouse button is still pressed (during a resize or move)
+        if (win32api.GetAsyncKeyState(0x01) == 0):            
+            self._removeResultMarkers()
+            self._drawResultMarkers()
+        else:
+            self._resultMarkerUpdateJob = self._textField.after(1000, self._updateResultMarkersOnResize)
+
 
     def _removeResultMarkers(self):
         if not self._resultMarkerUpdateJob:
@@ -540,3 +581,21 @@ class Search:
                 self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=((self._scrollbarWidth+int(resultFramePadding)), resultFramePadding))
 
                 print("Repack result marker frame")
+
+
+
+
+#                 Traceback (most recent call last):
+#   File "C:\Users\knn\AppData\Local\Programs\Python\Python39\lib\tkinter\__init__.py", line 1892, in __call__
+#     return self.func(*args)
+#   File "C:\Users\knn\AppData\Local\Programs\Python\Python39\lib\tkinter\__init__.py", line 814, in callit
+#     func(*args)
+#   File "C:\tools\ColorTerminal/colorterminal\search.py", line 483, in _updateResultMarkersOnResize
+#     self._drawResultMarkers()
+#   File "C:\tools\ColorTerminal/colorterminal\search.py", line 516, in _drawResultMarkers
+#     self._repackResultMarkerFrame()
+#   File "C:\tools\ColorTerminal/colorterminal\search.py", line 581, in _repackResultMarkerFrame
+#     self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=((self._scrollbarWidth+int(resultFramePadding)), resultFramePadding))
+#   File "C:\Users\knn\AppData\Local\Programs\Python\Python39\lib\tkinter\__init__.py", line 2396, in pack_configure
+#     self.tk.call(
+# _tkinter.TclError: bad 2nd pad value "-1": must be positive screen distance
