@@ -160,12 +160,12 @@ class Search:
             caseButton.deselect()
             self._caseVar.trace("w", self._searchStringUpdated)
 
-            self._regexVar = tk.StringVar(self._view)
-            self._regexVar.trace("w", self._searchStringUpdated)
+            self._regexVar = tk.StringVar(self._view)            
             regexButton = tk.Checkbutton(self._view, text=".*", variable=self._regexVar, cursor="arrow",
                                          onvalue=self.STRING_TRUE, offvalue=self.STRING_FALSE, font=tFont)
             regexButton.pack(side=tk.LEFT)
             regexButton.deselect()
+            self._regexVar.trace("w", self._searchStringUpdated)
 
             closeButton = tk.Button(self._view, text="X", command=self.close, cursor="arrow", relief=tk.FLAT, font=tFont)
             closeButton.pack(side=tk.LEFT)
