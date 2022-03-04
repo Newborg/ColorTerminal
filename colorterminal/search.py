@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter.font import Font
 import time
+from tracemalloc import start
 import util
 
 import settings as Sets
@@ -8,6 +9,15 @@ import settings as Sets
 import win32api
 #import win32.lib.win32con as win32con
 
+
+# We still have performance problems regarding result markers
+# Live update together with many markers is a problem.
+# Maybe draw and rectangles is faster?
+# Just resizing the window is slow, point to a problem with many labels (+150)
+
+# We will try to go with lines in a canvas for the next iteration.
+# For this to work, we will have to resize and rescale the canvas ourselves when the window is resized. It will look weird on resize, but that should not be a big problem.
+# We should be able to set the delay between resize and redraw to a much lower number when, due to the mouse button check.
 
 class Search:
 
@@ -93,13 +103,21 @@ class Search:
 
             self._showing = True
 
-            # Result markers
+            # # Result markers
             # self._resultMarkerFrame = tk.Frame(self._textField,width=self._resultMarkerWidthPx,bg=self._settings.get(Sets.TEXTAREA_BACKGROUND_COLOR))
-            self._resultMarkerFrame = tk.Frame(self._textField, width=self._resultMarkerWidthPx, bg="green")
-            self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=(self._scrollbarWidth, 0))
+            # self._resultMarkerFrame = tk.Frame(self._textField, width=self._resultMarkerWidthPx, bg="green")
+            # self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=(self._scrollbarWidth, 0))
             self._resultMarkerList = list()
 
-            self._root.bind("<Configure>", self._onWindowSizeChange)  # Called very often as it binds to all widgets
+            # self._textField.after_idle(self.testingManyLabels)
+
+            self._resultMarkerCanvas = tk.Canvas(self._textField, width=self._resultMarkerWidthPx, bg="green", highlightthickness=0)
+            self._resultMarkerCanvas.pack(side=tk.RIGHT, fill=tk.Y, pady=(self._scrollbarWidth, 0))
+
+            self._textField.after_idle(self.testingManyRect)
+            
+
+            # self._root.bind("<Configure>", self._onWindowSizeChange)  # Called very often as it binds to all widgets
 
             self._lastResultFramePadding = 0
             self._resultMarkerUpdateJob = None
@@ -168,6 +186,8 @@ class Search:
             # Init search field
             self._textField.after_idle(self._initiateSearchField)  # As not all elements are ready for search as this point, after_idle is used.
 
+            
+
         else:
 
             self._entry.focus_set()
@@ -178,6 +198,74 @@ class Search:
 
             # Select all text
             self._entry.select_range(0, tk.END)
+
+    def testingManyLabels(self):
+
+        number = 200
+
+        startTime = time.time() 
+
+        self._labelList = list()
+
+        for i in range(number):
+            resultMarker = tk.Label(self._resultMarkerFrame, bg="red")
+
+            resultMarker.place(relx=1, rely=i/number, x=0, y=0, width=self._resultMarkerWidthPx,
+                               height=self._resultMarkerHighPx, anchor=tk.SE)
+                            
+            self._labelList.append(resultMarker)
+
+        endTime = time.time() 
+
+        drawTime = endTime - startTime
+
+        print(f"Drawtime: {drawTime}")
+
+        self._textField.after(2000,self.deleteManyLabels)
+
+
+        
+    def deleteManyLabels(self):
+        # Delete all labels
+
+        startTime = time.time() 
+        # for label in self._labelList:
+        #     label.destroy()
+
+        self._resultMarkerFrame.destroy() ## Also slow
+
+        endTime = time.time() 
+
+        deleteTime = endTime - startTime
+        print(f"Delete time: {deleteTime}")
+    
+    def testingManyRect(self):
+            
+        number = 200
+
+        startTime = time.time() 
+
+        for i in range(number):
+            # self._resultMarkerCanvas.create_rectangle(0, i, 4, 8, outline="blue", fill="red", width=2)
+            self._resultMarkerCanvas.create_line(0, i*3, 10, i*3, fill="red", width=4)
+
+        endTime = time.time() 
+
+        drawTimeMaybe = endTime - startTime
+
+        print(f"Drawtime: {drawTimeMaybe}")
+
+        self._textField.after(2000,self.deleteManyLines)
+
+    def deleteManyLines(self):
+        startTime = time.time() 
+        
+        self._resultMarkerCanvas.delete("all")
+
+        endTime = time.time() 
+
+        deleteTime = endTime - startTime
+        print(f"Delete time: {deleteTime}")
 
     def _initiateSearchField(self):
         if self._textField.tag_ranges(tk.SEL):

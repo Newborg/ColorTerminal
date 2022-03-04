@@ -1,2 +1,2 @@
 pyserial==3.4
-
+win32api (pywin32 303)
