@@ -35,7 +35,7 @@ class Search:
 
         self._searchJobResultSelected = False
         self._bottomLinesSearched = False
-
+        
         self._searchSelectTextIndexRange = None
 
         self._searchHasFocus = False
@@ -58,7 +58,12 @@ class Search:
 
             self._entry.unbind("<Escape>")
             self._textField.unbind("<Escape>")
+            # self._textField.unbind("<Configure>")
             self._root.unbind("<Configure>")
+
+            # self._root.unbind("<Button-1>")
+            # self._root.unbind("<ButtonRelease-1>")
+            # self._root.unbind("<B1-Motion>")
 
             try:
                 self._view.destroy()
@@ -99,11 +104,19 @@ class Search:
             self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=(self._scrollbarWidth, 0))
             self._resultMarkerList = list()
 
-            self._root.bind("<Configure>", self._onWindowSizeChange)  # Called very often as it binds to all widgets
+            self._root.bind("<Configure>", self._onWindowSizeChange) # Called very often (no it is bund to too many things! :O)
+            # self._textField.bind("<Configure>", self._onWindowSizeChange) # Not able to move window with this
+            # self._textField.bind_all("<Configure>", self._onWindowSizeChange) # Same as bind to root
+
+            # self._root.bind("<Button-1>", self._onButtonPressed) # Does not catch button press on the window frame :(
+            # self._root.bind("<ButtonRelease-1>", self._onButtonReleased) # Does not catch button press on the window frame :(
+            # self._root.bind("<B1-Motion>", self._onButtonDownMove) # Does not catch button press on the window frame :(
+
+            ## self._root.protocol("WM_EXITSIZEMOVE", self._onButtonReleased) # Not working it seems.
 
             self._lastResultFramePadding = 0
             self._resultMarkerUpdateJob = None
-
+            
             # Input view
             self._view = tk.Frame(self._textField, highlightthickness=2, highlightcolor=self._settings.get(Sets.THEME_COLOR))
             self._view.place(relx=1, x=(-5-self._resultMarkerWidthPx), y=5, anchor=tk.NE)
@@ -123,8 +136,8 @@ class Search:
 
             tFont = Font(size=self._settings.get(Sets.TEXTAREA_FONT_SIZE))
 
-            self._var = tk.StringVar(self._view)
-
+            self._var = tk.StringVar(self._view)            
+            
             self._entry = tk.Entry(self._view, textvariable=self._var, width=30, font=tFont)
             self._entry.pack(side=tk.LEFT, padx=(4, 2))
             self._entry.bind("<Return>", self._selectNextResultButton)  # Enter key
@@ -140,14 +153,14 @@ class Search:
             self._label = tk.Label(self._view, text=self.NO_RESULT_STRING, width=10, anchor=tk.W, font=tFont)
             self._label.pack(side=tk.LEFT, anchor=tk.E)
 
-            self._caseVar = tk.StringVar(self._view)
+            self._caseVar = tk.StringVar(self._view)            
             caseButton = tk.Checkbutton(self._view, text="Aa", variable=self._caseVar, cursor="arrow",
                                         onvalue=self.STRING_FALSE, offvalue=self.STRING_TRUE, font=tFont)
             caseButton.pack(side=tk.LEFT)
             caseButton.deselect()
             self._caseVar.trace("w", self._searchStringUpdated)
 
-            self._regexVar = tk.StringVar(self._view)
+            self._regexVar = tk.StringVar(self._view)            
             regexButton = tk.Checkbutton(self._view, text=".*", variable=self._regexVar, cursor="arrow",
                                          onvalue=self.STRING_TRUE, offvalue=self.STRING_FALSE, font=tFont)
             regexButton.pack(side=tk.LEFT)
@@ -166,7 +179,12 @@ class Search:
             self._regexp = self._regexVar.get() == self.STRING_TRUE
 
             # Init search field
-            self._textField.after_idle(self._initiateSearchField)  # As not all elements are ready for search as this point, after_idle is used.
+            if self._textField.tag_ranges(tk.SEL):
+                self._var.set(self._textField.get(tk.SEL_FIRST, tk.SEL_LAST))
+            else:
+                self._var.set("")
+
+            self._entry.icursor(tk.END)
 
         else:
 
@@ -178,14 +196,6 @@ class Search:
 
             # Select all text
             self._entry.select_range(0, tk.END)
-
-    def _initiateSearchField(self):
-        if self._textField.tag_ranges(tk.SEL):
-            self._var.set(self._textField.get(tk.SEL_FIRST, tk.SEL_LAST))
-        else:
-            self._var.set("")
-
-        self._entry.icursor(tk.END)
 
     def searchLinesAdded(self, numberOfLinesAdded, numberOfLinesDeleted, lastLine):
 
@@ -245,7 +255,7 @@ class Search:
 
                 # Update result markers (might be slow?)
                 if self._resultMarkerVisible:
-                    self._removeResultMarkers()  # Instead of removing, we might be able to just move the existing markers?
+                    self._removeResultMarkers()
                     self._drawResultMarkers()
                 elif len(self._results) < self._resultMarkerLimit:
                     self._drawResultMarkers()
@@ -286,9 +296,9 @@ class Search:
             self._textField.tag_remove(self.TAG_SEARCH, 1.0, tk.END)
 
             # Remove all result marker on scroll bar
-            self._removeResultMarkers()  # Why remove it here? Maybe the search job should do this?
+            self._removeResultMarkers()
 
-            # Start search at selection or first visible line
+            # Start search at selection or first visible line            
             if self._textField.tag_ranges(tk.SEL):
                 self._searchJobStartTextIndex = self._textField.index(tk.SEL_FIRST)
             else:
@@ -351,7 +361,7 @@ class Search:
 
         # Add temp results to result list and keep result list sorted by line number
         if (not self._bottomLinesSearched) or loopStoppedAtBottom:
-            self._results.extend(tempResults)
+            self._results.extend(tempResults)            
         else:
             tempResultCount = len(tempResults)
             self._results[self._searchJobFirstResultListIndex:self._searchJobFirstResultListIndex] = tempResults
@@ -414,11 +424,11 @@ class Search:
                 self._textField.see(self._results[self._selectedResultListIndex].getStartAndEndIndex(self._lineNumberDeleteOffset)[0])
 
     def _selectPriorResultButton(self, *args):
-        self._disableGuiScrolling()
+        self._disableGuiScrolling()        
         self._selectPriorResult()
 
     def _selectNextResultButton(self, *args):
-        self._disableGuiScrolling()
+        self._disableGuiScrolling()        
         self._selectNextResult()
 
     def _selectPriorResult(self, *args):
@@ -465,24 +475,43 @@ class Search:
     # Result Markers
 
     def _onWindowSizeChange(self, event):
-
-        if isinstance(event.widget, tk.Tk):
+        
+        
+        if isinstance(event.widget,tk.Tk):
             print("**** Window Size Change")
             print(event)
             if self._resultMarkerUpdateJob:
                 self._textField.after_cancel(self._resultMarkerUpdateJob)
                 print("**** Cancel update job")
             self._resultMarkerUpdateJob = self._textField.after(1000, self._updateResultMarkersOnResize)
+        # self._resultMarkerUpdateJob = self._textField.after_idle(self._updateResultMarkersOnResize) # not the solution
+
+    # def _onButtonPressed(self, event):
+    #     print("## Button down ##")
+    #     print(win32api.GetKeyState(0x01))
+    #     print(win32api.GetAsyncKeyState(0x01))
+    #     print(win32api.GetAsyncKeyState(0x02))
+        
+
+    # def _onButtonReleased(self, event):
+    #     print("## Button released ##")
+    #     print(win32api.GetKeyState(0x01))
+    #     print(win32api.GetAsyncKeyState(0x01))
+    #     print(win32api.GetAsyncKeyState(0x02))
+
+    # def _onButtonDownMove(self, event):
+    #     print("## Button dowm move ##")
 
     def _updateResultMarkersOnResize(self):
         self._resultMarkerUpdateJob = None
-
+        
         # check if left mouse button is still pressed (during a resize or move)
-        if (win32api.GetAsyncKeyState(0x01) == 0):
+        if (win32api.GetAsyncKeyState(0x01) == 0):            
             self._removeResultMarkers()
             self._drawResultMarkers()
         else:
             self._resultMarkerUpdateJob = self._textField.after(1000, self._updateResultMarkersOnResize)
+
 
     def _removeResultMarkers(self):
         if not self._resultMarkerUpdateJob:
@@ -494,10 +523,13 @@ class Search:
             print("Remove result markers")
 
     def _drawResultMarkers(self):
+        
+        # TODO Problem. Not able to resize window as we redraw a lot
 
         if self._showing:
 
-            # If windows resize is ongoing we should not update result markers, as it will block the resize.
+            # If windows resize is ongoing we should not try to update result markers, as it will block the resize.
+            # TODO not a good solution :( Update <Configure> called way too often when bound to root. IF not bound to root, it is not possible to move the window 
             if not self._resultMarkerUpdateJob:
                 if len(self._results) < self._resultMarkerLimit:
 
@@ -507,9 +539,9 @@ class Search:
                     # Get total number of lines
                     lastline = int(self._textField.index("end-2c").split(".")[0])
 
-                    self._repackResultMarkerFrame()
-
                     resultMarkerFrameHeight = self._resultMarkerFrame.winfo_height()
+
+                    self._repackResultMarkerFrame()
 
                     # markerColor = util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_MATCH_COLOR), Sets.SELECTED_LINE_DARKEN_COLOR)
                     markerColor = self._settings.get(Sets.SEARCH_MATCH_COLOR)
@@ -539,11 +571,11 @@ class Search:
 
                         # If window has been resized during draw, cancel draw.
                         if self._resultMarkerUpdateJob:
-                            print("Break draw ****")  # Is this needed?
+                            print("Break draw ****") # Is this needed?
                             break
 
                         resultMarker.place(relx=1, rely=location, x=0, y=markerYOffset, width=self._resultMarkerWidthPx,
-                                           height=self._resultMarkerHighPx, anchor=tk.SE)
+                                        height=self._resultMarkerHighPx, anchor=tk.SE)
                         self._resultMarkerList.append(resultMarker)
 
                         self._resultMarkerVisible = True
@@ -555,7 +587,6 @@ class Search:
             lastline = int(self._textField.index("end-2c").split(".")[0])
 
             resultMarkerFrameHeight = self._resultMarkerFrame.winfo_height()
-            print(f"result marker frame H {resultMarkerFrameHeight}")
 
             # Calculate "real" scrollbar slider size
             topVisibleLine = int(self._textField.index("@0,0").split(".")[0])
@@ -566,17 +597,20 @@ class Search:
             sliderRealSizePx = round((visibleLines/lastline) * resultMarkerFrameHeight)
             print("Slider real size: " + str(sliderRealSizePx))
 
+            
             if sliderRealSizePx < self._scrollbarWidth:
                 resultFramePadding = round((self._scrollbarWidth - sliderRealSizePx)/2) - 1  # TODO The 1 could be adjusted later maybe?
             else:
                 resultFramePadding = 0
 
             if self._lastResultFramePadding != resultFramePadding:
-                self._lastResultFramePadding = resultFramePadding
+                self._lastResultFramePadding = resultFramePadding  
 
                 self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=((self._scrollbarWidth+int(resultFramePadding)), resultFramePadding))
 
                 print("Repack result marker frame")
+
+
 
 
 #                 Traceback (most recent call last):
