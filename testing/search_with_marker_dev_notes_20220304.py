@@ -627,3 +627,84 @@ class Search:
 #   File "C:\Users\knn\AppData\Local\Programs\Python\Python39\lib\tkinter\__init__.py", line 2396, in pack_configure
 #     self.tk.call(
 # _tkinter.TclError: bad 2nd pad value "-1": must be positive screen distance
+ # def testingManyLabels(self):
+
+    #     number = 200
+
+    #     startTime = time.time()
+
+    #     self._labelList = list()
+
+    #     for i in range(number):
+    #         resultMarker = tk.Label(self._resultMarkerFrame, bg="red")
+
+    #         resultMarker.place(relx=1, rely=i/number, x=0, y=0, width=self._resultMarkerWidthPx,
+    #                            height=self._resultMarkerHighPx, anchor=tk.SE)
+
+    #         self._labelList.append(resultMarker)
+
+    #     endTime = time.time()
+
+    #     drawTime = endTime - startTime
+
+    #     print(f"Drawtime: {drawTime}")
+
+    #     self._textField.after(2000,self.deleteManyLabels)
+
+    # def deleteManyLabels(self):
+    #     # Delete all labels
+
+    #     startTime = time.time()
+    #     # for label in self._labelList:
+    #     #     label.destroy()
+
+    #     self._resultMarkerFrame.destroy() ## Also slow
+
+    #     endTime = time.time()
+
+    #     deleteTime = endTime - startTime
+    #     print(f"Delete time: {deleteTime}")
+
+    # def testingManyLines(self):
+
+    #     number = 200
+
+    #     startTime = time.time()
+
+    #     self.lineList = list()
+
+    #     for i in range(number):
+    #         # self._resultMarkerCanvas.create_rectangle(0, i, 4, 8, outline="blue", fill="red", width=2)
+    #         self.lineList.append(self._resultMarkerCanvas.create_line(0, i*2, 10, i*2, fill="red", width=2))
+
+    #     endTime = time.time()
+
+    #     drawTime = endTime - startTime
+
+    #     print(f"Drawtime: {drawTime}")
+
+    #     self._textField.after(2000,self.moveManyLines)
+
+    # def moveManyLines(self):
+    #     startTime = time.time()
+
+    #     for idx, line in enumerate(self.lineList):
+    #         self._resultMarkerCanvas.move(line, 0, idx*2 + 10)
+
+    #     endTime = time.time()
+
+    #     moveTime = endTime - startTime
+
+    #     print(f"Movetime: {moveTime}")
+
+    #     self._textField.after(2000,self.deleteManyLines)
+
+    # def deleteManyLines(self):
+    #     startTime = time.time()
+
+    #     self._resultMarkerCanvas.delete("all")
+
+    #     endTime = time.time()
+
+    #     deleteTime = endTime - startTime
+    #     print(f"Delete time: {deleteTime}")

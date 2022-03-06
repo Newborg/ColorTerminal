@@ -3,21 +3,13 @@ from tkinter.font import Font
 import time
 from tracemalloc import start
 import util
+import math
 
 import settings as Sets
 
 import win32api
 #import win32.lib.win32con as win32con
 
-
-# We still have performance problems regarding result markers
-# Live update together with many markers is a problem.
-# Maybe draw and rectangles is faster?
-# Just resizing the window is slow, point to a problem with many labels (+150)
-
-# We will try to go with lines in a canvas for the next iteration.
-# For this to work, we will have to resize and rescale the canvas ourselves when the window is resized. It will look weird on resize, but that should not be a big problem.
-# We should be able to set the delay between resize and redraw to a much lower number when, due to the mouse button check.
 
 class Search:
 
@@ -29,9 +21,12 @@ class Search:
         self._guiWorker = None
         self._showing = False
 
-        self._resultMarkerHighPx = 4
+        self._resultMarkerMinHeightPx = 4
         self._resultMarkerWidthPx = 10
-        self._resultMarkerLimit = 200
+        self._resultMarkerLimit = 1000
+
+        self._lastWindowHeightPx = 0
+        self._lastWindowWidthPx = 0
 
         self._searchJob = None
 
@@ -72,7 +67,7 @@ class Search:
 
             try:
                 self._view.destroy()
-                self._resultMarkerFrame.destroy()
+                self._resultMarkerCanvas.destroy()
                 self._showing = False
             except AttributeError:
                 pass
@@ -104,20 +99,10 @@ class Search:
             self._showing = True
 
             # # Result markers
-            # self._resultMarkerFrame = tk.Frame(self._textField,width=self._resultMarkerWidthPx,bg=self._settings.get(Sets.TEXTAREA_BACKGROUND_COLOR))
-            # self._resultMarkerFrame = tk.Frame(self._textField, width=self._resultMarkerWidthPx, bg="green")
-            # self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=(self._scrollbarWidth, 0))
-            self._resultMarkerList = list()
-
-            # self._textField.after_idle(self.testingManyLabels)
-
             self._resultMarkerCanvas = tk.Canvas(self._textField, width=self._resultMarkerWidthPx, bg="green", highlightthickness=0)
             self._resultMarkerCanvas.pack(side=tk.RIGHT, fill=tk.Y, pady=(self._scrollbarWidth, 0))
 
-            self._textField.after_idle(self.testingManyRect)
-            
-
-            # self._root.bind("<Configure>", self._onWindowSizeChange)  # Called very often as it binds to all widgets
+            self._root.bind("<Configure>", self._onWindowSizeChange)  # Called very often as it binds to all widgets
 
             self._lastResultFramePadding = 0
             self._resultMarkerUpdateJob = None
@@ -186,8 +171,6 @@ class Search:
             # Init search field
             self._textField.after_idle(self._initiateSearchField)  # As not all elements are ready for search as this point, after_idle is used.
 
-            
-
         else:
 
             self._entry.focus_set()
@@ -198,74 +181,6 @@ class Search:
 
             # Select all text
             self._entry.select_range(0, tk.END)
-
-    def testingManyLabels(self):
-
-        number = 200
-
-        startTime = time.time() 
-
-        self._labelList = list()
-
-        for i in range(number):
-            resultMarker = tk.Label(self._resultMarkerFrame, bg="red")
-
-            resultMarker.place(relx=1, rely=i/number, x=0, y=0, width=self._resultMarkerWidthPx,
-                               height=self._resultMarkerHighPx, anchor=tk.SE)
-                            
-            self._labelList.append(resultMarker)
-
-        endTime = time.time() 
-
-        drawTime = endTime - startTime
-
-        print(f"Drawtime: {drawTime}")
-
-        self._textField.after(2000,self.deleteManyLabels)
-
-
-        
-    def deleteManyLabels(self):
-        # Delete all labels
-
-        startTime = time.time() 
-        # for label in self._labelList:
-        #     label.destroy()
-
-        self._resultMarkerFrame.destroy() ## Also slow
-
-        endTime = time.time() 
-
-        deleteTime = endTime - startTime
-        print(f"Delete time: {deleteTime}")
-    
-    def testingManyRect(self):
-            
-        number = 200
-
-        startTime = time.time() 
-
-        for i in range(number):
-            # self._resultMarkerCanvas.create_rectangle(0, i, 4, 8, outline="blue", fill="red", width=2)
-            self._resultMarkerCanvas.create_line(0, i*3, 10, i*3, fill="red", width=4)
-
-        endTime = time.time() 
-
-        drawTimeMaybe = endTime - startTime
-
-        print(f"Drawtime: {drawTimeMaybe}")
-
-        self._textField.after(2000,self.deleteManyLines)
-
-    def deleteManyLines(self):
-        startTime = time.time() 
-        
-        self._resultMarkerCanvas.delete("all")
-
-        endTime = time.time() 
-
-        deleteTime = endTime - startTime
-        print(f"Delete time: {deleteTime}")
 
     def _initiateSearchField(self):
         if self._textField.tag_ranges(tk.SEL):
@@ -331,12 +246,8 @@ class Search:
 
                     self._updateSelectedResultTags()
 
-                # Update result markers (might be slow?)
-                if self._resultMarkerVisible:
-                    self._removeResultMarkers()  # Instead of removing, we might be able to just move the existing markers?
-                    self._drawResultMarkers()
-                elif len(self._results) < self._resultMarkerLimit:
-                    self._drawResultMarkers()
+                if not self._resultMarkerUpdateJob:
+                    self._resultMarkerUpdateJob = self._textField.after_idle(self._updateResultMarkers)
 
             self._updateResultInfo()
 
@@ -373,14 +284,14 @@ class Search:
             self._textField.tag_remove(self.TAG_SEARCH_SELECT_BG, 1.0, tk.END)
             self._textField.tag_remove(self.TAG_SEARCH, 1.0, tk.END)
 
-            # Remove all result marker on scroll bar
-            self._removeResultMarkers()  # Why remove it here? Maybe the search job should do this?
-
             # Start search at selection or first visible line
             if self._textField.tag_ranges(tk.SEL):
                 self._searchJobStartTextIndex = self._textField.index(tk.SEL_FIRST)
             else:
                 self._searchJobStartTextIndex = self._textField.index("@0,0")
+
+            # Remove all result marker at scroll bar
+            self._removeResultMarkers()
 
             # Reset result lists
             self._results = list()
@@ -399,7 +310,7 @@ class Search:
                 if self._guiWorker:
                     self._guiWorker.stopWorker()
 
-                self._searchJob = self._textField.after(0, self._searchProcess, string, self._searchJobStartTextIndex)
+                self._searchJob = self._textField.after_idle(self._searchProcess, string, self._searchJobStartTextIndex)
 
             self._updateResultInfo()
 
@@ -460,7 +371,7 @@ class Search:
             self._searchJobFirstResultListIndex = 0
             self._searchJobResultSelected = False
 
-            self._drawResultMarkers()
+            self._drawResultMarkerLines()
 
             if self._results:
                 # Disable scrolling of window if a result has been found. Otherwise we will quickly move past the selected result.
@@ -554,130 +465,112 @@ class Search:
 
     def _onWindowSizeChange(self, event):
 
+        # Check if event is from root widget
         if isinstance(event.widget, tk.Tk):
-            print("**** Window Size Change")
-            print(event)
+
+            # Resize event (no need to update markers on a move event, but we do it anyway for now)
+            if event.width != self._lastWindowWidthPx or event.height != self._lastWindowHeightPx:
+                self._lastWindowWidthPx = event.width
+                self._lastWindowHeightPx = event.height
+                # print("**** Window Resize")
+            else:
+                # print("**** Window Move")
+                pass
+
             if self._resultMarkerUpdateJob:
                 self._textField.after_cancel(self._resultMarkerUpdateJob)
-                print("**** Cancel update job")
-            self._resultMarkerUpdateJob = self._textField.after(1000, self._updateResultMarkersOnResize)
+                # print("**** Cancel update job")
+            self._resultMarkerUpdateJob = self._textField.after(100, self._updateResultMarkers)
 
-    def _updateResultMarkersOnResize(self):
-        self._resultMarkerUpdateJob = None
-
+    def _updateResultMarkers(self):
         # check if left mouse button is still pressed (during a resize or move)
         if (win32api.GetAsyncKeyState(0x01) == 0):
+            self._resultMarkerUpdateJob = None
             self._removeResultMarkers()
-            self._drawResultMarkers()
+            self._drawResultMarkerLines()
         else:
-            self._resultMarkerUpdateJob = self._textField.after(1000, self._updateResultMarkersOnResize)
+            self._resultMarkerUpdateJob = self._textField.after(100, self._updateResultMarkers)
 
     def _removeResultMarkers(self):
         if not self._resultMarkerUpdateJob:
-            for label in self._resultMarkerList:
-                label.destroy()
-            self._resultMarkerList.clear()
-            self._resultMarkerVisible = False
+            self._resultMarkerCanvas.delete("all")
+            # print("Remove result markers")
 
-            print("Remove result markers")
-
-    def _drawResultMarkers(self):
+    def _drawResultMarkerLines(self):
 
         if self._showing:
 
-            # If windows resize is ongoing we should not update result markers, as it will block the resize.
+            # If windows resize or move is ongoing we should not update result markers, as it will block the resize.
             if not self._resultMarkerUpdateJob:
                 if len(self._results) < self._resultMarkerLimit:
 
-                    print("Redraw result markers")
+                    # print("Redraw result markers")
 
-                    # Add result label to scrollbar
+                    canvasHeightPx = self._resultMarkerCanvas.winfo_height()
+                    # print(f"result marker canvas H {canvasHeightPx}")
+
+                    canvasYPadding = self._calcCanvasYPadding(canvasHeightPx)
+
+                    # Height of area where marker are allowed to be placed
+                    resultMarkerAreaHeightPx = canvasHeightPx - (2 * canvasYPadding)
+
                     # Get total number of lines
                     lastline = int(self._textField.index("end-2c").split(".")[0])
 
-                    self._repackResultMarkerFrame()
-
-                    resultMarkerFrameHeight = self._resultMarkerFrame.winfo_height()
+                    # Calculate height of each result marker, based on total number of lines
+                    markerHeightPx = round(resultMarkerAreaHeightPx/lastline)
+                    if markerHeightPx < self._resultMarkerMinHeightPx:
+                        markerHeightMinLimitPx = self._resultMarkerMinHeightPx
+                    else:
+                        markerHeightMinLimitPx = markerHeightPx
 
                     # markerColor = util.lightOrDarkenColor(self._settings.get(Sets.SEARCH_MATCH_COLOR), Sets.SELECTED_LINE_DARKEN_COLOR)
                     markerColor = self._settings.get(Sets.SEARCH_MATCH_COLOR)
 
-                    # markerYOffset = self._resultMarkerHighPx/2 # Not used for now.
-                    markerYOffset = 0
-                    # print("Line offset: " + str(self._lineNumberDeleteOffset))
-
-                    # resultMarker = tk.Label(self._resultMarkerFrame, bg="red")
-                    # resultMarker.place(relx=1, rely=0, x=2, y=markerYOffset, width=self._resultMarkerWidthPx, height=self._resultMarkerHighPx, anchor=tk.SE)
-                    # print("Marker y pos: " + str(resultMarker.winfo_y()))
-
-                    #     width = widget.winfo_width()
-                    #     height = widget.winfo_height()
-                    #     posx = widget.winfo_x()
-                    #     posy = widget.winfo_y()
-
-                    minimumRatio = (self._resultMarkerHighPx-markerYOffset)/resultMarkerFrameHeight
+                    minYPos = math.ceil(markerHeightMinLimitPx/2)
+                    maxYPos = canvasHeightPx - minYPos
 
                     for result in self._results:
 
-                        resultMarker = tk.Label(self._resultMarkerFrame, bg=markerColor)
+                        yPosition = round(((result.originalLineNumber - self._lineNumberDeleteOffset)/lastline) * resultMarkerAreaHeightPx)
 
-                        location = (result.originalLineNumber - self._lineNumberDeleteOffset)/lastline
-                        if location < minimumRatio:
-                            location = minimumRatio
+                        # Center result marker line in "text line group"
+                        yPosition = yPosition - round(markerHeightPx/2)
 
-                        # If window has been resized during draw, cancel draw.
-                        if self._resultMarkerUpdateJob:
-                            print("Break draw ****")  # Is this needed?
-                            break
+                        # Add Ypadding
+                        yPosition = yPosition + canvasYPadding
 
-                        resultMarker.place(relx=1, rely=location, x=0, y=markerYOffset, width=self._resultMarkerWidthPx,
-                                           height=self._resultMarkerHighPx, anchor=tk.SE)
-                        self._resultMarkerList.append(resultMarker)
+                        if yPosition < minYPos:
+                            yPosition = minYPos
+                        elif yPosition > maxYPos:
+                            yPosition = maxYPos
 
-                        self._resultMarkerVisible = True
+                        self._resultMarkerCanvas.create_line(0, yPosition, self._resultMarkerWidthPx, yPosition,
+                                                             fill=markerColor, width=markerHeightMinLimitPx)
 
-    def _repackResultMarkerFrame(self):
+    def _calcCanvasYPadding(self, resultMarkerCanvasHeightPx):
 
-        if self._showing:
-            # Get total number of lines
-            lastline = int(self._textField.index("end-2c").split(".")[0])
+        # Get total number of lines
+        lastline = int(self._textField.index("end-2c").split(".")[0])
 
-            resultMarkerFrameHeight = self._resultMarkerFrame.winfo_height()
-            print(f"result marker frame H {resultMarkerFrameHeight}")
+        # Calculate "real" scrollbar slider size (actual scrollbar has a minimum size)
+        topVisibleLine = int(self._textField.index("@0,0").split(".")[0])
+        bottomVisibleLine = int(self._textField.index("@0,%d" % self._textField.winfo_height()).split(".")[0])
+        visibleLines = bottomVisibleLine - topVisibleLine
+        # print("Visible lines: " + str(visibleLines))
 
-            # Calculate "real" scrollbar slider size
-            topVisibleLine = int(self._textField.index("@0,0").split(".")[0])
-            bottomVisibleLine = int(self._textField.index("@0,%d" % self._textField.winfo_height()).split(".")[0])
-            visibleLines = bottomVisibleLine - topVisibleLine
-            print("Visible lines: " + str(visibleLines))
+        sliderRealSizePx = round((visibleLines/lastline) * resultMarkerCanvasHeightPx)
+        # print("Slider real size: " + str(sliderRealSizePx))
 
-            sliderRealSizePx = round((visibleLines/lastline) * resultMarkerFrameHeight)
-            print("Slider real size: " + str(sliderRealSizePx))
+        # If "real" scrollbar is smaller than actual scrollbar, add padding
+        if sliderRealSizePx < self._scrollbarWidth:
+            canvasYPadding = round((self._scrollbarWidth - sliderRealSizePx)/2) - 1
+            # For some reason, 1/2 can round to 0.
+            if canvasYPadding < 0:
+                canvasYPadding = 0
+        else:
+            canvasYPadding = 0
 
-            if sliderRealSizePx < self._scrollbarWidth:
-                resultFramePadding = round((self._scrollbarWidth - sliderRealSizePx)/2) - 1  # TODO The 1 could be adjusted later maybe?
-            else:
-                resultFramePadding = 0
+        # print(f"Canvas Y padding: {canvasYPadding}")
 
-            if self._lastResultFramePadding != resultFramePadding:
-                self._lastResultFramePadding = resultFramePadding
-
-                self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=((self._scrollbarWidth+int(resultFramePadding)), resultFramePadding))
-
-                print("Repack result marker frame")
-
-
-#                 Traceback (most recent call last):
-#   File "C:\Users\knn\AppData\Local\Programs\Python\Python39\lib\tkinter\__init__.py", line 1892, in __call__
-#     return self.func(*args)
-#   File "C:\Users\knn\AppData\Local\Programs\Python\Python39\lib\tkinter\__init__.py", line 814, in callit
-#     func(*args)
-#   File "C:\tools\ColorTerminal/colorterminal\search.py", line 483, in _updateResultMarkersOnResize
-#     self._drawResultMarkers()
-#   File "C:\tools\ColorTerminal/colorterminal\search.py", line 516, in _drawResultMarkers
-#     self._repackResultMarkerFrame()
-#   File "C:\tools\ColorTerminal/colorterminal\search.py", line 581, in _repackResultMarkerFrame
-#     self._resultMarkerFrame.pack(side=tk.RIGHT, fill=tk.Y, pady=((self._scrollbarWidth+int(resultFramePadding)), resultFramePadding))
-#   File "C:\Users\knn\AppData\Local\Programs\Python\Python39\lib\tkinter\__init__.py", line 2396, in pack_configure
-#     self.tk.call(
-# _tkinter.TclError: bad 2nd pad value "-1": must be positive screen distance
+        return canvasYPadding

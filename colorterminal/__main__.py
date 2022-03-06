@@ -366,7 +366,7 @@ def addDataToProcessQueue(*args):
 
     print("Debug, lines loaded: " + str(len(lines)))
 
-    linesToAdd = 1000
+    linesToAdd = 3500
 
     loops = int(linesToAdd / len(lines))
 
