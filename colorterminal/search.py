@@ -99,7 +99,7 @@ class Search:
             self._showing = True
 
             # # Result markers
-            self._resultMarkerCanvas = tk.Canvas(self._textField, width=self._resultMarkerWidthPx, bg="green", highlightthickness=0)
+            self._resultMarkerCanvas = tk.Canvas(self._textField, width=self._resultMarkerWidthPx, bg=self._settings.get(Sets.TEXTAREA_BACKGROUND_COLOR), highlightthickness=0)            
             self._resultMarkerCanvas.pack(side=tk.RIGHT, fill=tk.Y, pady=(self._scrollbarWidth, 0))
 
             self._root.bind("<Configure>", self._onWindowSizeChange)  # Called very often as it binds to all widgets
