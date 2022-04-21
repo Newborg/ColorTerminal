@@ -18,6 +18,10 @@ def createLineColorTagName(regex):
 
 class TextFrame:
 
+    def synced_yview(self, *args):
+        self.lineNumberArea.yview(*args)
+        self.textArea.yview(*args)
+
     def __init__(self,settings,root,comController):
         self._settings = settings
         self._root = root
@@ -35,16 +39,36 @@ class TextFrame:
 
         tFont = Font(family=self._settings.get(Sets.TEXTAREA_FONT_FAMILY), size=self._settings.get(Sets.TEXTAREA_FONT_SIZE))
 
-        self.textArea = tk.Text(self._textFrame, height=1, width=1, background=self._settings.get(Sets.TEXTAREA_BACKGROUND_COLOR),\
+        self.canvas = tk.Canvas(self._textFrame)
+        self.scrollbar = tk.Scrollbar(self._textFrame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas)
+
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(
+                scrollregion=self.canvas.bbox("all")
+            )
+        )
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        self.lineNumberArea = tk.Text(self.scrollable_frame, height=1, width=6, foreground="blue", font=tFont)
+
+        self.textArea = tk.Text(self.scrollable_frame, height=10, width=100, background=self._settings.get(Sets.TEXTAREA_BACKGROUND_COLOR),\
                                 selectbackground=self._settings.get(Sets.TEXTAREA_SELECT_BACKGROUND_COLOR),\
                                 foreground=self._settings.get(Sets.TEXTAREA_COLOR), font=tFont)
 
         self.textArea.config(state=tk.DISABLED)
 
+
+
         # Set up scroll bars
-        yscrollbar=tk.Scrollbar(self._textFrame, orient=tk.VERTICAL, command=self.textArea.yview)
-        yscrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.textArea["yscrollcommand"]=yscrollbar.set
+        # yscrollbar=tk.Scrollbar(self._textFrame, orient=tk.VERTICAL, command=self.synced_yview)
+        # yscrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        # self.lineNumberArea["yscrollcommand"]=yscrollbar.set
+        # self.textArea["yscrollcommand"]=yscrollbar.set
 
         # Xscrollbar will be hidden if line wrap is on
         self._xscrollbar=tk.Scrollbar(self._textFrame, orient=tk.HORIZONTAL, command=self.textArea.xview)
@@ -52,7 +76,11 @@ class TextFrame:
 
         self.updateLineWrap(self._settings.get(Sets.TEXTAREA_LINE_WRAP))
 
-        self.textArea.pack(anchor=tk.W, fill=tk.BOTH, expand = tk.YES)
+        self.lineNumberArea.pack(side=tk.LEFT, fill=tk.Y)
+        # self.lineNumberArea.pack(anchor=tk.W, side=tk.LEFT, fill=tk.Y)
+
+        # self.textArea.pack(anchor=tk.W, fill=tk.BOTH, expand = tk.YES)
+        
 
 
         self.textArea.tag_configure(Sets.CONNECT_COLOR_TAG, background=Sets.CONNECT_LINE_BACKGROUND_COLOR, selectbackground=Sets.CONNECT_LINE_SELECT_BACKGROUND_COLOR)
@@ -66,7 +94,13 @@ class TextFrame:
 
         self._textFrame.pack(side=tk.TOP, fill=tk.BOTH, expand = tk.YES)
 
-        self._search = search.Search(self._root, self._settings, yscrollbar.cget("width"))
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+        self.textArea.pack(side=tk.LEFT, fill=tk.BOTH, expand = tk.YES)
+
+        # self._search = search.Search(self._root, self._settings, yscrollbar.cget("width"))
+        self._search = search.Search(self._root, self._settings, 12)
         self._search.linkTextArea(self.textArea)
         self._root.bind('<Control-f>', self._search.show)
 
