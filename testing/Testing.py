@@ -1,4 +1,43 @@
 #####################################
+# List loop sum and average
+
+listA = [1,2,3,4,5,6,7,8]
+# listA = [10,10,10,10,10,10,10,10]
+
+averagePeriod = 6
+averageWindowSize = 3
+
+averagingStart_index = len(listA) - averagePeriod
+
+colorAverageList = list()
+colorSum = 0
+
+for idx, colorValue in enumerate(listA[averagingStart_index:]):    
+
+    listIndex = averagingStart_index + idx
+
+    print("Index: " + str(idx) + ". Color: " + str(colorValue))
+    
+    if idx < (averageWindowSize):
+        colorSum += colorValue
+        print("ColorSum: " + str(colorSum))
+    else:
+        
+        colorSum = colorSum + colorValue - listA[listIndex-averageWindowSize]
+        colorAverageList.append(colorSum/averageWindowSize)
+        print("ColorSum 2: " + str(colorSum))
+
+    print("*****")
+
+print(colorAverageList)
+    
+
+
+
+exit()
+
+
+#####################################
 # Insert in the middle of lost
 
 listA = [1,2,3,4,5]

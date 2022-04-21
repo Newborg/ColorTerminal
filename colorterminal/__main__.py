@@ -356,7 +356,7 @@ guiWorkerObj.startWorker()
 
 # BULK DATA LOAD FOR DEBUG
 
-# _logFile = r"_testing\log_example_small.txt"
+# _logFile = r"testing\log_example_small.txt"
 
 # from customTypes import SerialLine
 

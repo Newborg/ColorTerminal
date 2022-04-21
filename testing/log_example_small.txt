@@ -38,3 +38,5 @@
 38 GUI::GUIMasterStateMachine=>Measure progress  34
 39 GUI::GUIMasterStateMachine=>Completed transition onFOSS::Bifrost::T123::MeasureProgress to nil
 40 GUI::GUIMasterStateMachine=>Beginning transition onFOSS::Bifrost::T123::MeasureProgress from MeasureMode
+41 A
+42
