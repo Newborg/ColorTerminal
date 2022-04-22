@@ -52,8 +52,18 @@ class TextFrame:
 
         self.updateLineWrap(self._settings.get(Sets.TEXTAREA_LINE_WRAP))
 
+        self.textAreaIn1 = tk.Text(self.textArea, height=1, width=10, background="red", selectbackground="green", foreground="blue", font=tFont)
+        self.textAreaIn2 = tk.Text(self.textArea, height=1, width=10, background="red", selectbackground="green", foreground="blue", font=tFont)
+        self.textAreaIn3 = tk.Text(self.textArea, height=1, width=10, background="red", selectbackground="green", foreground="blue", font=tFont)
+
+
+        self.textArea.window_create("1.0", window=self.textAreaIn1)
+        self.textArea.window_create("2.0", window=self.textAreaIn2)
+        self.textArea.window_create("3.0", window=self.textAreaIn3)
+
         self.textArea.pack(anchor=tk.W, fill=tk.BOTH, expand = tk.YES)
 
+        # self.textAreaIn.pack(side=tk.LEFT)
 
         self.textArea.tag_configure(Sets.CONNECT_COLOR_TAG, background=Sets.CONNECT_LINE_BACKGROUND_COLOR, selectbackground=Sets.CONNECT_LINE_SELECT_BACKGROUND_COLOR)
         self.textArea.tag_configure(Sets.DISCONNECT_COLOR_TAG, background=Sets.DISCONNECT_LINE_BACKGROUND_COLOR, selectbackground=Sets.DISCONNECT_LINE_SELECT_BACKGROUND_COLOR)
